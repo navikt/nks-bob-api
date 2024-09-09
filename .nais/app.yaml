@@ -16,14 +16,14 @@ spec:
   resources:
     requests:
       cpu: 200m
-      memory: 256Mi
-  accessPolicy:
-    inbound:
-      rules:
-        - application: nks-bob
-    outbound:
-      rules:
-        - application: nks-kbs
+      memory: 512Mi
+  #  accessPolicy:
+  #    inbound:
+  #      rules:
+  #        - application: nks-bob
+  #    outbound:
+  #      rules:
+  #        - application: nks-kbs
   azure:
     application:
       tenant: nav.no # Gjør at man kan logge på med vanlig konto i dev-gcp

@@ -14,15 +14,15 @@ fun Application.configureSwagger() {
             swaggerUrl = "swagger-ui"
             forwardRoot = true
         }
-        info {
-            title = "Example API"
-            version = "latest"
-            description = "Example API for testing and demonstration purposes."
-        }
-        server {
-            url = "http://localhost:8080"
-            description = "Development Server"
-        }
+//        info {
+//            title = "Example API"
+//            version = "latest"
+//            description = "Example API for testing and demonstration purposes."
+//        }
+//        server {
+//            url = "http://localhost:8080"
+//            description = "Development Server"
+//        }
     }
 //    routing {
 //        openAPI(path = "openapi", swaggerFile = "openapi/documentation.yaml")
