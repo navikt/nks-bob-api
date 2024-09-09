@@ -1,0 +1,55 @@
+package no.nav.nks_ai.plugins
+
+import io.ktor.server.application.*
+import kotlinx.datetime.LocalDateTime
+import no.nav.nks_ai.conversation.ConversationDAO
+import no.nav.nks_ai.conversation.Conversations
+import no.nav.nks_ai.feedback.FeedbackDAO
+import no.nav.nks_ai.feedback.Feedbacks
+import no.nav.nks_ai.message.MessageDAO
+import no.nav.nks_ai.message.Messages
+import no.nav.nks_ai.now
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.transaction
+import java.util.UUID
+
+fun Application.configureDatabases() {
+    // TODO postgres setup
+    val database = Database.connect(
+        url = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
+        user = "root",
+        driver = "org.h2.Driver",
+        password = "",
+    )
+
+    // TODO flyway migrations
+    transaction(database) {
+        SchemaUtils.create(Conversations, Messages, Feedbacks)
+
+        // test data
+        val conversation = ConversationDAO.new(UUID.fromString("6cf0b651-e5f1-4148-a2e1-9634e6cfa29e")) {
+            this.createdAt = LocalDateTime.now()
+            this.title = "test conversation"
+        }
+
+//        (1..10).map {
+        MessageDAO.new(UUID.fromString("0eb79520-93a2-41aa-aa88-819fe15600e0")) {
+            this.content = "message #1"
+            this.createdAt = LocalDateTime.now()
+            this.conversation = conversation
+        }
+//        }
+
+        val feedback = FeedbackDAO.new {
+            this.liked = true
+            this.createdAt = LocalDateTime.now()
+        }
+
+        MessageDAO.new {
+            this.content = "message #2"
+            this.createdAt = LocalDateTime.now()
+            this.conversation = conversation
+            this.feedback = feedback
+        }
+    }
+}

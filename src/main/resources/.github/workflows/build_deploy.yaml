@@ -1,0 +1,51 @@
+name: Build and deploy
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: "write"
+      contents: "read"
+      id-token: "write"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bygg og publiser docker bilde
+        uses: nais/docker-build-push@v0
+        id: docker-build-push
+        with:
+          team: nks-aiautomatisering
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+    outputs:
+      image: ${{ steps.docker-build-push.outputs.image }}
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: "write"
+      contents: "read"
+      id-token: "write"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy development
+        uses: nais/deploy/actions/deploy@v2
+        env:
+          IMAGE: ${{ needs.build.outputs.image }}
+          CLUSTER: dev-gcp
+          RESOURCE: .nais/app.yaml
+          VAR: ingress=nks-bob-api.ansatt.dev.nav.no
+      # - name: Deploy produksjon
+      #   uses: nais/deploy/actions/deploy@v2
+      #   if: contains(github.ref, 'refs/tags/v')
+      #   env:
+      #     IMAGE: ${{ needs.build.outputs.image }}
+      #     CLUSTER: prod-gcp
+      #     RESOURCE: .nais/app.yaml
+      #     VAR: ingress=nks-bob-api.ansatt.nav.no
+
