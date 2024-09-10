@@ -1,5 +1,6 @@
 package no.nav.nks_ai.conversation
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.request.receiveNullable
@@ -12,6 +13,7 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
+import no.nav.nks_ai.getNavIdent
 import no.nav.nks_ai.message.Message
 import no.nav.nks_ai.message.MessageRepo
 import no.nav.nks_ai.message.MessageService
@@ -112,12 +114,19 @@ class ConversationService(val conversationRepo: ConversationRepo, val messageRep
         conversationRepo.updateConversation(id, conversation)
 }
 
+private val logger = KotlinLogging.logger {}
+
 fun Route.conversationRoutes(
     conversationService: ConversationService,
     messageService: MessageService
 ) {
     route("/conversations") {
         get {
+            val navIdent = this@route.getNavIdent(call)
+            logger.info {
+                "NavIdent: $navIdent"
+            }
+
             conversationService.getAllConversations()
                 .let { call.respond(it) }
         }
