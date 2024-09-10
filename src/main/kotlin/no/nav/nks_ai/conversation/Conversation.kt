@@ -116,7 +116,6 @@ fun Route.conversationRoutes(
     conversationService: ConversationService,
     messageService: MessageService
 ) {
-//        authenticate {
     route("/conversations") {
         get {
             conversationService.getAllConversations()
@@ -127,7 +126,7 @@ fun Route.conversationRoutes(
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
 
             val conversation = conversationService.addConversation(newConversation)
-            // TODO nullable?
+            // TODO error?
             call.respond(conversation)
         }
         get("/{id}") {
@@ -146,7 +145,7 @@ fun Route.conversationRoutes(
                 ?: return@delete call.respond(HttpStatusCode.BadRequest)
 
             conversationService.deleteConversation(conversationId)
-            // TODO response
+            call.respond(HttpStatusCode.NoContent)
         }
         put("/{id}") {
             val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
@@ -184,5 +183,4 @@ fun Route.conversationRoutes(
             call.respond(message)
         }
     }
-//    }
 }

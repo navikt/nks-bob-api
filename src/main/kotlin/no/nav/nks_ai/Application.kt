@@ -1,5 +1,7 @@
 package no.nav.nks_ai
 
+import io.github.smiley4.ktorswaggerui.routing.openApiSpec
+import io.github.smiley4.ktorswaggerui.routing.swaggerUI
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.EngineMain
@@ -49,6 +51,12 @@ fun Application.module() {
         }
         route("/internal") {
             healthRoutes()
+        }
+        route("/swagger-ui") {
+            swaggerUI("/swagger-ui/api.json")
+            route("/api.json") {
+                openApiSpec()
+            }
         }
     }
 }
