@@ -24,13 +24,14 @@ import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.UUIDTable
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
 
 object Conversations : UUIDTable() {
     val title = varchar("title", 255)
     val createdAt = datetime("created_at")
-//    val createdBy = varchar("created_by", 255) // TODO ref med NAV-ident
+    val owner = varchar("owner", 255)
 }
 
 class ConversationDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -38,13 +39,22 @@ class ConversationDAO(id: EntityID<UUID>) : UUIDEntity(id) {
 
     var title by Conversations.title
     var createdAt by Conversations.createdAt
-//    var createdBy by Conversations.createdBy
+    var owner by Conversations.owner
 }
+
+fun ConversationDAO.Companion.findByIdAndNavIdent(
+    conversationId: UUID,
+    navIdent: String
+): ConversationDAO? =
+    find {
+        Conversations.id eq conversationId and (Conversations.owner eq navIdent)
+    }.firstOrNull()
 
 fun ConversationDAO.toModel() = Conversation(
     id = id.toString(),
     title = title,
-    createdAt = createdAt
+    createdAt = createdAt,
+    owner = owner,
 )
 
 @Serializable
@@ -52,44 +62,54 @@ data class Conversation(
     val id: String,
     val title: String,
     val createdAt: LocalDateTime,
+    val owner: String,
 )
 
 @Serializable
-data class NewConversation(val title: String)
+data class NewConversation(
+    val title: String,
+    val navIdent: String
+)
+
+@Serializable
+data class UpdateConversation(
+    val title: String,
+)
 
 class ConversationRepo() {
     suspend fun addConversation(conversation: NewConversation): Conversation =
         suspendTransaction {
             ConversationDAO.new {
                 title = conversation.title
+                owner = conversation.navIdent
                 createdAt = LocalDateTime.now()
             }.toModel()
         }
 
-    suspend fun deleteConversation(conversationId: UUID): Unit =
+    suspend fun deleteConversation(conversationId: UUID, navIdent: String): Unit =
         suspendTransaction {
-            ConversationDAO.findById(conversationId)?.delete()
+            ConversationDAO.findByIdAndNavIdent(conversationId, navIdent)?.delete()
         }
 
-    // TODO createdBy
-    suspend fun getConversation(conversationId: UUID): Conversation? =
+    suspend fun getConversation(conversationId: UUID, navIdent: String): Conversation? =
         suspendTransaction {
-            ConversationDAO.findById(conversationId)
+            ConversationDAO.findByIdAndNavIdent(conversationId, navIdent)
                 ?.toModel()
         }
 
-    // TODO createdBy
-    suspend fun getAllConversations(): List<Conversation> =
+    suspend fun getAllConversations(navIdent: String): List<Conversation> =
         suspendTransaction {
-            ConversationDAO.all()
+            ConversationDAO.find { Conversations.owner eq navIdent }
                 .map { it.toModel() }
         }
 
-    suspend fun updateConversation(id: UUID, conversation: NewConversation): Conversation? =
+    suspend fun updateConversation(id: UUID, navIdent: String, conversation: UpdateConversation): Conversation? =
         suspendTransaction {
-            ConversationDAO.findByIdAndUpdate(id) {
-                it.title = conversation.title
-            }?.toModel()
+            ConversationDAO
+                .findByIdAndNavIdent(id, navIdent)
+                ?.apply {
+                    title = conversation.title
+                }?.toModel()
         }
 }
 
@@ -98,20 +118,24 @@ class ConversationService(val conversationRepo: ConversationRepo, val messageRep
         conversationRepo.addConversation(conversation)
 
     // TODO metrics
-    suspend fun getConversation(conversationId: UUID): Conversation? =
-        conversationRepo.getConversation(conversationId)
+    suspend fun getConversation(conversationId: UUID, navIdent: String): Conversation? =
+        conversationRepo.getConversation(conversationId, navIdent)
 
-    suspend fun getAllConversations(): List<Conversation> =
-        conversationRepo.getAllConversations()
+    suspend fun getAllConversations(navIdent: String): List<Conversation> =
+        conversationRepo.getAllConversations(navIdent)
 
-    suspend fun getConversationMessages(conversationId: UUID): List<Message> =
-        messageRepo.getMessagesByConversation(conversationId)
+    suspend fun getConversationMessages(conversationId: UUID, navIdent: String): List<Message> {
+        conversationRepo.getConversation(conversationId, navIdent)
+            ?: return emptyList()
 
-    suspend fun deleteConversation(conversationId: UUID): Unit =
-        conversationRepo.deleteConversation(conversationId)
+        return messageRepo.getMessagesByConversation(conversationId)
+    }
 
-    suspend fun updateConversation(id: UUID, conversation: NewConversation) =
-        conversationRepo.updateConversation(id, conversation)
+    suspend fun deleteConversation(conversationId: UUID, navIdent: String): Unit =
+        conversationRepo.deleteConversation(conversationId, navIdent)
+
+    suspend fun updateConversation(id: UUID, navIdent: String, conversation: UpdateConversation) =
+        conversationRepo.updateConversation(id, navIdent, conversation)
 }
 
 private val logger = KotlinLogging.logger {}
@@ -122,12 +146,10 @@ fun Route.conversationRoutes(
 ) {
     route("/conversations") {
         get {
-            val navIdent = this@route.getNavIdent(call)
-            logger.info {
-                "NavIdent: $navIdent"
-            }
+            val navIdent = call.getNavIdent()
+                ?: return@get call.respond(HttpStatusCode.Forbidden)
 
-            conversationService.getAllConversations()
+            conversationService.getAllConversations(navIdent)
                 .let { call.respond(it) }
         }
         post {
@@ -142,7 +164,10 @@ fun Route.conversationRoutes(
             val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
 
-            val conversation = conversationService.getConversation(conversationId)
+            val navIdent = call.getNavIdent()
+                ?: return@get call.respond(HttpStatusCode.Forbidden)
+
+            val conversation = conversationService.getConversation(conversationId, navIdent)
             if (conversation == null) {
                 return@get call.respond(HttpStatusCode.NotFound)
             }
@@ -153,17 +178,23 @@ fun Route.conversationRoutes(
             val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
                 ?: return@delete call.respond(HttpStatusCode.BadRequest)
 
-            conversationService.deleteConversation(conversationId)
+            val navIdent = call.getNavIdent()
+                ?: return@delete call.respond(HttpStatusCode.Forbidden)
+
+            conversationService.deleteConversation(conversationId, navIdent)
             call.respond(HttpStatusCode.NoContent)
         }
         put("/{id}") {
             val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
                 ?: return@put call.respond(HttpStatusCode.BadRequest)
 
-            val conversation = call.receiveNullable<NewConversation>()
+            val conversation = call.receiveNullable<UpdateConversation>()
                 ?: return@put call.respond(HttpStatusCode.BadRequest)
 
-            val updatedConversation = conversationService.updateConversation(conversationId, conversation)
+            val navIdent = call.getNavIdent()
+                ?: return@put call.respond(HttpStatusCode.Forbidden)
+
+            val updatedConversation = conversationService.updateConversation(conversationId, navIdent, conversation)
             if (updatedConversation == null) {
                 return@put call.respond(HttpStatusCode.NotFound)
             }
@@ -174,7 +205,10 @@ fun Route.conversationRoutes(
             val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
 
-            conversationService.getConversationMessages(conversationId)
+            val navIdent = call.getNavIdent()
+                ?: return@get call.respond(HttpStatusCode.Forbidden)
+
+            conversationService.getConversationMessages(conversationId, navIdent)
                 .let { call.respond(it) }
         }
         post("/{id}/messages") {

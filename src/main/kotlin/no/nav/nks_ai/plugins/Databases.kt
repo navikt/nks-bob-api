@@ -27,18 +27,23 @@ fun Application.configureDatabases() {
         SchemaUtils.create(Conversations, Messages, Feedbacks)
 
         // test data
-        val conversation = ConversationDAO.new(UUID.fromString("6cf0b651-e5f1-4148-a2e1-9634e6cfa29e")) {
+        val conversation1 = ConversationDAO.new(UUID.fromString("6cf0b651-e5f1-4148-a2e1-9634e6cfa29e")) {
             this.createdAt = LocalDateTime.now()
             this.title = "test conversation"
+            this.owner = "Z123456"
         }
 
-//        (1..10).map {
         MessageDAO.new(UUID.fromString("0eb79520-93a2-41aa-aa88-819fe15600e0")) {
             this.content = "message #1"
             this.createdAt = LocalDateTime.now()
-            this.conversation = conversation
+            this.conversation = conversation1
         }
-//        }
+
+        val conversation2 = ConversationDAO.new {
+            this.createdAt = LocalDateTime.now()
+            this.title = "another conversation"
+            this.owner = "Z654321"
+        }
 
         val feedback = FeedbackDAO.new {
             this.liked = true
@@ -48,7 +53,7 @@ fun Application.configureDatabases() {
         MessageDAO.new {
             this.content = "message #2"
             this.createdAt = LocalDateTime.now()
-            this.conversation = conversation
+            this.conversation = conversation2
             this.feedback = feedback
         }
     }

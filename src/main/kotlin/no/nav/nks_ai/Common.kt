@@ -2,7 +2,6 @@ package no.nav.nks_ai
 
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.authentication
-import io.ktor.server.routing.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
@@ -24,14 +23,14 @@ fun ApplicationCall.getClaim(issuer: String, name: String) =
         ?.getClaims(issuer)
         ?.getStringClaim(name)
 
-fun Route.getIssuerName(): String? =
-    environment?.config
-        ?.configList("no.nav.security.jwt.issuers")
-        ?.getOrNull(0)
+fun ApplicationCall.getIssuerName(): String? =
+    application.environment.config
+        .configList("no.nav.security.jwt.issuers")
+        .getOrNull(0)
         ?.propertyOrNull("issuer_name")
         ?.getString()
 
-fun Route.getNavIdent(call: ApplicationCall): String? =
+fun ApplicationCall.getNavIdent(): String? =
     getIssuerName()?.let { issuer ->
-        call.getClaim(issuer, "NAVident")
+        getClaim(issuer, "NAVident")
     }
