@@ -10,6 +10,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
+import no.nav.nks_ai.auth.EntraClient
 
 @Serializable
 data class KbsChatRequest(
@@ -48,16 +49,18 @@ val logger = KotlinLogging.logger {}
 class KbsClient(
     private val baseUrl: String,
     private val httpClient: HttpClient,
+    private val entraClient: EntraClient,
+    private val scope: String
 ) {
     suspend fun sendQuestion(
-        token: String,
+        subjectToken: String,
         question: String,
         messageHistory: List<String>,
     ): KbsChatResponse? {
-//        val token = azureAdTokenClient.getMachineToMachineToken(scope)
+        val token = entraClient.getOnBehalfOfToken(subjectToken, scope) ?: return null
 
         val response = httpClient.post("$baseUrl/api/v1/chat") {
-            header(HttpHeaders.Authorization, token)
+            header(HttpHeaders.Authorization, "Bearer $token")
             header(HttpHeaders.ContentType, ContentType.Application.Json)
             setBody(KbsChatRequest(question, messageHistory))
         }

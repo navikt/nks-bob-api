@@ -11,6 +11,8 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import kotlinx.serialization.json.Json
+import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.conversation.ConversationRepo
 import no.nav.nks_ai.conversation.ConversationService
 import no.nav.nks_ai.conversation.conversationRoutes
@@ -50,13 +52,24 @@ fun Application.module() {
 //            connectionRequestTimeout = HTTP_CLIENT_TIMEOUT_MS * 2
         }
         install(ContentNegotiation) {
-            json()
+            json(Json {
+                ignoreUnknownKeys = true
+            })
         }
     }
 
+    val entraClient = EntraClient(
+        entraTokenUrl = environment.config.property("no.nav.nks_ai.jwt.config_token_endpoint").getString(),
+        clientId = environment.config.property("no.nav.nks_ai.jwt.client_id").getString(),
+        clientSecret = environment.config.property("no.nav.nks_ai.jwt.client_secret").getString(),
+        httpClient = httpClient,
+    )
+
     val kbsClient = KbsClient(
-        environment.config.property("no.nav.nks_ai.nks_kbs_url").getString(),
-        httpClient
+        httpClient = httpClient,
+        entraClient = entraClient,
+        baseUrl = environment.config.property("no.nav.nks_ai.nks_kbs.url").getString(),
+        scope = environment.config.property("no.nav.nks_ai.nks_kbs.scope").getString(),
     )
 
     val messageRepo = MessageRepo()
@@ -103,7 +116,7 @@ class SendMessageService(
         val answer = kbsClient.sendQuestion(
             question = message.content,
             messageHistory = history,
-            token = token,
+            subjectToken = token,
         )
 
         val answerContent = answer?.answer?.text

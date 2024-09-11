@@ -27,6 +27,8 @@ spec:
   env:
     - name: NKS_KBS_URL
       value: http://nks-kbs
+    - name: NKS_KBS_SCOPE
+      value: api://dev-gcp.nks-aiautomatisering.nks-kbs/.default
   azure:
     application:
       tenant: nav.no # Gjør at man kan logge på med vanlig konto i dev-gcp
