@@ -7,6 +7,8 @@ import no.nav.nks_ai.conversation.Conversations
 import no.nav.nks_ai.feedback.FeedbackDAO
 import no.nav.nks_ai.feedback.Feedbacks
 import no.nav.nks_ai.message.MessageDAO
+import no.nav.nks_ai.message.MessageRole
+import no.nav.nks_ai.message.MessageType
 import no.nav.nks_ai.message.Messages
 import no.nav.nks_ai.now
 import org.jetbrains.exposed.sql.*
@@ -37,6 +39,9 @@ fun Application.configureDatabases() {
             this.content = "message #1"
             this.createdAt = LocalDateTime.now()
             this.conversation = conversation1
+            this.messageRole = MessageRole.Human
+            this.messageType = MessageType.Question
+            this.createdBy = "Z123456"
         }
 
         val conversation2 = ConversationDAO.new {
@@ -55,6 +60,9 @@ fun Application.configureDatabases() {
             this.createdAt = LocalDateTime.now()
             this.conversation = conversation2
             this.feedback = feedback
+            this.messageRole = MessageRole.Human
+            this.messageType = MessageType.Question
+            this.createdBy = "Z654321"
         }
     }
 }

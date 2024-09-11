@@ -9,13 +9,42 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.auth.EntraClient
+import no.nav.nks_ai.message.Message
+import no.nav.nks_ai.message.MessageRole
 
 @Serializable
 data class KbsChatRequest(
     val question: String,
-    val history: List<String>,
+    val history: List<KbsChatMessage>,
+)
+
+@Serializable
+enum class KbsMessageRole {
+    @SerialName("human")
+    Human,
+
+    @SerialName("ai")
+    AI,
+}
+
+fun KbsMessageRole.Companion.fromMessageRole(messageRole: MessageRole): KbsMessageRole =
+    when (messageRole) {
+        MessageRole.Human -> KbsMessageRole.Human
+        MessageRole.AI -> KbsMessageRole.AI
+    }
+
+fun KbsChatMessage.Companion.fromMessage(message: Message): KbsChatMessage = KbsChatMessage(
+    content = message.content,
+    role = KbsMessageRole.fromMessageRole(message.messageRole)
+)
+
+@Serializable
+data class KbsChatMessage(
+    val content: String,
+    val role: KbsMessageRole,
 )
 
 @Serializable
@@ -54,7 +83,7 @@ class KbsClient(
 ) {
     suspend fun sendQuestion(
         question: String,
-        messageHistory: List<String>,
+        messageHistory: List<KbsChatMessage>,
     ): KbsChatResponse? {
         val token = entraClient.getMachineToken(scope) ?: return null
 

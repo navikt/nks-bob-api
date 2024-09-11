@@ -17,7 +17,9 @@ import no.nav.nks_ai.conversation.ConversationRepo
 import no.nav.nks_ai.conversation.ConversationService
 import no.nav.nks_ai.conversation.conversationRoutes
 import no.nav.nks_ai.feedback.FeedbackRepo
+import no.nav.nks_ai.kbs.KbsChatMessage
 import no.nav.nks_ai.kbs.KbsClient
+import no.nav.nks_ai.kbs.fromMessage
 import no.nav.nks_ai.message.Message
 import no.nav.nks_ai.message.MessageRepo
 import no.nav.nks_ai.message.MessageService
@@ -109,12 +111,12 @@ class SendMessageService(
         conversationId: UUID,
         navIdent: String,
     ): Message? {
-        val history = conversationService.getConversationMessages(conversationId, navIdent).map { it.content }
-        messageService.addMessage(message, conversationId)
+        val history = conversationService.getConversationMessages(conversationId, navIdent)
+        messageService.addQuestion(conversationId, navIdent, message.content)
 
         val answer = kbsClient.sendQuestion(
             question = message.content,
-            messageHistory = history,
+            messageHistory = history.map(KbsChatMessage::fromMessage),
         )
 
         val answerContent = answer?.answer?.text
@@ -123,7 +125,8 @@ class SendMessageService(
             return null
         }
 
-        val newMessage = messageService.addMessage(NewMessage(answerContent), conversationId)
+        // TODO citations
+        val newMessage = messageService.addAnswer(conversationId, answerContent)
         return newMessage
     }
 }

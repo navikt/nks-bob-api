@@ -9,6 +9,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import kotlinx.datetime.LocalDateTime
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.conversation.ConversationDAO
 import no.nav.nks_ai.conversation.Conversations
@@ -40,8 +41,27 @@ object Messages : UUIDTable() {
         onUpdate = ReferenceOption.CASCADE
     ).nullable()
     val createdAt = datetime("created_at")
-    // messageType Question | Answer
-    // createdBy Bob | NavIdent(String)
+    val messageType = enumeration<MessageType>("message_type")
+    val messageRole = enumeration<MessageRole>("message_role")
+    val createdBy = varchar("created_by", 255)
+}
+
+@Serializable
+enum class MessageType {
+    @SerialName("question")
+    Question,
+
+    @SerialName("answer")
+    Answer,
+}
+
+@Serializable
+enum class MessageRole {
+    @SerialName("human")
+    Human,
+
+    @SerialName("ai")
+    AI,
 }
 
 class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -51,13 +71,19 @@ class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var conversation by ConversationDAO.Companion referencedOn Messages.conversation
     var feedback by FeedbackDAO.Companion optionalReferencedOn Messages.feedback
     var createdAt by Messages.createdAt
+    var messageType by Messages.messageType
+    var messageRole by Messages.messageRole
+    var createdBy by Messages.createdBy
 }
 
 fun MessageDAO.toModel() = Message(
     id = id.toString(),
     content = content,
     createdAt = createdAt,
-    feedback = feedback?.toModel()
+    feedback = feedback?.toModel(),
+    messageType = messageType,
+    messageRole = messageRole,
+    createdBy = createdBy,
 )
 
 @Serializable
@@ -66,6 +92,9 @@ data class Message(
     val content: String,
     val createdAt: LocalDateTime,
     val feedback: Feedback?,
+    val messageType: MessageType,
+    val messageRole: MessageRole,
+    val createdBy: String,
 )
 
 @Serializable
@@ -74,15 +103,24 @@ data class NewMessage(
 )
 
 class MessageRepo() {
-    suspend fun addMessage(newMessage: NewMessage, conversationId: UUID): Message? =
+    suspend fun addMessage(
+        conversationId: UUID,
+        messageContent: String,
+        messageType: MessageType,
+        messageRole: MessageRole,
+        createdBy: String
+    ): Message? =
         suspendTransaction {
             val conversation = ConversationDAO.findById(conversationId)
                 ?: return@suspendTransaction null // TODO error
 
             MessageDAO.new {
-                this.content = newMessage.content
+                this.content = messageContent
                 this.conversation = conversation
-                createdAt = LocalDateTime.now()
+                this.createdAt = LocalDateTime.now()
+                this.messageType = messageType
+                this.messageRole = messageRole
+                this.createdBy = createdBy
             }.toModel()
         }
 
@@ -91,13 +129,6 @@ class MessageRepo() {
             MessageDAO.findById(id)
                 ?.load(MessageDAO::feedback)
                 ?.toModel()
-        }
-
-    suspend fun getAllMessages(): List<Message> =
-        suspendTransaction {
-            MessageDAO.all()
-                .with(MessageDAO::feedback)
-                .map { it.toModel() }
         }
 
     suspend fun getMessagesByConversation(conversationId: UUID): List<Message> =
@@ -120,8 +151,23 @@ class MessageService(
     private val messageRepo: MessageRepo,
     private val feedbackRepo: FeedbackRepo
 ) {
-    suspend fun addMessage(newMessage: NewMessage, conversationId: UUID): Message? =
-        messageRepo.addMessage(newMessage, conversationId)
+    suspend fun addQuestion(conversationId: UUID, navIdent: String, messageContent: String) =
+        messageRepo.addMessage(
+            conversationId = conversationId,
+            messageContent = messageContent,
+            createdBy = navIdent,
+            messageType = MessageType.Question,
+            messageRole = MessageRole.Human
+        )
+
+    suspend fun addAnswer(conversationId: UUID, messageContent: String) =
+        messageRepo.addMessage(
+            conversationId = conversationId,
+            messageContent = messageContent,
+            createdBy = "Bob",
+            messageType = MessageType.Answer,
+            messageRole = MessageRole.AI
+        )
 
     suspend fun getMessage(messageId: UUID): Message? =
         messageRepo.getMessage(messageId)
