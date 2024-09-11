@@ -54,7 +54,10 @@ fun Application.module() {
         }
     }
 
-    val kbsClient = KbsClient("https://nks-kbs.ansatt.dev.nav.no", httpClient)
+    val kbsClient = KbsClient(
+        environment.config.property("no.nav.nks_ai.nks_kbs_url").getString(),
+        httpClient
+    )
 
     val messageRepo = MessageRepo()
     val feedbackRepo = FeedbackRepo()

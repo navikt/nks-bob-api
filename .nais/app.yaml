@@ -17,13 +17,16 @@ spec:
     requests:
       cpu: 200m
       memory: 512Mi
-  #  accessPolicy:
-  #    inbound:
-  #      rules:
-  #        - application: nks-bob
-  #    outbound:
-  #      rules:
-  #        - application: nks-kbs
+  accessPolicy:
+    #    inbound:
+    #      rules:
+    #        - application: nks-bob
+    outbound:
+      rules:
+        - application: nks-kbs
+  env:
+    - name: NKS_KBS_URL
+      value: http://nks-kbs
   azure:
     application:
       tenant: nav.no # Gjør at man kan logge på med vanlig konto i dev-gcp
@@ -42,10 +45,6 @@ spec:
   liveness:
     path: /internal/is_alive
     initialDelay: 20
-    periodSeconds: 6
-    timeout: 2
   readiness:
     path: /internal/is_ready
     initialDelay: 20
-    periodSeconds: 6
-    timeout: 10
