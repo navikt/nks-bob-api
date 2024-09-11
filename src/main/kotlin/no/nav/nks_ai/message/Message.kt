@@ -40,6 +40,8 @@ object Messages : UUIDTable() {
         onUpdate = ReferenceOption.CASCADE
     ).nullable()
     val createdAt = datetime("created_at")
+    // messageType Question | Answer
+    // createdBy Bob | NavIdent(String)
 }
 
 class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -115,8 +117,8 @@ class MessageRepo() {
 }
 
 class MessageService(
-    val messageRepo: MessageRepo,
-    val feedbackRepo: FeedbackRepo
+    private val messageRepo: MessageRepo,
+    private val feedbackRepo: FeedbackRepo
 ) {
     suspend fun addMessage(newMessage: NewMessage, conversationId: UUID): Message? =
         messageRepo.addMessage(newMessage, conversationId)

@@ -1,6 +1,7 @@
 package no.nav.nks_ai.conversation
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.request.receiveNullable
@@ -13,6 +14,7 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
+import no.nav.nks_ai.SendMessageService
 import no.nav.nks_ai.getNavIdent
 import no.nav.nks_ai.message.Message
 import no.nav.nks_ai.message.MessageRepo
@@ -113,7 +115,10 @@ class ConversationRepo() {
         }
 }
 
-class ConversationService(val conversationRepo: ConversationRepo, val messageRepo: MessageRepo) {
+class ConversationService(
+    private val conversationRepo: ConversationRepo,
+    private val messageRepo: MessageRepo
+) {
     suspend fun addConversation(conversation: NewConversation) =
         conversationRepo.addConversation(conversation)
 
@@ -142,7 +147,8 @@ private val logger = KotlinLogging.logger {}
 
 fun Route.conversationRoutes(
     conversationService: ConversationService,
-    messageService: MessageService
+    messageService: MessageService,
+    sendMessageService: SendMessageService
 ) {
     route("/conversations") {
         get {
@@ -218,9 +224,15 @@ fun Route.conversationRoutes(
             val newMessage = call.receiveNullable<NewMessage>()
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
 
-            val message = messageService.addMessage(newMessage, conversationId)
+            val navIdent = call.getNavIdent()
+                ?: return@post call.respond(HttpStatusCode.Forbidden)
+
+            val token = call.request.headers.get(HttpHeaders.Authorization)?.removePrefix("Bearer ")
+                ?: return@post call.respond(HttpStatusCode.Forbidden)
+
+            val message = sendMessageService.sendMessage(newMessage, conversationId, navIdent, token)
             if (message == null) {
-                return@post call.respond(HttpStatusCode.NotFound)
+                return@post call.respond(HttpStatusCode.InternalServerError)
             }
 
             call.respond(message)
