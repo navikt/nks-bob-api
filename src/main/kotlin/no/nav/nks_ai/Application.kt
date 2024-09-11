@@ -108,7 +108,6 @@ class SendMessageService(
         message: NewMessage,
         conversationId: UUID,
         navIdent: String,
-        token: String
     ): Message? {
         val history = conversationService.getConversationMessages(conversationId, navIdent).map { it.content }
         messageService.addMessage(message, conversationId)
@@ -116,7 +115,6 @@ class SendMessageService(
         val answer = kbsClient.sendQuestion(
             question = message.content,
             messageHistory = history,
-            subjectToken = token,
         )
 
         val answerContent = answer?.answer?.text

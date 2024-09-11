@@ -5,7 +5,6 @@ import io.github.smiley4.ktorswaggerui.dsl.routing.delete
 import io.github.smiley4.ktorswaggerui.dsl.routing.get
 import io.github.smiley4.ktorswaggerui.dsl.routing.post
 import io.github.smiley4.ktorswaggerui.dsl.routing.put
-import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.request.receiveNullable
@@ -332,10 +331,7 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@post call.respond(HttpStatusCode.Forbidden)
 
-            val token = call.request.headers.get(HttpHeaders.Authorization)?.removePrefix("Bearer ")
-                ?: return@post call.respond(HttpStatusCode.Forbidden)
-
-            val message = sendMessageService.sendMessage(newMessage, conversationId, navIdent, token)
+            val message = sendMessageService.sendMessage(newMessage, conversationId, navIdent)
             if (message == null) {
                 return@post call.respond(HttpStatusCode.InternalServerError)
             }

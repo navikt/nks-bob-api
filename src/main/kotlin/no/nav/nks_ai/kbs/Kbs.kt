@@ -53,11 +53,10 @@ class KbsClient(
     private val scope: String
 ) {
     suspend fun sendQuestion(
-        subjectToken: String,
         question: String,
         messageHistory: List<String>,
     ): KbsChatResponse? {
-        val token = entraClient.getOnBehalfOfToken(subjectToken, scope) ?: return null
+        val token = entraClient.getMachineToken(scope) ?: return null
 
         val response = httpClient.post("$baseUrl/api/v1/chat") {
             header(HttpHeaders.Authorization, "Bearer $token")

@@ -18,6 +18,30 @@ class EntraClient(
     private val clientSecret: String,
     private val httpClient: HttpClient,
 ) {
+    suspend fun getMachineToken(
+        scope: String,
+    ): String? {
+        val response = httpClient.post(entraTokenUrl) {
+            setBody(
+                FormDataContent(
+                    Parameters.build {
+                        append("client_id", clientId)
+                        append("client_secret", clientSecret)
+                        append("grant_type", "client_credentials")
+                        append("scope", scope)
+                    }
+                )
+            )
+        }
+
+        if (!response.status.isSuccess()) {
+            logger.error { "Could not fetch machine token: ${response.status.description}" }
+            return null
+        }
+
+        return response.body<EntraTokenResponse>().access_token
+    }
+
     suspend fun getOnBehalfOfToken(
         subjectToken: String,
         scope: String
@@ -42,12 +66,12 @@ class EntraClient(
             return null
         }
 
-        return response.body<EntraOboResponse>().access_token
+        return response.body<EntraTokenResponse>().access_token
     }
 }
 
 @Serializable
-data class EntraOboResponse(
+data class EntraTokenResponse(
     val access_token: String,
     val expires_in: Int,
 )
