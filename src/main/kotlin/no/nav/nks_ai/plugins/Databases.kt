@@ -2,6 +2,7 @@ package no.nav.nks_ai.plugins
 
 import io.ktor.server.application.*
 import kotlinx.datetime.LocalDateTime
+import no.nav.nks_ai.citation.Citations
 import no.nav.nks_ai.conversation.ConversationDAO
 import no.nav.nks_ai.conversation.Conversations
 import no.nav.nks_ai.feedback.FeedbackDAO
@@ -26,7 +27,7 @@ fun Application.configureDatabases() {
 
     // TODO flyway migrations
     transaction(database) {
-        SchemaUtils.create(Conversations, Messages, Feedbacks)
+        SchemaUtils.create(Conversations, Messages, Feedbacks, Citations)
 
         // test data
         val conversation1 = ConversationDAO.new(UUID.fromString("6cf0b651-e5f1-4148-a2e1-9634e6cfa29e")) {

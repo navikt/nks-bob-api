@@ -13,6 +13,8 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.auth.EntraClient
+import no.nav.nks_ai.citation.CitationRepo
+import no.nav.nks_ai.citation.NewCitation
 import no.nav.nks_ai.conversation.ConversationRepo
 import no.nav.nks_ai.conversation.ConversationService
 import no.nav.nks_ai.conversation.conversationRoutes
@@ -76,10 +78,11 @@ fun Application.module() {
 
     val messageRepo = MessageRepo()
     val feedbackRepo = FeedbackRepo()
+    val citationRepo = CitationRepo()
     val conversationRepo = ConversationRepo()
 
     val conversationService = ConversationService(conversationRepo, messageRepo)
-    val messageService = MessageService(messageRepo, feedbackRepo)
+    val messageService = MessageService(messageRepo, feedbackRepo, citationRepo)
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
 
     routing {
@@ -114,19 +117,23 @@ class SendMessageService(
         val history = conversationService.getConversationMessages(conversationId, navIdent)
         messageService.addQuestion(conversationId, navIdent, message.content)
 
-        val answer = kbsClient.sendQuestion(
+        val response = kbsClient.sendQuestion(
             question = message.content,
             messageHistory = history.map(KbsChatMessage::fromMessage),
-        )
+        ) ?: return null
 
-        val answerContent = answer?.answer?.text
-        if (answerContent == null) {
-            // TODO error
-            return null
+        val answerContent = response.answer.text
+        val citations = response.answer.citations.map {
+            NewCitation(
+                text = it.text,
+                article = it.article,
+                title = it.title,
+                section = it.section,
+            )
         }
 
         // TODO citations
-        val newMessage = messageService.addAnswer(conversationId, answerContent)
+        val newMessage = messageService.addAnswer(conversationId, answerContent, citations)
         return newMessage
     }
 }

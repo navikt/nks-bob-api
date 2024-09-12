@@ -11,6 +11,12 @@ import io.ktor.server.routing.route
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import no.nav.nks_ai.citation.Citation
+import no.nav.nks_ai.citation.CitationDAO
+import no.nav.nks_ai.citation.CitationRepo
+import no.nav.nks_ai.citation.Citations
+import no.nav.nks_ai.citation.NewCitation
+import no.nav.nks_ai.citation.toModel
 import no.nav.nks_ai.conversation.ConversationDAO
 import no.nav.nks_ai.conversation.Conversations
 import no.nav.nks_ai.feedback.Feedback
@@ -68,8 +74,9 @@ class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     companion object : UUIDEntityClass<MessageDAO>(Messages)
 
     var content by Messages.content
-    var conversation by ConversationDAO.Companion referencedOn Messages.conversation
-    var feedback by FeedbackDAO.Companion optionalReferencedOn Messages.feedback
+    var conversation by ConversationDAO referencedOn Messages.conversation
+    var feedback by FeedbackDAO optionalReferencedOn Messages.feedback
+    val citations by CitationDAO referrersOn Citations.message
     var createdAt by Messages.createdAt
     var messageType by Messages.messageType
     var messageRole by Messages.messageRole
@@ -84,6 +91,7 @@ fun MessageDAO.toModel() = Message(
     messageType = messageType,
     messageRole = messageRole,
     createdBy = createdBy,
+    citations = citations.map { it.toModel() }
 )
 
 @Serializable
@@ -95,6 +103,7 @@ data class Message(
     val messageType: MessageType,
     val messageRole: MessageRole,
     val createdBy: String,
+    val citations: List<Citation>,
 )
 
 @Serializable
@@ -149,25 +158,37 @@ class MessageRepo() {
 
 class MessageService(
     private val messageRepo: MessageRepo,
-    private val feedbackRepo: FeedbackRepo
+    private val feedbackRepo: FeedbackRepo,
+    private val citationRepo: CitationRepo
 ) {
-    suspend fun addQuestion(conversationId: UUID, navIdent: String, messageContent: String) =
-        messageRepo.addMessage(
-            conversationId = conversationId,
-            messageContent = messageContent,
-            createdBy = navIdent,
-            messageType = MessageType.Question,
-            messageRole = MessageRole.Human
-        )
+    suspend fun addQuestion(
+        conversationId: UUID,
+        navIdent: String,
+        messageContent: String,
+    ) = messageRepo.addMessage(
+        conversationId = conversationId,
+        messageContent = messageContent,
+        createdBy = navIdent,
+        messageType = MessageType.Question,
+        messageRole = MessageRole.Human,
+    )
 
-    suspend fun addAnswer(conversationId: UUID, messageContent: String) =
-        messageRepo.addMessage(
+    suspend fun addAnswer(
+        conversationId: UUID,
+        messageContent: String,
+        citations: List<NewCitation>
+    ): Message? {
+        val message = messageRepo.addMessage(
             conversationId = conversationId,
             messageContent = messageContent,
             createdBy = "Bob",
             messageType = MessageType.Answer,
-            messageRole = MessageRole.AI
-        )
+            messageRole = MessageRole.AI,
+        ) ?: return null
+
+        citationRepo.addCitations(UUID.fromString(message.id), citations)
+        return message
+    }
 
     suspend fun getMessage(messageId: UUID): Message? =
         messageRepo.getMessage(messageId)
