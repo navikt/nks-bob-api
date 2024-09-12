@@ -1,6 +1,5 @@
 package no.nav.nks_ai.conversation
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktorswaggerui.dsl.routing.delete
 import io.github.smiley4.ktorswaggerui.dsl.routing.get
 import io.github.smiley4.ktorswaggerui.dsl.routing.post
@@ -17,7 +16,6 @@ import no.nav.nks_ai.SendMessageService
 import no.nav.nks_ai.getNavIdent
 import no.nav.nks_ai.message.Message
 import no.nav.nks_ai.message.MessageRepo
-import no.nav.nks_ai.message.MessageService
 import no.nav.nks_ai.message.NewMessage
 import no.nav.nks_ai.now
 import no.nav.nks_ai.suspendTransaction
@@ -31,7 +29,7 @@ import java.util.UUID
 
 object Conversations : UUIDTable() {
     val title = varchar("title", 255)
-    val createdAt = datetime("created_at")
+    val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
     val owner = varchar("owner", 255)
 }
 
@@ -82,7 +80,6 @@ class ConversationRepo() {
             ConversationDAO.new {
                 title = conversation.title
                 owner = navIdent
-                createdAt = LocalDateTime.now()
             }.toModel()
         }
 
@@ -141,11 +138,8 @@ class ConversationService(
         conversationRepo.updateConversation(id, navIdent, conversation)
 }
 
-private val logger = KotlinLogging.logger {}
-
 fun Route.conversationRoutes(
     conversationService: ConversationService,
-    messageService: MessageService,
     sendMessageService: SendMessageService
 ) {
     route("/conversations") {

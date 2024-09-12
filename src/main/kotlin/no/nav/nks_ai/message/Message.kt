@@ -46,7 +46,7 @@ object Messages : UUIDTable() {
         onDelete = ReferenceOption.SET_NULL,
         onUpdate = ReferenceOption.CASCADE
     ).nullable()
-    val createdAt = datetime("created_at")
+    val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
     val messageType = enumeration<MessageType>("message_type")
     val messageRole = enumeration<MessageRole>("message_role")
     val createdBy = varchar("created_by", 255)
@@ -126,7 +126,6 @@ class MessageRepo() {
             MessageDAO.new {
                 this.content = messageContent
                 this.conversation = conversation
-                this.createdAt = LocalDateTime.now()
                 this.messageType = messageType
                 this.messageRole = messageRole
                 this.createdBy = createdBy

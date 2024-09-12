@@ -79,7 +79,10 @@ class CitationRepo() {
             }.toModel()
         }
 
-    suspend fun addCitations(messageId: UUID, citations: List<NewCitation>): List<Citation> =
+    suspend fun addCitations(
+        messageId: UUID,
+        citations: List<NewCitation>
+    ): List<Citation> =
         suspendTransaction {
             Citations.batchInsert(citations) { row ->
                 this[Citations.text] = row.text

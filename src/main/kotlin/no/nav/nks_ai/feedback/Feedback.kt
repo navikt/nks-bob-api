@@ -13,7 +13,7 @@ import java.util.UUID
 
 object Feedbacks : UUIDTable() {
     val liked = bool("liked")
-    val createdAt = datetime("created_at")
+    val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
 }
 
 class FeedbackDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -26,12 +26,14 @@ class FeedbackDAO(id: EntityID<UUID>) : UUIDEntity(id) {
 fun FeedbackDAO.toModel() = Feedback(
     id = id.toString(),
     liked = liked,
+    createdAt = createdAt
 )
 
 @Serializable
 data class Feedback(
     val id: String,
-    val liked: Boolean
+    val liked: Boolean,
+    val createdAt: LocalDateTime,
 )
 
 @Serializable
@@ -44,7 +46,6 @@ class FeedbackRepo {
         suspendTransaction {
             FeedbackDAO.new {
                 this.liked = newFeedback.liked
-                this.createdAt = LocalDateTime.now()
             }
         }
 
