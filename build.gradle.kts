@@ -33,6 +33,7 @@ dependencies {
     implementation("com.h2database:h2:$h2_version")
     implementation("com.ucasoft.ktor:ktor-simple-cache-jvm:0.4.3")
     implementation("com.ucasoft.ktor:ktor-simple-memory-cache-jvm:0.4.3")
+    implementation("io.arrow-kt:arrow-core:1.2.4")
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.0")
     implementation("io.github.smiley4:ktor-swagger-ui:3.3.1")
     implementation("io.ktor:ktor-client-apache")

@@ -88,7 +88,7 @@ fun Application.module() {
     routing {
         authenticate {
             route("/api/v1") {
-                conversationRoutes(conversationService, messageService, sendMessageService)
+                conversationRoutes(conversationService, sendMessageService)
                 messageRoutes(messageService)
             }
         }

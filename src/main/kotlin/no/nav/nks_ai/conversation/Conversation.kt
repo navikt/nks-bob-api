@@ -1,5 +1,8 @@
 package no.nav.nks_ai.conversation
 
+import arrow.core.Either
+import arrow.core.raise.either
+import arrow.core.raise.fold
 import io.github.smiley4.ktorswaggerui.dsl.routing.delete
 import io.github.smiley4.ktorswaggerui.dsl.routing.get
 import io.github.smiley4.ktorswaggerui.dsl.routing.post
@@ -12,12 +15,16 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
+import no.nav.nks_ai.ApplicationError
 import no.nav.nks_ai.SendMessageService
+import no.nav.nks_ai.conversation.ConversationError.ConversationNotFound
+import no.nav.nks_ai.fromThrowable
 import no.nav.nks_ai.getNavIdent
 import no.nav.nks_ai.message.Message
 import no.nav.nks_ai.message.MessageRepo
 import no.nav.nks_ai.message.NewMessage
 import no.nav.nks_ai.now
+import no.nav.nks_ai.respondError
 import no.nav.nks_ai.suspendTransaction
 import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
@@ -110,6 +117,18 @@ class ConversationRepo() {
         }
 }
 
+sealed class ConversationError(
+    override val code: HttpStatusCode,
+    override val message: String,
+    override val description: String
+) : ApplicationError(code, message, description) {
+    class ConversationNotFound(id: UUID) : ConversationError(
+        HttpStatusCode.NotFound,
+        "Conversation not found",
+        "Conversation with id $id not found"
+    )
+}
+
 class ConversationService(
     private val conversationRepo: ConversationRepo,
     private val messageRepo: MessageRepo
@@ -118,8 +137,14 @@ class ConversationService(
         conversationRepo.addConversation(navIdent, conversation)
 
     // TODO metrics
-    suspend fun getConversation(conversationId: UUID, navIdent: String): Conversation? =
-        conversationRepo.getConversation(conversationId, navIdent)
+    suspend fun getConversation(
+        conversationId: UUID,
+        navIdent: String
+    ): Either<ConversationNotFound, Conversation> =
+        either {
+            conversationRepo.getConversation(conversationId, navIdent)
+                ?: raise(ConversationNotFound(conversationId))
+        }
 
     suspend fun getAllConversations(navIdent: String): List<Conversation> =
         conversationRepo.getAllConversations(navIdent)
@@ -208,12 +233,12 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@get call.respond(HttpStatusCode.Forbidden)
 
-            val conversation = conversationService.getConversation(conversationId, navIdent)
-            if (conversation == null) {
-                return@get call.respond(HttpStatusCode.NotFound)
-            }
-
-            call.respond(conversation)
+            fold(
+                block = { conversationService.getConversation(conversationId, navIdent) },
+                transform = { call.respond(HttpStatusCode.OK, it) },
+                recover = { error: ConversationError -> call.respondError(error) },
+                catch = { call.respondError(ApplicationError.fromThrowable(it)) }
+            )
         }
         delete("/{id}", {
             description = "Delete a conversation with the given ID"
