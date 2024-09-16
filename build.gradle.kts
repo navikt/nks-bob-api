@@ -50,6 +50,7 @@ dependencies {
     implementation("io.ktor:ktor-server-metrics-micrometer-jvm")
     implementation("io.ktor:ktor-server-netty-jvm")
     implementation("io.ktor:ktor-server-webjars-jvm")
+    implementation("io.ktor:ktor-server-cors")
     implementation("io.micrometer:micrometer-registry-prometheus:$prometheus_version")
     implementation("no.nav.security:token-validation-ktor-v2:5.0.5")
     implementation("org.jetbrains.exposed:exposed-core:$exposed_version")

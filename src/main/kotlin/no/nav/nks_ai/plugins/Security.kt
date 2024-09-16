@@ -2,10 +2,13 @@ package no.nav.nks_ai.plugins
 
 //import com.auth0.jwt.JWT
 //import com.auth0.jwt.algorithms.Algorithm
+//import io.ktor.server.auth.jwt.*
 import com.nimbusds.jose.util.DefaultResourceRetriever
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-//import io.ktor.server.auth.jwt.*
+import io.ktor.server.plugins.cors.routing.CORS
 import no.nav.security.token.support.v2.tokenValidationSupport
 
 fun Application.configureSecurity() {
@@ -21,6 +24,19 @@ fun Application.configureSecurity() {
             resourceRetriever = DefaultResourceRetriever()
         )
     }
+    install(CORS) {
+        anyHost()
+
+        allowMethod(HttpMethod.Options)
+        allowMethod(HttpMethod.Put)
+        allowMethod(HttpMethod.Patch)
+        allowMethod(HttpMethod.Delete)
+        allowMethod(HttpMethod.Options)
+
+        allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.Authorization)
+    }
+
 
 //    authentication {
 //        jwt {
