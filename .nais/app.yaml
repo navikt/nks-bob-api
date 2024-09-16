@@ -18,9 +18,9 @@ spec:
       cpu: 200m
       memory: 512Mi
   accessPolicy:
-    #    inbound:
-    #      rules:
-    #        - application: nks-bob
+    inbound:
+      rules:
+        - application: nks-bob-frontend
     outbound:
       rules:
         - application: nks-kbs
