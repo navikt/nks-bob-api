@@ -39,9 +39,9 @@ spec:
     #    groups:
     #      - id: "dcb5ec4c-8027-428c-9dfd-15852388001c" # Administratorgruppe
     #      - id: "ad604335-b339-4804-82ee-fb5e2bcb87c9" # Brukergruppe
-    sidecar:
-      enabled: true
-      autoLogin: true
+  #    sidecar:
+  #      enabled: true
+  #      autoLogin: true
   ingresses:
     - https://{{ingress}}/
   liveness:
