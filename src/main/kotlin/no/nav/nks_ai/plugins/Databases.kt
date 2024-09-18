@@ -2,38 +2,22 @@ package no.nav.nks_ai.plugins
 
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
+import no.nav.nks_ai.Config
+import no.nav.nks_ai.DbConfig
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 import javax.sql.DataSource
 
 fun Application.configureDatabases() {
-    Db.init(
-        DatabaseConfig(
-            username = environment.config.property("no.nav.nks_ai.db.username").getString(),
-            password = environment.config.property("no.nav.nks_ai.db.password").getString(),
-            database = environment.config.property("no.nav.nks_ai.db.database").getString(),
-            host = environment.config.property("no.nav.nks_ai.db.host").getString(),
-            port = environment.config.property("no.nav.nks_ai.db.port").getString(),
-            jdbcURL = environment.config.property("no.nav.nks_ai.db.jdbcURL").getString(),
-        )
-    )
+    Db.init(Config.db)
 }
-
-data class DatabaseConfig(
-    val username: String,
-    val password: String,
-    val database: String,
-    val host: String,
-    val port: String,
-    val jdbcURL: String,
-)
 
 object Db {
     private lateinit var dataSource: DataSource
 
-    fun init(config: DatabaseConfig) {
+    fun init(config: DbConfig) {
         dataSource = HikariDataSource().apply {
-            if (config.jdbcURL.isNotEmpty()) {
+            if (config.jdbcURL != null && config.jdbcURL.isNotEmpty()) {
                 jdbcUrl = config.jdbcURL
             } else {
                 dataSourceClassName = "org.postgresql.ds.PGSimpleDataSource"

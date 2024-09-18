@@ -26,17 +26,10 @@ fun ApplicationCall.getClaim(issuer: String, name: String) =
         ?.getClaims(issuer)
         ?.getStringClaim(name)
 
-fun ApplicationCall.getIssuerName(): String? =
-    application.environment.config
-        .configList("no.nav.security.jwt.issuers")
-        .getOrNull(0)
-        ?.propertyOrNull("issuer_name")
-        ?.getString()
+fun ApplicationCall.getIssuerName(): String = Config.issuers.head.issuer_name
 
 fun ApplicationCall.getNavIdent(): String? =
-    getIssuerName()?.let { issuer ->
-        getClaim(issuer, "NAVident")
-    }
+    getClaim(getIssuerName(), "NAVident")
 
 open class ApplicationError(
     open val code: HttpStatusCode,

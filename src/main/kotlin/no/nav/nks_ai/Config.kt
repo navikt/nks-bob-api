@@ -1,0 +1,50 @@
+package no.nav.nks_ai
+
+import arrow.core.NonEmptyList
+import arrow.core.toNonEmptyListOrNull
+import com.typesafe.config.ConfigFactory
+import io.github.config4k.extract
+
+object Config {
+    val kbs: KbsConfig
+    val jwt: JwtConfig
+    val db: DbConfig
+    val issuers: NonEmptyList<IssuerConfig>
+
+    init {
+        ConfigFactory.load()?.let {
+            kbs = it.extract<KbsConfig>("kbs")
+            jwt = it.extract<JwtConfig>("jwt")
+            db = it.extract<DbConfig>("db")
+            issuers = it.extract<List<IssuerConfig>>("no.nav.security.jwt.issuers")
+                .toNonEmptyListOrNull<IssuerConfig>()
+                ?: throw IllegalStateException("Error reading configuration: No issuers configured.")
+        } ?: throw IllegalStateException("Error reading configuration")
+    }
+}
+
+data class KbsConfig(
+    val url: String,
+    val scope: String,
+)
+
+data class JwtConfig(
+    val clientId: String,
+    val clientSecret: String,
+    val configTokenEndpoint: String,
+)
+
+data class DbConfig(
+    val username: String,
+    val password: String,
+    val database: String,
+    val host: String,
+    val port: String,
+    val jdbcURL: String?,
+)
+
+data class IssuerConfig(
+    val issuer_name: String,
+    val discoveryurl: String,
+    val accepted_audience: String,
+)

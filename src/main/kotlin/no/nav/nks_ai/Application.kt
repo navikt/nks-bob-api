@@ -57,17 +57,17 @@ fun Application.module() {
     }
 
     val entraClient = EntraClient(
-        entraTokenUrl = environment.config.property("no.nav.nks_ai.jwt.config_token_endpoint").getString(),
-        clientId = environment.config.property("no.nav.nks_ai.jwt.client_id").getString(),
-        clientSecret = environment.config.property("no.nav.nks_ai.jwt.client_secret").getString(),
+        entraTokenUrl = Config.jwt.configTokenEndpoint,
+        clientId = Config.jwt.clientId,
+        clientSecret = Config.jwt.clientSecret,
         httpClient = httpClient,
     )
 
     val kbsClient = KbsClient(
         httpClient = httpClient,
         entraClient = entraClient,
-        baseUrl = environment.config.property("no.nav.nks_ai.nks_kbs.url").getString(),
-        scope = environment.config.property("no.nav.nks_ai.nks_kbs.scope").getString(),
+        baseUrl = Config.kbs.url,
+        scope = Config.kbs.scope,
     )
 
     val messageRepo = MessageRepo()
@@ -97,4 +97,3 @@ fun Application.module() {
         }
     }
 }
-
