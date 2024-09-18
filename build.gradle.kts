@@ -1,3 +1,5 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 val kotlin_version: String by project
 val logback_version: String by project
 val exposed_version: String by project
@@ -11,6 +13,7 @@ plugins {
     kotlin("jvm") version "2.0.20"
     id("io.ktor.plugin") version "2.3.12"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.0.20"
+    id("com.gradleup.shadow") version "8.3.2"
 }
 
 group = "no.nav.nks_ai"
@@ -25,6 +28,18 @@ application {
 
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
+}
+
+tasks.jar {
+    manifest {
+        attributes(
+            "Main-Class" to "no.nav.nks_ai.ApplicationKt",
+        )
+    }
+}
+
+tasks.withType<ShadowJar> {
+    mergeServiceFiles()
 }
 
 repositories {
