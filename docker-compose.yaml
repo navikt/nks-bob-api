@@ -1,0 +1,11 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:latest
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=bobtilfolket
+      - POSTGRES_USER=nks_bob_api_user
+      - POSTGRES_DB=nks_bob_api_db

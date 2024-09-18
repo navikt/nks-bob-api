@@ -3,6 +3,9 @@ val logback_version: String by project
 val exposed_version: String by project
 val h2_version: String by project
 val prometheus_version: String by project
+val hikari_version: String by project
+val postgres_version: String by project
+val flyway_version: String by project
 
 plugins {
     kotlin("jvm") version "2.0.20"
@@ -33,6 +36,7 @@ dependencies {
     implementation("com.h2database:h2:$h2_version")
     implementation("com.ucasoft.ktor:ktor-simple-cache-jvm:0.4.3")
     implementation("com.ucasoft.ktor:ktor-simple-memory-cache-jvm:0.4.3")
+    implementation("com.zaxxer:HikariCP:$hikari_version")
     implementation("io.arrow-kt:arrow-core:1.2.4")
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.0")
     implementation("io.github.smiley4:ktor-swagger-ui:3.3.1")
@@ -53,11 +57,14 @@ dependencies {
     implementation("io.ktor:ktor-server-cors")
     implementation("io.micrometer:micrometer-registry-prometheus:$prometheus_version")
     implementation("no.nav.security:token-validation-ktor-v2:5.0.5")
+    implementation("org.flywaydb:flyway-core:$flyway_version")
+    implementation("org.flywaydb:flyway-database-postgresql:$flyway_version")
     implementation("org.jetbrains.exposed:exposed-core:$exposed_version")
     implementation("org.jetbrains.exposed:exposed-dao:$exposed_version")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposed_version")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposed_version")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+    implementation("org.postgresql:postgresql:$postgres_version")
     testImplementation("io.ktor:ktor-server-test-host-jvm")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
 }

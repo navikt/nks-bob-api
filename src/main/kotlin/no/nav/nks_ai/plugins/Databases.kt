@@ -1,62 +1,71 @@
 package no.nav.nks_ai.plugins
 
-import io.ktor.server.application.*
-import no.nav.nks_ai.citation.Citations
-import no.nav.nks_ai.conversation.ConversationDAO
-import no.nav.nks_ai.conversation.Conversations
-import no.nav.nks_ai.feedback.FeedbackDAO
-import no.nav.nks_ai.feedback.Feedbacks
-import no.nav.nks_ai.message.MessageDAO
-import no.nav.nks_ai.message.MessageRole
-import no.nav.nks_ai.message.MessageType
-import no.nav.nks_ai.message.Messages
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.transactions.transaction
-import java.util.UUID
+import com.zaxxer.hikari.HikariDataSource
+import io.ktor.server.application.Application
+import org.flywaydb.core.Flyway
+import org.jetbrains.exposed.sql.Database
+import javax.sql.DataSource
 
 fun Application.configureDatabases() {
-    // TODO postgres setup
-    val database = Database.connect(
-        url = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
-        user = "root",
-        driver = "org.h2.Driver",
-        password = "",
+    Db.init(
+        DatabaseConfig(
+            username = environment.config.property("no.nav.nks_ai.db.username").getString(),
+            password = environment.config.property("no.nav.nks_ai.db.password").getString(),
+            database = environment.config.property("no.nav.nks_ai.db.database").getString(),
+            host = environment.config.property("no.nav.nks_ai.db.host").getString(),
+            port = environment.config.property("no.nav.nks_ai.db.port").getString(),
+            jdbcURL = environment.config.property("no.nav.nks_ai.db.jdbcURL").getString(),
+        )
     )
+}
 
-    // TODO flyway migrations
-    transaction(database) {
-        SchemaUtils.create(Conversations, Messages, Feedbacks, Citations)
+data class DatabaseConfig(
+    val username: String,
+    val password: String,
+    val database: String,
+    val host: String,
+    val port: String,
+    val jdbcURL: String,
+)
 
-        // test data
-        val conversation1 = ConversationDAO.new(UUID.fromString("6cf0b651-e5f1-4148-a2e1-9634e6cfa29e")) {
-            this.title = "test conversation"
-            this.owner = "Z123456"
+object Db {
+    private lateinit var dataSource: DataSource
+
+    fun init(config: DatabaseConfig) {
+        dataSource = HikariDataSource().apply {
+            if (config.jdbcURL.isNotEmpty()) {
+                jdbcUrl = config.jdbcURL
+            } else {
+                dataSourceClassName = "org.postgresql.ds.PGSimpleDataSource"
+                addDataSourceProperty("serverName", config.host)
+                addDataSourceProperty("portNumber", config.port)
+                addDataSourceProperty("databaseName", config.database)
+                addDataSourceProperty("user", config.username)
+                addDataSourceProperty("password", config.password)
+            }
+            maximumPoolSize = 10
+            minimumIdle = 1
+            idleTimeout = 10001
+            connectionTimeout = 1000
+            maxLifetime = 30001
         }
 
-        MessageDAO.new(UUID.fromString("0eb79520-93a2-41aa-aa88-819fe15600e0")) {
-            this.content = "message #1"
-            this.conversation = conversation1
-            this.messageRole = MessageRole.Human
-            this.messageType = MessageType.Question
-            this.createdBy = "Z123456"
-        }
-
-        val conversation2 = ConversationDAO.new {
-            this.title = "another conversation"
-            this.owner = "Z654321"
-        }
-
-        val feedback = FeedbackDAO.new {
-            this.liked = true
-        }
-
-        MessageDAO.new {
-            this.content = "message #2"
-            this.conversation = conversation2
-            this.feedback = feedback
-            this.messageRole = MessageRole.Human
-            this.messageType = MessageType.Question
-            this.createdBy = "Z654321"
-        }
+        runMigration()
+        Database.connect(dataSource)
     }
+
+    fun close() {
+        (dataSource as HikariDataSource).close()
+    }
+
+    private fun runMigration(initSql: String? = null): Int = Flyway
+        .configure()
+        .connectRetries(5)
+        .dataSource(dataSource)
+        .initSql(initSql)
+        .validateMigrationNaming(true)
+        .load()
+        .migrate()
+        .migrations
+        .size
 }
