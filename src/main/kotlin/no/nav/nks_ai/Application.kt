@@ -14,18 +14,13 @@ import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.citation.CitationRepo
-import no.nav.nks_ai.citation.NewCitation
 import no.nav.nks_ai.conversation.ConversationRepo
 import no.nav.nks_ai.conversation.ConversationService
 import no.nav.nks_ai.conversation.conversationRoutes
 import no.nav.nks_ai.feedback.FeedbackRepo
-import no.nav.nks_ai.kbs.KbsChatMessage
 import no.nav.nks_ai.kbs.KbsClient
-import no.nav.nks_ai.kbs.fromMessage
-import no.nav.nks_ai.message.Message
 import no.nav.nks_ai.message.MessageRepo
 import no.nav.nks_ai.message.MessageService
-import no.nav.nks_ai.message.NewMessage
 import no.nav.nks_ai.message.messageRoutes
 import no.nav.nks_ai.plugins.configureCache
 import no.nav.nks_ai.plugins.configureDatabases
@@ -34,7 +29,6 @@ import no.nav.nks_ai.plugins.configureSecurity
 import no.nav.nks_ai.plugins.configureSerialization
 import no.nav.nks_ai.plugins.configureSwagger
 import no.nav.nks_ai.plugins.healthRoutes
-import java.util.UUID
 
 fun main(args: Array<String>) {
     EngineMain.main(args)
@@ -104,36 +98,3 @@ fun Application.module() {
     }
 }
 
-class SendMessageService(
-    private val conversationService: ConversationService,
-    private val messageService: MessageService,
-    private val kbsClient: KbsClient
-) {
-    suspend fun sendMessage(
-        message: NewMessage,
-        conversationId: UUID,
-        navIdent: String,
-    ): Message? {
-        val history = conversationService.getConversationMessages(conversationId, navIdent)
-        messageService.addQuestion(conversationId, navIdent, message.content)
-
-        val response = kbsClient.sendQuestion(
-            question = message.content,
-            messageHistory = history.map(KbsChatMessage::fromMessage),
-        ) ?: return null
-
-        val answerContent = response.answer.text
-        val citations = response.answer.citations.map {
-            NewCitation(
-                text = it.text,
-                article = it.article,
-                title = it.title,
-                section = it.section,
-            )
-        }
-
-        // TODO citations
-        val newMessage = messageService.addAnswer(conversationId, answerContent, citations)
-        return newMessage
-    }
-}
