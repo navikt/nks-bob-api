@@ -74,6 +74,7 @@ data class Conversation(
 @Serializable
 data class NewConversation(
     val title: String,
+    val initialMessage: NewMessage?,
 )
 
 @Serializable
@@ -208,6 +209,13 @@ fun Route.conversationRoutes(
                 ?: return@post call.respond(HttpStatusCode.Forbidden)
 
             val conversation = conversationService.addConversation(navIdent, newConversation)
+            if (newConversation.initialMessage != null) {
+                sendMessageService.sendMessage(
+                    newConversation.initialMessage,
+                    UUID.fromString(conversation.id),
+                    navIdent
+                )
+            }
             // TODO error?
             call.respond(HttpStatusCode.Created, conversation)
         }
