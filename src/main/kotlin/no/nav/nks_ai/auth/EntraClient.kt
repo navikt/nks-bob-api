@@ -8,6 +8,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.Parameters
 import io.ktor.http.isSuccess
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 val logger = KotlinLogging.logger { }
@@ -39,7 +40,7 @@ class EntraClient(
             return null
         }
 
-        return response.body<EntraTokenResponse>().access_token
+        return response.body<EntraTokenResponse>().accessToken
     }
 
     suspend fun getOnBehalfOfToken(
@@ -66,12 +67,12 @@ class EntraClient(
             return null
         }
 
-        return response.body<EntraTokenResponse>().access_token
+        return response.body<EntraTokenResponse>().accessToken
     }
 }
 
 @Serializable
 data class EntraTokenResponse(
-    val access_token: String,
-    val expires_in: Int,
+    @SerialName("access_token") val accessToken: String,
+    @SerialName("expires_in") val expiresIn: Int,
 )
