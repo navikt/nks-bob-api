@@ -29,19 +29,25 @@ spec:
       value: http://nks-kbs
     - name: NKS_KBS_SCOPE
       value: api://dev-gcp.nks-aiautomatisering.nks-kbs/.default
+    - name: AZURE_LOGIN_URL
+      value: https://login.microsoftonline.com/navno.onmicrosoft.com/oauth2/v2.0
+    - name: NKS_BOB_API_SCOPE
+      value: api://dev-gcp.nks-aiautomatisering.nks-bob-api/.default
   azure:
     application:
       tenant: nav.no # Gjør at man kan logge på med vanlig konto i dev-gcp
       enabled: true
-      allowAllUsers: true # TODO bare for testing.
-    #  allowAllUsers: false
-    #  claims:
-    #    groups:
-    #      - id: "dcb5ec4c-8027-428c-9dfd-15852388001c" # Administratorgruppe
-    #      - id: "ad604335-b339-4804-82ee-fb5e2bcb87c9" # Brukergruppe
-  #    sidecar:
-  #      enabled: true
-  #      autoLogin: true
+      allowAllUsers: false
+      claims:
+        groups:
+          - id: "dcb5ec4c-8027-428c-9dfd-15852388001c" # Administratorgruppe
+          - id: "ad604335-b339-4804-82ee-fb5e2bcb87c9" # Brukergruppe
+    sidecar:
+      enabled: true
+      autoLogin: true
+      autoLoginIgnorePaths:
+        - /api/**
+        - /internal/**
   ingresses:
     - https://{{ingress}}/
   liveness:

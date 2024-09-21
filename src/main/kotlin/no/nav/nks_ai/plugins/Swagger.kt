@@ -10,7 +10,7 @@ fun Application.configureSwagger() {
         }
         info {
             title = "NKS Bob API"
-            description = "API for Nav Kontaktsenters chatbot Bob"
+            description = "API for Nav Kontaktsenters chatbot Bob."
         }
     }
 }
