@@ -9,6 +9,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.cors.routing.CORS
+import no.nav.nks_ai.Config
 import no.nav.security.token.support.v2.tokenValidationSupport
 
 fun Application.configureSecurity() {
@@ -22,6 +23,20 @@ fun Application.configureSecurity() {
         tokenValidationSupport(
             config = this@configureSecurity.environment.config,
             resourceRetriever = DefaultResourceRetriever()
+        )
+
+        tokenValidationSupport(
+            name = "AdminUser",
+            config = this@configureSecurity.environment.config,
+            additionalValidation = {
+                val groups = it.getClaims(Config.issuers.head.issuer_name)
+                    .get("groups")
+
+                when (groups) {
+                    is List<*> -> groups.contains(Config.jwt.adminGroup) == true
+                    else -> false
+                }
+            }
         )
     }
     install(CORS) {

@@ -78,12 +78,16 @@ fun Application.module() {
     val conversationService = ConversationService(conversationRepo, messageRepo)
     val messageService = MessageService(messageRepo, feedbackRepo, citationRepo)
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
+    val adminService = AdminService(conversationRepo)
 
     routing {
-        authenticate {
-            route("/api/v1") {
+        route("/api/v1") {
+            authenticate {
                 conversationRoutes(conversationService, sendMessageService)
                 messageRoutes(messageService)
+            }
+            authenticate("AdminUser") {
+                adminRoutes(adminService)
             }
         }
         route("/internal") {

@@ -33,6 +33,8 @@ spec:
       value: https://login.microsoftonline.com/navno.onmicrosoft.com/oauth2/v2.0
     - name: NKS_BOB_API_SCOPE
       value: api://dev-gcp.nks-aiautomatisering.nks-bob-api/.default
+    - name: NKS_BOB_API_ADMIN_GROUP
+      value: dcb5ec4c-8027-428c-9dfd-15852388001c
   azure:
     application:
       tenant: nav.no # Gjør at man kan logge på med vanlig konto i dev-gcp

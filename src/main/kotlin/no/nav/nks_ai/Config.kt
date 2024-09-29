@@ -32,6 +32,7 @@ data class JwtConfig(
     val clientId: String,
     val clientSecret: String,
     val configTokenEndpoint: String,
+    val adminGroup: String,
 )
 
 data class DbConfig(

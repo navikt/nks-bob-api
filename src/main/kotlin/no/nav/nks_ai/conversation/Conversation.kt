@@ -30,6 +30,7 @@ import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.UUIDTable
+import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
@@ -55,6 +56,10 @@ fun ConversationDAO.Companion.findByIdAndNavIdent(
     find {
         Conversations.id eq conversationId and (Conversations.owner eq navIdent)
     }.firstOrNull()
+
+fun ConversationDAO.Companion.findAllByNavIdent(
+    navIdent: String
+): SizedIterable<ConversationDAO> = find { Conversations.owner eq navIdent }
 
 fun ConversationDAO.toModel() = Conversation(
     id = id.toString(),
@@ -94,6 +99,11 @@ class ConversationRepo() {
     suspend fun deleteConversation(conversationId: UUID, navIdent: String): Unit =
         suspendTransaction {
             ConversationDAO.findByIdAndNavIdent(conversationId, navIdent)?.delete()
+        }
+
+    suspend fun deleteAllConversations(navIdent: String): Unit =
+        suspendTransaction {
+            ConversationDAO.findAllByNavIdent(navIdent).forEach { it.delete() }
         }
 
     suspend fun getConversation(conversationId: UUID, navIdent: String): Conversation? =
