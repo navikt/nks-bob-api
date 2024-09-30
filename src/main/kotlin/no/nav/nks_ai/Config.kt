@@ -18,8 +18,8 @@ object Config {
             db = it.extract<DbConfig>("db")
             issuers = it.extract<List<IssuerConfig>>("no.nav.security.jwt.issuers")
                 .toNonEmptyListOrNull<IssuerConfig>()
-                ?: throw IllegalStateException("Error reading configuration: No issuers configured.")
-        } ?: throw IllegalStateException("Error reading configuration")
+                ?: error("Error reading configuration: No issuers configured.")
+        } ?: error("Error reading configuration")
     }
 }
 

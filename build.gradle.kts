@@ -49,6 +49,7 @@ repositories {
 dependencies {
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("com.h2database:h2:$h2_version")
+    implementation("com.sksamuel.aedile:aedile-core:1.3.1")
     implementation("com.ucasoft.ktor:ktor-simple-cache-jvm:0.4.3")
     implementation("com.ucasoft.ktor:ktor-simple-memory-cache-jvm:0.4.3")
     implementation("com.zaxxer:HikariCP:$hikari_version")

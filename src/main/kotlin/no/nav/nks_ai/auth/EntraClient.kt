@@ -1,5 +1,6 @@
 package no.nav.nks_ai.auth
 
+import com.sksamuel.aedile.core.cacheBuilder
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -10,6 +11,7 @@ import io.ktor.http.Parameters
 import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.time.Duration.Companion.minutes
 
 val logger = KotlinLogging.logger { }
 
@@ -19,9 +21,15 @@ class EntraClient(
     private val clientSecret: String,
     private val httpClient: HttpClient,
 ) {
-    suspend fun getMachineToken(
-        scope: String,
-    ): String? {
+    val tokenCache = cacheBuilder<String, EntraTokenResponse> {
+        expireAfterWrite = 55.minutes
+    }.build()
+
+    suspend fun getMachineToken(scope: String): String? = createMachineToken(scope).accessToken
+
+    private suspend fun createMachineToken(
+        scope: String
+    ): EntraTokenResponse = tokenCache.get(scope) { // TODO usikker på om den faktisk lagrer til cache.
         val response = httpClient.post(entraTokenUrl) {
             setBody(
                 FormDataContent(
@@ -36,13 +44,14 @@ class EntraClient(
         }
 
         if (!response.status.isSuccess()) {
-            logger.error { "Could not fetch machine token: ${response.status.description}" }
-            return null
+            logger.error { "Could not fetch machine token: ${response.status.value} (${response.status.description})" }
+            error("Could not fetch machine token: ${response.status.description}")
         }
 
-        return response.body<EntraTokenResponse>().accessToken
+        return@get response.body<EntraTokenResponse>()
     }
 
+    @Suppress("unused")
     suspend fun getOnBehalfOfToken(
         subjectToken: String,
         scope: String
