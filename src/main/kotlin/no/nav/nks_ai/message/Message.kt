@@ -11,6 +11,8 @@ import io.ktor.server.routing.route
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import no.nav.nks_ai.citation.Citation
 import no.nav.nks_ai.citation.CitationDAO
 import no.nav.nks_ai.citation.CitationRepo
@@ -34,8 +36,11 @@ import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.dao.load
 import org.jetbrains.exposed.dao.with
 import org.jetbrains.exposed.sql.ReferenceOption
+import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
+
+val jsonConfig = Json.Default
 
 object Messages : UUIDTable() {
     val content = text("content", eagerLoading = true)
@@ -50,6 +55,7 @@ object Messages : UUIDTable() {
     val messageType = enumeration<MessageType>("message_type")
     val messageRole = enumeration<MessageRole>("message_role")
     val createdBy = varchar("created_by", 255)
+    val context = jsonb<List<Context>>("context", jsonConfig).clientDefault { emptyList() }
 }
 
 @Serializable
@@ -70,6 +76,12 @@ enum class MessageRole {
     AI,
 }
 
+@Serializable
+data class Context(
+    val content: String,
+    val metadata: JsonObject,
+)
+
 class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     companion object : UUIDEntityClass<MessageDAO>(Messages)
 
@@ -81,6 +93,7 @@ class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var messageType by Messages.messageType
     var messageRole by Messages.messageRole
     var createdBy by Messages.createdBy
+    var context by Messages.context
 }
 
 fun MessageDAO.toModel() = Message(
@@ -91,7 +104,8 @@ fun MessageDAO.toModel() = Message(
     messageType = messageType,
     messageRole = messageRole,
     createdBy = createdBy,
-    citations = citations.map { it.toModel() }
+    citations = citations.map { it.toModel() },
+    context = context
 )
 
 @Serializable
@@ -104,6 +118,7 @@ data class Message(
     val messageRole: MessageRole,
     val createdBy: String,
     val citations: List<Citation>,
+    val context: List<Context>,
 )
 
 @Serializable
@@ -117,7 +132,8 @@ class MessageRepo() {
         messageContent: String,
         messageType: MessageType,
         messageRole: MessageRole,
-        createdBy: String
+        createdBy: String,
+        context: List<Context>,
     ): Message? =
         suspendTransaction {
             val conversation = ConversationDAO.findById(conversationId)
@@ -129,6 +145,7 @@ class MessageRepo() {
                 this.messageType = messageType
                 this.messageRole = messageRole
                 this.createdBy = createdBy
+                this.context = context
             }.toModel()
         }
 
@@ -170,12 +187,14 @@ class MessageService(
         createdBy = navIdent,
         messageType = MessageType.Question,
         messageRole = MessageRole.Human,
+        context = emptyList(),
     )
 
     suspend fun addAnswer(
         conversationId: UUID,
         messageContent: String,
-        citations: List<NewCitation>
+        citations: List<NewCitation>,
+        context: List<Context>,
     ): Message? {
         val message = messageRepo.addMessage(
             conversationId = conversationId,
@@ -183,6 +202,7 @@ class MessageService(
             createdBy = "Bob",
             messageType = MessageType.Answer,
             messageRole = MessageRole.AI,
+            context = context,
         ) ?: return null
 
         citationRepo.addCitations(UUID.fromString(message.id), citations)

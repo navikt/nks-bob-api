@@ -1,10 +1,11 @@
 package no.nav.nks_ai
 
-import no.nav.nks_ai.citation.NewCitation
 import no.nav.nks_ai.conversation.ConversationService
 import no.nav.nks_ai.kbs.KbsChatMessage
 import no.nav.nks_ai.kbs.KbsClient
 import no.nav.nks_ai.kbs.fromMessage
+import no.nav.nks_ai.kbs.toModel
+import no.nav.nks_ai.kbs.toNewCitation
 import no.nav.nks_ai.message.Message
 import no.nav.nks_ai.message.MessageService
 import no.nav.nks_ai.message.NewMessage
@@ -29,16 +30,14 @@ class SendMessageService(
         ) ?: return null
 
         val answerContent = response.answer.text
-        val citations = response.answer.citations.map {
-            NewCitation(
-                text = it.text,
-                article = it.article,
-                title = it.title,
-                section = it.section,
-            )
-        }
+        val citations = response.answer.citations.map { it.toNewCitation() }
+        val context = response.context.map { it.toModel() }
 
-        val newMessage = messageService.addAnswer(conversationId, answerContent, citations)
-        return newMessage
+        return messageService.addAnswer(
+            conversationId = conversationId,
+            messageContent = answerContent,
+            citations = citations,
+            context = context,
+        )
     }
 }

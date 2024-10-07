@@ -11,7 +11,10 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 import no.nav.nks_ai.auth.EntraClient
+import no.nav.nks_ai.citation.NewCitation
+import no.nav.nks_ai.message.Context
 import no.nav.nks_ai.message.Message
 import no.nav.nks_ai.message.MessageRole
 
@@ -67,11 +70,25 @@ data class KbsCitation(
     val section: String,
 )
 
+fun KbsCitation.toNewCitation() =
+    NewCitation(
+        text = text,
+        article = article,
+        title = title,
+        section = section,
+    )
+
 @Serializable
 data class KbsChatContext(
     val content: String,
-//    val metadata: Map<String, Any>
+    val metadata: JsonObject
 )
+
+fun KbsChatContext.toModel(): Context =
+    Context(
+        content = content,
+        metadata = metadata,
+    )
 
 val logger = KotlinLogging.logger {}
 
