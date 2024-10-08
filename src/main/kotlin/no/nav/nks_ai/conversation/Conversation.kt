@@ -167,6 +167,7 @@ class ConversationService(
             ?: return emptyList()
 
         return messageRepo.getMessagesByConversation(conversationId)
+            .sortedBy { it.createdAt }
     }
 
     suspend fun deleteConversation(conversationId: UUID, navIdent: String): Unit =
