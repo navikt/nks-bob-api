@@ -13,6 +13,8 @@ import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.ApplicationError
@@ -220,11 +222,13 @@ fun Route.conversationRoutes(
 
             val conversation = conversationService.addConversation(navIdent, newConversation)
             if (newConversation.initialMessage != null) {
-                sendMessageService.sendMessage(
-                    newConversation.initialMessage,
-                    UUID.fromString(conversation.id),
-                    navIdent
-                )
+                launch(Dispatchers.Default) {
+                    sendMessageService.sendMessage(
+                        newConversation.initialMessage,
+                        UUID.fromString(conversation.id),
+                        navIdent
+                    )
+                }
             }
             // TODO error?
             call.respond(HttpStatusCode.Created, conversation)
