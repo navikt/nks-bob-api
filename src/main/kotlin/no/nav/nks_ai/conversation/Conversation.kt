@@ -224,7 +224,7 @@ fun Route.conversationRoutes(
             val conversation = conversationService.addConversation(navIdent, newConversation)
             if (newConversation.initialMessage != null) {
                 launch(Dispatchers.Default) {
-                    sendMessageService.sendMessage(
+                    sendMessageService.sendMessageDelayed(
                         newConversation.initialMessage,
                         UUID.fromString(conversation.id),
                         navIdent

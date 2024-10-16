@@ -149,6 +149,24 @@ class MessageRepo() {
             }.toModel()
         }
 
+    suspend fun updateMessage(
+        messageId: UUID,
+        messageContent: String,
+        messageType: MessageType,
+        messageRole: MessageRole,
+        createdBy: String,
+        context: List<Context>,
+    ): Message? =
+        suspendTransaction {
+            MessageDAO.findByIdAndUpdate(messageId) {
+                it.content = messageContent
+                it.messageType = messageType
+                it.messageRole = messageRole
+                it.createdBy = createdBy
+                it.context = context
+            }?.toModel()
+        }
+
     suspend fun getMessage(id: UUID): Message? =
         suspendTransaction {
             MessageDAO.findById(id)
@@ -205,6 +223,26 @@ class MessageService(
             context = context,
         ) ?: return null
 
+        citationRepo.addCitations(UUID.fromString(message.id), citations)
+        return message
+    }
+
+    suspend fun updateAnswer(
+        messageId: UUID,
+        messageContent: String,
+        citations: List<NewCitation>,
+        context: List<Context>,
+    ): Message? {
+        val message = messageRepo.updateMessage(
+            messageId = messageId,
+            messageContent = messageContent,
+            createdBy = "Bob",
+            messageType = MessageType.Answer,
+            messageRole = MessageRole.AI,
+            context = context,
+        ) ?: return null
+
+        // TODO this will create duplicates.
         citationRepo.addCitations(UUID.fromString(message.id), citations)
         return message
     }
