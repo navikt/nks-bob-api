@@ -44,6 +44,11 @@ fun Application.module() {
     configureSwagger()
 
     val httpClient = HttpClient(Apache) {
+        engine {
+            socketTimeout = Config.HTTP_CLIENT_TIMEOUT_MS
+            connectTimeout = Config.HTTP_CLIENT_TIMEOUT_MS
+            connectionRequestTimeout = Config.HTTP_CLIENT_TIMEOUT_MS * 2
+        }
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true

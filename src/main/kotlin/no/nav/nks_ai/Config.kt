@@ -11,6 +11,8 @@ object Config {
     val db: DbConfig
     val issuers: NonEmptyList<IssuerConfig>
 
+    const val HTTP_CLIENT_TIMEOUT_MS = 60 * 1000
+
     init {
         ConfigFactory.load()?.let {
             kbs = it.extract<KbsConfig>("kbs")
