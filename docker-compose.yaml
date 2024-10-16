@@ -2,8 +2,20 @@ services:
   postgres:
     image: postgres:latest
     ports:
-      - 5432:5432
+      - "5432:5432"
     environment:
       - POSTGRES_PASSWORD=bobtilfolket
       - POSTGRES_USER=nks_bob_api_user
       - POSTGRES_DB=nks_bob_api_db
+  mockServer:
+    image: mockserver/mockserver:latest
+    ports:
+      - "1080:1080"
+    environment:
+      MOCKSERVER_WATCH_INITIALIZATION_JSON: "true"
+      MOCKSERVER_PROPERTY_FILE: /config/mockserver.properties
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/initializerJson.json
+    volumes:
+      - type: bind
+        source: ./mocks
+        target: /config

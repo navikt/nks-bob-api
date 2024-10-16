@@ -1,0 +1,564 @@
+[
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/v1/chat",
+      "body": {
+        "type": "JSON_PATH",
+        "jsonPath": "$.[?(@.question =~ /.*meldekort.*/)]"
+      }
+    },
+    "httpResponse": {
+      "body": {
+        "answer": {
+          "text": "Nei, hvis du har fått vedtak fra NAV om at du kan beholde dagpenger mens du etablerer egen virksomhet, skal du ikke føre på timene du jobber i virksomheten på meldekortet. Inntekt fra etableringen fører heller ikke til reduksjon i dagpengene og skal ikke føres på meldekortet eller meldes inn på noen måte.",
+          "citations": [
+            {
+              "text": "Har du fått vedtak fra NAV om at du kan beholde dagpenger mens du etablerer egen virksomhet, så skal du ikke føre på de timene du jobber i virksomheten på meldekortet.",
+              "article": "kA02o000000M7OGCA0",
+              "title": "Dagpenger DP - Etablering av egen virksomhet",
+              "section": "Til brukeren"
+            }
+          ]
+        },
+        "context": [
+          {
+            "content": "## **Meldekort**\n\nHar du fått vedtak fra NAV om at du kan beholde dagpenger mens du etablerer egen virksomhet, så skal du ikke føre på de timene du jobber i virksomheten på meldekortet. Du kan lese mer om dette på[nav.no/send\\-meldekort\\-dagpenger\\#ulike\\-situasjoner](http://www.nav.no/send-meldekort-dagpenger#ulike-situasjoner)\nSykdom og ferie vil ikke føre til forlengelse av etableringsperioden, men du må føre det på meldekortet.  \n  \nInntekt fra etableringen fører ikke til reduksjon i dagpengene og skal verken føres på meldekortet eller meldes inn på noen måte.",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {
+                "##": "**Meldekort**"
+              },
+              "Section": "Til brukeren",
+              "Fragment": "til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Dagpenger/kA02o000000M7OGCA0.html#til-bruker",
+              "KnowledgeArticleId": "kA02o000000M7OGCA0",
+              "ContentColumn": "NKS_User__c",
+              "Title": "Dagpenger DP - Etablering av egen virksomhet",
+              "DataCategories": [
+                "Dagpenger"
+              ],
+              "SemanticSimilarity": 0.7543222308158875,
+              "Score": 0.01639344262295082
+            }
+          },
+          {
+            "content": "## **Selvstendig næringsdrivende**\n\nHar du arbeidet som selvstendig næringsdrivende skal også disse timene regnes med når vi skal fastsette din arbeidstid.  \nDu kan legge inn timer du har jobbet og timer du jobber nå, i søknaden om dagpenger.",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {
+                "##": "**Selvstendig næringsdrivende**"
+              },
+              "Section": "Til brukeren",
+              "Fragment": "til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Dagpenger/kA02o000000M7OLCA0.html#til-bruker",
+              "KnowledgeArticleId": "kA02o000000M7OLCA0",
+              "ContentColumn": "NKS_User__c",
+              "Title": "Dagpenger DP - Vanlig arbeidstid",
+              "DataCategories": [
+                "Dagpenger"
+              ],
+              "SemanticSimilarity": 0.6940427422523499,
+              "Score": 0.016129032258064516
+            }
+          },
+          {
+            "content": "Er du helt eller delvis arbeidsledig eller permittert og mottar dagpenger, kan du søke om å beholde dagpengene mens du planlegger og etablerer virksomheten.  \n  \nFør eller etter at du søker om dagpenger under etablering, så må du ha en samtale med din oppfølger på ditt NAV\\-kontor.  \nDu kan sende beskjed til din veileder via [nav.no/arbeid/dialog](https://www.nav.no/arbeid/dialog)om at du ønsker å etablere egen virksomhet.  \n  \n(**Til veileder:** Om bruker er under oppfølging av NOE, se info under \"mer informasjon\")  \n  \nDu må først på vanlig måte ha søkt om dagpenger eller motta dagpenger, før du søker om å beholde dagpenger mens du etablerer deg.Du kan søke om dagpenger under etablering før du har fått svar på din søknad om dagpenger.  \n  \nHvor lenge du kan få dagpenger under etablering avhenger av hvor mange uker du har igjen av dagpengeperioden din, men perioden kan ikke innvilges for lenger enn 12 måneder.",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {},
+              "Section": "Til brukeren",
+              "Fragment": "til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Dagpenger/kA02o000000M7OGCA0.html#til-bruker",
+              "KnowledgeArticleId": "kA02o000000M7OGCA0",
+              "ContentColumn": "NKS_User__c",
+              "Title": "Dagpenger DP - Etablering av egen virksomhet",
+              "DataCategories": [
+                "Dagpenger"
+              ],
+              "SemanticSimilarity": 0.6826614737510681,
+              "Score": 0.015873015873015872
+            }
+          },
+          {
+            "content": "## Dagpenger\n\n#### **Etablering av egen virksomhet**\nNår du mottardagpenger vedetablering av egen virksomhet, kan du jobbe delvis i virksomheten din i kombinasjon med delvis foreldrepenger. Du må oppgi delvis arbeid som selvstendig næringsdrivende i søknaden, så lenge du utfører arbeid i eget firma. Dette må du gjøre både om du sitter igjen med et overskudd eller ikke, eller om det utbetales som dagpenger.  \n  \nSelv om du får utbetalt dagpenger i et slikt tilfelle, vil du kunne kombinere foreldrepengene med det arbeidet du utfører. Dette fordi dagpengene i et slikt tilfelle mottas somkompensasjon for innsatsen lagt ned i eget firma.  \nDu må sende søknad hvor du svarer JA på spørsmålet om du jobber, du legger inn arbeidsprosent, og oppgir at du jobber som selvstendig næringsdrivende.  \n  \n*\\[Til deg som veileder i NKS: Send oppgave som beskrevet under \"Slik sender du oppgave\"]*",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {
+                "##": "Dagpenger"
+              },
+              "Section": "Til brukeren",
+              "Fragment": "til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Engangsstønad/kA02o000000M7WpCAK.html#til-bruker",
+              "KnowledgeArticleId": "kA02o000000M7WpCAK",
+              "ContentColumn": "NKS_User__c",
+              "Title": "Foreldrepenger FP - Kombinerte ytelser",
+              "DataCategories": [
+                "Engangsstønad",
+                "Foreldre og svangerskapspenger"
+              ],
+              "SemanticSimilarity": 0.6809231042861938,
+              "Score": 0.015625
+            }
+          },
+          {
+            "content": "#### **Etablere egen bedrift**\nDu kan fylle aktivitetskravet ved å etablere egen virksomhet hvis egenetableringen er godkjent. Dette vurderes etter samme regler som ved dagpenger og det er de samme skjemaene som benyttes.  \nDu kan få dette som aktivitet i inntil 12 måneder. Du må registrere deg som arbeidssøker og sende meldekort.  \n  \nNår du søker så må du spesifisere at det gjelder aktivitet og overgangsstønad \\- ikke dagpenger. Saken din vurderes først av NAV\\-kontoret.  \n  \nDet er ikke et krav om at du må ta ut inntekt fra egen bedrift i perioden. Men husk at du må melde fra når/hvis bedriften begynner å gi inntekt. Dette gjør du ved å sende melding til oss på nav.no:nav.no/skriv\\-til\\-oss",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {},
+              "Section": "Til brukeren",
+              "Fragment": "til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Enslig%20forsørger/kA02o000000M7joCAC.html#til-bruker",
+              "KnowledgeArticleId": "kA02o000000M7joCAC",
+              "ContentColumn": "NKS_User__c",
+              "Title": "Enslig forsørger EF - Aktivitetsplikt - Arbeidssøker",
+              "DataCategories": [
+                "Enslig forsørger"
+              ],
+              "SemanticSimilarity": 0.6739696264266968,
+              "Score": 0.015384615384615385
+            }
+          }
+        ]
+      },
+      "statusCode": 200
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/v1/chat",
+      "body": {
+        "type": "JSON_PATH",
+        "jsonPath": "$.[?(@.question =~ /.*behandlingsdager.*/)]"
+      }
+    },
+    "httpResponse": {
+      "body": {
+        "answer": {
+          "text": "Behandlingsdager kan innvilges for helsetjenester som kan dekkes etter folketrygdloven Kapittel 5. Dette inkluderer behandlinger som medfører 100 % arbeidsuførhet hele behandlingsdagen og må foregå hos en godkjent behandler. Eksempler på slike behandlinger inkluderer kreftbehandling som fører til funksjonssvikt samme dag, samtalebehandling hos lege eller psykologspesialist for psykiske lidelser, og unntaksvis behandlinger hos fysioterapeut, manuellterapeut eller kiropraktor hvor fritak fra arbeid samme dag er nødvendig for best effekt av behandlingen.",
+          "citations": [
+            {
+              "text": "Med godkjent behandling menes i denne sammenheng helsetjenester som kan dekkes etter folketrygdloven Kapittel 5.",
+              "article": "kA02o000000M83BCAS",
+              "title": "Sykepenger SP - Enkeltstående behandlingsdager",
+              "section": "Mer informasjon"
+            },
+            {
+              "text": "Eksempler på regelmessige behandlinger som kan gjøre det nødvendig at man ikke arbeider den dagen (ikke uttømmende liste): Kreftbehandling som fører til funksjonssvikt samme dag som behandlingen finner sted. Samtalebehandling hos lege eller psykologspesialist for psykiske lidelser.",
+              "article": "kA02o000000M83BCAS",
+              "title": "Sykepenger SP - Enkeltstående behandlingsdager",
+              "section": "Til samhandler"
+            }
+          ]
+        },
+        "context": [
+          {
+            "content": "## Når er det aktuelt med behandlingsdager?\n\nMed behandling menes i denne sammenheng helsetjenester som kan dekkes etter folketrygdloven Kapittel 5\\.  \n  \nSykmelding for enkeltdager kan godtas dersom selve behandlingen gjør pasienten arbeidsufør, eller dersom virkningen av behandlingen er avhengig av at pasienten ikke arbeider på behandlingsdagen.     \n  \nSom lege må du attestere at det er nødvendig av hensyn til behandlingens virkning at pasienten ikke arbeider.  \n  \nEksempler på regelmessige behandlinger som kan gjøre det nødvendig at man ikke arbeider den dagen (ikke uttømmende liste):\n* Kreftbehandling som fører til funksjonssvikt samme dag som behandlingen finner sted.\n* Samtalebehandling hos lege eller psykologspesialist for psykiske lidelser. Både forberedelser og bearbeidelse etter behandlingen vil kunne gjøre arbeid vanskelig samme dag som behandlingen finner sted.",
+            "metadata": {
+              "Tab": "Lege og behandler",
+              "Headers": {
+                "##": "Når er det aktuelt med behandlingsdager?"
+              },
+              "Section": "Til samhandler",
+              "Fragment": "samh-til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Arbeidsgiver%20-%20Refusjoner/kA02o000000M83BCAS.html#samh-til-bruker",
+              "KnowledgeArticleId": "kA02o000000M83BCAS",
+              "ContentColumn": "AdvisorInformation__c",
+              "Title": "Sykepenger SP - Enkeltstående behandlingsdager",
+              "DataCategories": [
+                "Arbeidsgiver - Refusjoner",
+                "Arbeidsgiver - Sykefraværsoppfølging",
+                "Sykepenger",
+                "Lege og Behandler"
+              ],
+              "SemanticSimilarity": 0.6798667907714844,
+              "Score": 0.01639344262295082
+            }
+          },
+          {
+            "content": "## **Godkjente behandlingstyper**\n\nBehandlingen må medføre 100% arbeidsuførhet hele behandlingsdagenog må foregå hos godkjent behandler. Det innvilges ikke for halve dager. Legen søker via sykmeldingsblanketten. Med godkjent behandling menes i denne sammenheng helsetjenester som kan dekkes etter [folketrygdloven Kapittel 5\\.](https://lovdata.no/nav/folketrygdloven/kap5) Familiebehandling slik den defineres nedenfor kan også gi rett til sykepenger etter denne bestemmelsen. Egentrening kan ikke utgjøre behandling etter denne bestemmelsen.",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {
+                "##": "**Godkjente behandlingstyper**"
+              },
+              "Section": "Mer informasjon",
+              "Fragment": "mer-informasjon",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Arbeidsgiver%20-%20Refusjoner/kA02o000000M83BCAS.html#mer-informasjon",
+              "KnowledgeArticleId": "kA02o000000M83BCAS",
+              "ContentColumn": "Article__c",
+              "Title": "Sykepenger SP - Enkeltstående behandlingsdager",
+              "DataCategories": [
+                "Arbeidsgiver - Refusjoner",
+                "Arbeidsgiver - Sykefraværsoppfølging",
+                "Sykepenger",
+                "Lege og Behandler"
+              ],
+              "SemanticSimilarity": 0.6446813344955444,
+              "Score": 0.016129032258064516
+            }
+          },
+          {
+            "content": "## Når er det aktuelt med behandlingsdager?\n\n* Unntaksvis kan det inoen behandlingstilfeller hos fysioterapeut, manuellterapeut eller kiropraktor vil fritak fra arbeid samme dag etter behandling være gunstig for å få best effekt av behandlingen. Alternativet (gå tilbake til arbeid i disse tilfellene) vil kunne føre til dårligere restitusjon, mer plager og forlenget sykdomsforløp. Det kan ikke gis fritak fra arbeid i forkant av slik behandling.",
+            "metadata": {
+              "Tab": "Lege og behandler",
+              "Headers": {
+                "##": "Når er det aktuelt med behandlingsdager?"
+              },
+              "Section": "Til samhandler",
+              "Fragment": "samh-til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Arbeidsgiver%20-%20Refusjoner/kA02o000000M83BCAS.html#samh-til-bruker",
+              "KnowledgeArticleId": "kA02o000000M83BCAS",
+              "ContentColumn": "AdvisorInformation__c",
+              "Title": "Sykepenger SP - Enkeltstående behandlingsdager",
+              "DataCategories": [
+                "Arbeidsgiver - Refusjoner",
+                "Arbeidsgiver - Sykefraværsoppfølging",
+                "Sykepenger",
+                "Lege og Behandler"
+              ],
+              "SemanticSimilarity": 0.6236114501953125,
+              "Score": 0.015873015873015872
+            }
+          },
+          {
+            "content": "## **Godkjente behandlingstyper**\n\nBehandlingen må medføre 100 % arbeidsuførhet hele behandlingsdagen (gjelder ikke for halve dager) og må foregå hos godkjent behandler. Legen oppgir dette via sykmeldingsblanketten. Godkjent behandling menes i denne sammenheng helsetjenester som kan dekkes etter [folketrygdloven Kapittel 5\\.](https://lovdata.no/nav/folketrygdloven/kap5) Familiebehandling slik den defineres nedenfor kan også gi rett til sykepenger etter denne bestemmelsen. Egentrening anses ikke som behandling etter denne bestemmelsen.",
+            "metadata": {
+              "Tab": "Arbeidsgiver",
+              "Headers": {
+                "##": "**Godkjente behandlingstyper**"
+              },
+              "Section": "Mer informasjon",
+              "Fragment": "ag-mer-informasjon",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Arbeidsgiver%20-%20Refusjoner/kA02o000000M83BCAS.html#ag-mer-informasjon",
+              "KnowledgeArticleId": "kA02o000000M83BCAS",
+              "ContentColumn": "EmployerInformationInternal__c",
+              "Title": "Sykepenger SP - Enkeltstående behandlingsdager",
+              "DataCategories": [
+                "Arbeidsgiver - Refusjoner",
+                "Arbeidsgiver - Sykefraværsoppfølging",
+                "Sykepenger",
+                "Lege og Behandler"
+              ],
+              "SemanticSimilarity": 0.6234724521636963,
+              "Score": 0.015625
+            }
+          },
+          {
+            "content": "Du kan få sykmelding for enkeltstående behandlingsdager hvis du får behandling som medfører at du ikke kan jobbe samme dag.  \n  \nDu kan kun bruke én behandlingsdag per uke. Hvis du må ha flere behandlingsdager i løpet av en uke må du ha en gradert sykmelding.  \n  \nDu finner mer informasjon om ordningen på[nav.no/sykepenger\\-behandlingsdager](http://www.nav.no/sykepenger-behandlingsdager)",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {},
+              "Section": "Til brukeren",
+              "Fragment": "til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Arbeidsgiver%20-%20Refusjoner/kA02o000000M83BCAS.html#til-bruker",
+              "KnowledgeArticleId": "kA02o000000M83BCAS",
+              "ContentColumn": "NKS_User__c",
+              "Title": "Sykepenger SP - Enkeltstående behandlingsdager",
+              "DataCategories": [
+                "Arbeidsgiver - Refusjoner",
+                "Arbeidsgiver - Sykefraværsoppfølging",
+                "Sykepenger",
+                "Lege og Behandler"
+              ],
+              "SemanticSimilarity": 0.6073895692825317,
+              "Score": 0.015384615384615385
+            }
+          }
+        ]
+      },
+      "statusCode": 200
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/v1/chat",
+      "body": {
+        "type": "JSON_PATH",
+        "jsonPath": "$.[?(@.question =~ /.*medlemskap.*/)]"
+      }
+    },
+    "httpResponse": {
+      "body": {
+        "answer": {
+          "text": "Du kan oppholde deg i utlandet i mindre enn 12 måneder uten å miste medlemskapet i norsk folketrygd. Hvis du veksler mellom å være i Norge og utlandet, vil du miste medlemskapet hvis du oppholder deg i utlandet mer enn seks måneder i året i to kalenderår på rad eller flere. Medlemskapet opphører også hvis du begynner å arbeide i utlandet.",
+          "citations": [
+            {
+              "text": "Medlemskapet ditt i norsk folketrygd opphører når du flytter til utlandet, har intensjon om å oppholde deg i utlandet i mer enn 12 måneder eller hvis du oppholder deg i utlandet i mer enn seks måneder i året to kalenderår på rad eller flere. Medlemskapet opphører også hvis du begynner å arbeide i utlandet.",
+              "article": "kA07U000000TNaKSAW",
+              "title": "Medlemskap - Uføretrygdet / pensjonist utenfor EØS",
+              "section": "Til brukeren"
+            }
+          ]
+        },
+        "context": [
+          {
+            "content": "## Midlertidig fravær fra landet / Ferie\n\nReiser du fra Norge med planer om å oppholde deg mindre enn 12 måneder i utlandet, beholder du medlemskapet i folketrygden.  \n  \nVeksler du mellom å være i Norge og i utlandet, vil du miste medlemskapet om du oppholder deg i utlandet mer enn 6 måneder i to eller flere kalenderår på rad. Det er den faktiske tiden du oppholder deg i utlandet, uavhengig av hvor du er folkeregistrert, som er grunnlaget når vi vurderer om du fortsatt er medlem av folketrygden.  \n  \nHvis du under perioden med midlertidig fravær fra landet begynner å jobbe i utlandet eller på et utenlandsregistrert skip, opphører medlemskapet i folketrygden straks.  \n  \nHvis du får barnetillegg, er det egne regler for hvor lenge du kan beholde dette tillegget når du oppholder deg i utlandet.  \nDu har plikt til å melde fra om forhold som kan ha betydning for dine rettigheter nav.no/riktige\\-opplysninger  \n  \nLes om opphold i utlandet på [nav.no/uforetrygd\\#utland](https://www.nav.no/uforetrygd#utland)",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {
+                "##": "Midlertidig fravær fra landet / Ferie"
+              },
+              "Section": "Til brukeren",
+              "Fragment": "til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Uføretrygd/kA07U000000g3yfSAA.html#til-bruker",
+              "KnowledgeArticleId": "kA07U000000g3yfSAA",
+              "ContentColumn": "NKS_User__c",
+              "Title": "Uføre - Utland",
+              "DataCategories": [
+                "Uføretrygd",
+                "Internasjonalt"
+              ],
+              "SemanticSimilarity": 0.7286746501922607,
+              "Score": 0.03128054740957967
+            }
+          },
+          {
+            "content": "Hvem som er medlemmer eller ikke er definert i folketrygdloven. Det samme gjelder ved opphør av medlemskap. Medlemskapet ditt vil derfor opphøre uten at du blir varslet om det.  \n  \nMedlemskapet ditt opphører som hovedregel så fort du begynner å arbeide i utlandet. Det finnes unntak fra dette om du skal arbeide midlertidig for din norske arbeidsgiver i utlandet.  \n  \nMedlemskap opphører fra utreisedagen om du reiser ut av Norge med intensjon om å være ute av Norge i mer enn 12 måneder. Vanlige ferie\\- og besøksopphold i Norge i denne 12\\-månedersperioden sees ikke på som avbrudd i utenlandsoppholdet og betyr at dette også regnes som opphold i utlandet  \n  \nHvis du veksler mellom å oppholder deg i Norge og utlandet, opphører medlemskapet på det tidspunktet der er, eller blir, klart at du kommer til å oppholde seg i utlandet i mer enn seks måneder i året i to kalenderår på rad eller flere.",
+            "metadata": {
+              "Tab": "Internasjonalt",
+              "Headers": {},
+              "Section": "Til brukeren",
+              "Fragment": "int-til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Medlemskap/kA07U0000004G6QSAU.html#int-til-bruker",
+              "KnowledgeArticleId": "kA07U0000004G6QSAU",
+              "ContentColumn": "InternationalInformation__c",
+              "Title": "Medlemskap - Opphør av pliktig og frivillig medlemskap",
+              "DataCategories": [
+                "Medlemskap"
+              ],
+              "SemanticSimilarity": 0.7593817114830017,
+              "Score": 0.01639344262295082
+            }
+          },
+          {
+            "content": "## Opphold/flytting til land utenfor EØS\n\n*\\[Sett bruker i kontakt med KS Internasjonal for spm om medlemskap ifm opphold utover 12 mnd]*\nDu kan beholde foreldrepengene så lenge du ikke har til hensikt å oppholde deg i utlandet mer enn 12 mnd, og ikke begynner å jobbe.\n\nHvis du flytter/skal oppholde deg mer enn 12 mnd i et land utenfor EØS, eller begynner å jobbe der, anses du som hovedregel ikke lengre som medlem i norsk folketrygd og mister dermed retten til foreldrepenger. Det kan derimot være unntak hvis du er utsendt arbeidstaker, eller Norge har en trygdeavtale med landet.",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {
+                "##": "Opphold/flytting til land utenfor EØS"
+              },
+              "Section": "Til brukeren",
+              "Fragment": "til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Internasjonalt/kA02o000000M7XOCA0.html#til-bruker",
+              "KnowledgeArticleId": "kA02o000000M7XOCA0",
+              "ContentColumn": "NKS_User__c",
+              "Title": "Foreldrepenger FP - EØS og utland - Opphold eller flytting",
+              "DataCategories": [
+                "Internasjonalt",
+                "Foreldre og svangerskapspenger"
+              ],
+              "SemanticSimilarity": 0.6614862680435181,
+              "Score": 0.01639344262295082
+            }
+          },
+          {
+            "content": "## Vekselsvis opphold i Norge og utlandet\n\n* Hvis manskal veksle mellom å oppholde seg i utlandet over og under seks måneder pr kalenderår to år på rad eller flere, så kan man allikevel ikke ha et utenlandsopphold på mer enn 12 måneder sammenhengende. Dette betyr at hvis et utenlandsopphold går over fra et kalenderår til et annet, så kan man ikke ha et sammenhengende utenlandsopphold som overstiger 12 måneder selv om man oppholder seg mindre enn seks måneder i utlandet det ene kalenderåret og over seks måneder det andre.\n* Dette fordi atved opphold som er ment å vare mer enn 12 måneder sammenhengende så opphører medlemskapet fra utreisedatoen.",
+            "metadata": {
+              "Tab": "Internasjonalt",
+              "Headers": {
+                "##": "Vekselsvis opphold i Norge og utlandet"
+              },
+              "Section": "Mer informasjon",
+              "Fragment": "int-mer-informasjon",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Medlemskap/kA07U000000TNaKSAW.html#int-mer-informasjon",
+              "KnowledgeArticleId": "kA07U000000TNaKSAW",
+              "ContentColumn": "InternationalInformationInternal__c",
+              "Title": "Medlemskap - Uføretrygdet / pensjonist utenfor EØS",
+              "DataCategories": [
+                "Medlemskap"
+              ],
+              "SemanticSimilarity": 0.7516252994537354,
+              "Score": 0.016129032258064516
+            }
+          },
+          {
+            "content": "Medlemskapet ditt i norsk folketrygd opphører når du flytter til utlandet, har intensjon om å oppholde deg i utlandet i mer enn 12 måneder eller hvis du oppholder deg i utlandet i mer enn seks måneder i året to kalenderår på rad eller flere. Medlemskapet opphører også hvis du begynner å arbeide i utlandet.  \n  \nOm du skal oppholde deg i utlandet i mindre enn 12 måneder eller du oppholder deg i utlandet mindre enn seks måneder per kalenderår er du som hovedregel fortsatt pliktig medlem i norsk folketrygd.  \n  \nHvis du skal veksle mellom å oppholde deg i utlandet over og under seks måneder pr kalenderår to år på rad eller flere, så kan allikevel ikke utenlandsoppholdet være på mer enn 12 måneder sammenhengende.",
+            "metadata": {
+              "Tab": "Internasjonalt",
+              "Headers": {},
+              "Section": "Til brukeren",
+              "Fragment": "int-til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Medlemskap/kA07U000000TNaKSAW.html#int-til-bruker",
+              "KnowledgeArticleId": "kA07U000000TNaKSAW",
+              "ContentColumn": "InternationalInformation__c",
+              "Title": "Medlemskap - Uføretrygdet / pensjonist utenfor EØS",
+              "DataCategories": [
+                "Medlemskap"
+              ],
+              "SemanticSimilarity": 0.7511149644851685,
+              "Score": 0.015873015873015872
+            }
+          }
+        ]
+      },
+      "statusCode": 200
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/v1/chat",
+      "body": {
+        "type": "JSON_PATH",
+        "jsonPath": "$.[?(@.question =~ /.*dagpenger.*/)]"
+      }
+    },
+    "httpResponse": {
+      "body": {
+        "answer": {
+          "text": "Når du fyller ut meldekort for dagpenger, skal du oppgi arbeid og aktivitet de siste 14 dagene. Her er spørsmålene du må svare på:\n\n1. Har du vært i arbeid de siste 14 dagene?\n2. Har du deltatt på tiltak eller kurs/utdanning?\n3. Har du vært forhindret fra å ta arbeid, delta på tiltak eller være arbeidssøker fordi du har vært for syk?\n4. Har du hatt ferie eller fravær slik at du har ikke kunnet ta arbeid, delta på tiltak eller være arbeidssøker?\n5. Ønsker du fortsatt å være registrert som arbeidssøker hos NAV de neste 14 dagene?\n\nAlle timene du har jobbet, inkludert helger, skal føres opp. Utbetalingen beregnes ut fra de opplysningene du oppgir. Du kan finne mer informasjon om utfylling av meldekort på [nav.no/send-meldekort-dagpenger](http://www.nav.no/send-meldekort-dagpenger).",
+          "citations": [
+            {
+              "text": "Du mottar dagpenger og har spørsmål om hvordan meldekortet skal fylles ut. Du har fått informasjon om at meldekortet skal fylles ut slik: Spørsmål 1 - Har du vært i arbeid de siste 14 dagene? Spørsmål 2 - Har du deltatt på tiltak eller kurs/utdanning? Spørsmål 3 -Har du vært forhindret fra å ta arbeid, delta på tiltak eller være arbeidssøker fordi du har vært for syk?: Spørsmål 4 - Har du hatt ferie eller fravær slik at du har ikke kunnet ta arbeid, delta på tiltak eller være arbeidssøker? Spørsmål 5 - Ønsker du fortsatt å være registrert som arbeidssøker hos NAV de neste 14 dagene?",
+              "article": "kA02o000000M7ONCA0",
+              "title": "Dagpenger DP - Meldekort - Utfylling",
+              "section": "Til brukeren"
+            },
+            {
+              "text": "På meldekortet oppgir du arbeid og aktivitet de siste 14 dagene, og bekrefter at du vil være registrert hos NAV i neste periode. Alle timene du har jobbet de siste 14 dagene skal føres meldekortet.",
+              "article": "kA02o000000M7ONCA0",
+              "title": "Dagpenger DP - Meldekort - Utfylling",
+              "section": "Til brukeren"
+            }
+          ]
+        },
+        "context": [
+          {
+            "content": "## **Utfylling meldekort**\n\nDu mottar dagpenger og har spørsmål om hvordan meldekortet skal fylles ut.  \nDu har fått informasjon om at meldekortet skal fylles ut slik:  \n  \nSpørsmål 1 \\- Har du vært i arbeid de siste 14 dagene?  \n  \nSpørsmål 2 \\- Har du deltatt på tiltak eller kurs/utdanning?  \n  \nSpørsmål 3 \\-Har du vært forhindret fra å ta arbeid, delta på tiltak eller være arbeidssøker fordi du har vært for syk?:  \n  \nSpørsmål 4 \\- Har du hatt ferie eller fravær slik at du har ikke kunnet ta arbeid, delta på tiltak eller være arbeidssøker?  \n  \nSpørsmål 5 \\- Ønsker du fortsatt å være registrert som arbeidssøker hos NAV de neste 14 dagene?  \n  \nDu kan finne mer informasjon om hvordan meldekortet skal fylles ut på[nav.no/send\\-meldekort\\-dagpenger](http://www.nav.no/send-meldekort-dagpenger)  \n  \nSe også vår informasjonsvideo om hvordan du fyller ut meldekortet på:  \n<https://vimeo.com/641107066> (norsk)  \n<https://vimeo.com/641108070> (engelsk)  \n<https://vimeo.com/641109163> (polsk)",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {
+                "##": "**Utfylling meldekort**"
+              },
+              "Section": "Til brukeren",
+              "Fragment": "til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Dagpenger/kA02o000000M7ONCA0.html#til-bruker",
+              "KnowledgeArticleId": "kA02o000000M7ONCA0",
+              "ContentColumn": "NKS_User__c",
+              "Title": "Dagpenger DP - Meldekort - Utfylling",
+              "DataCategories": [
+                "Dagpenger"
+              ],
+              "SemanticSimilarity": 0.7595354318618774,
+              "Score": 0.032266458495966696
+            }
+          },
+          {
+            "content": "På meldekortet oppgir du arbeid og aktivitet de siste 14 dagene, og bekrefter at du vil være registrert hos NAV i neste periode. Utbetaling blir beregnet ut fra de opplysningene du oppgir på kortet. Når du fører arbeidstimer, skal du i utgangspunktet oppgi alle timer du jobber, ikke bare timer hos permitterende arbeidsgiver. Du finner informasjon om hvordan du fyller ut meldekortet ditt på[nav.no/send\\-meldekort\\-dagpenger](http://www.nav.no/send-meldekort-dagpenger)  \n  \nDu finner informasjon om hvordan du fyller ut meldekortet i spesielle situasjoner på[nav.no/send\\-meldekort\\-dagpenger\\#ulike\\-situasjoner](http://www.nav.no/send-meldekort-dagpenger#ulike-situasjoner)",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {},
+              "Section": "Til brukeren",
+              "Fragment": "til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Dagpenger/kA02o000000M7OECA0.html#til-bruker",
+              "KnowledgeArticleId": "kA02o000000M7OECA0",
+              "ContentColumn": "NKS_User__c",
+              "Title": "Dagpenger DP - Meldekort og permittert",
+              "DataCategories": [
+                "Dagpenger"
+              ],
+              "SemanticSimilarity": 0.7364272475242615,
+              "Score": 0.03149801587301587
+            }
+          },
+          {
+            "content": "På meldekortet oppgir du arbeid og aktivitet de siste 14 dagene, og bekrefter at du vil være registrert hos NAV i neste periode.Alle timene du har jobbet de siste 14 dagene skal føres meldekortet. Dette gjelder alle dager i uken, også lørdag og søndag, uansett når på døgnet du jobber. Utbetalingen blir beregnet ut fra de opplysningene du oppgir på kortet.  \n  \nDu finner informasjon om hvordan du fyller ut meldekortet ditt på[nav.no/send\\-meldekort\\-dagpenger](http://www.nav.no/send-meldekort-dagpenger)  \n  \nHvis du er usikker på hva som gjelder i akkurat din situasjon, så kan du finne svaret på [nav.no/send\\-meldekort\\-dagpenger\\#ulike\\-situasjoner](http://www.nav.no/send-meldekort-dagpenger#ulike-situasjoner)eller [nav.no/send\\-meldekort\\-dagpenger\\#Enkelte\\-yrker](http://www.nav.no/send-meldekort-dagpenger#Enkelte-yrker)  \n  \nSe vår informasjonsvideo om hvordan du fyller ut meldekortet på:  \n<https://vimeo.com/641107066> (norsk)  \n<https://vimeo.com/641108070> (engelsk)",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {},
+              "Section": "Til brukeren",
+              "Fragment": "til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Dagpenger/kA02o000000M7ONCA0.html#til-bruker",
+              "KnowledgeArticleId": "kA02o000000M7ONCA0",
+              "ContentColumn": "NKS_User__c",
+              "Title": "Dagpenger DP - Meldekort - Utfylling",
+              "DataCategories": [
+                "Dagpenger"
+              ],
+              "SemanticSimilarity": 0.7359198331832886,
+              "Score": 0.031009615384615385
+            }
+          },
+          {
+            "content": "Jobber du mer enn 50 prosent av din vanlige arbeidstid i en meldeperiode på 14 dager, får du ikke utbetalt dagpenger for denne perioden. Du finner beregningen av den vanlige arbeidstiden din i vedtaket ditt om dagpenger.  \n  \nHvis du jobber inntil 50 prosent av din vanlige arbeidstid, såvil du få en redusert utbetaling. Utbetalingen blir redusert i forhold til hvor mange timer du har jobbet i løpet av de to ukene.  \n  \nDu må sendemeldekort hver 14\\. dag og føre opp alle timer du jobber. Utbetalingen beregnes for hver meldeperiode på grunnlag av din vanlige arbeidstid og antallet timer du har ført på meldekortet.  \nDu kan finne mer informasjon på [nav.no/dagpenger\\#jobb](https://www.nav.no/dagpenger#jobb)  \n  \nPå [nav.no/dagpenger\\-meldekort](http://www.nav.no/dagpenger-meldekort)kan du lese mer om hvordan du skal fylle ut meldekortet ditt.",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {},
+              "Section": "Til brukeren",
+              "Fragment": "til-bruker",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Dagpenger/kA02o000000M7NsCAK.html#til-bruker",
+              "KnowledgeArticleId": "kA02o000000M7NsCAK",
+              "ContentColumn": "NKS_User__c",
+              "Title": "Dagpenger DP - Graderte dagpenger",
+              "DataCategories": [
+                "Dagpenger"
+              ],
+              "SemanticSimilarity": 0.6508380770683289,
+              "Score": 0.01639344262295082
+            }
+          },
+          {
+            "content": "## Utfylling av meldekort\n\nSe under \"til bruker\".  \nOBS: Bruker kan velge å stå tilmeldt som arbeidssøker og sende meldekort mens han/hun har foreldrepenger om ønskelig. Det kan f.eks. være gunstig hvis det er en kort periode med uttak av foreldrepenger, slik at bruker slipper å reaktivere seg når det skal søkes om gjenopptak av dagpengene. Bruker krysser da fravær i perioden med foreldrepenger.\nLer mer om meldekort i disse tilfellene i artikkel[Dagpenger DP \\- Kombinasjon med annen inntekt og ytelser](/articles/Knowledge/Dagpenger-Kombinasjon-med-andre-ytelser)",
+            "metadata": {
+              "Tab": "Personbruker",
+              "Headers": {
+                "##": "Utfylling av meldekort"
+              },
+              "Section": "Mer informasjon",
+              "Fragment": "mer-informasjon",
+              "ArticleType": "Artikkel",
+              "KnowledgeArticle_QuartoUrl": "https://data.ansatt.nav.no/quarto/e7b3e02a-0c45-4b5c-92a2-a6d364120dfb/Foreldre%20og%20svangerskapspenger/kA02o000000M7sbCAC.html#mer-informasjon",
+              "KnowledgeArticleId": "kA02o000000M7sbCAC",
+              "ContentColumn": "Article__c",
+              "Title": "Foreldrepenger FP - Beregning - Dagpenger DP",
+              "DataCategories": [
+                "Foreldre og svangerskapspenger"
+              ],
+              "SemanticSimilarity": 0.7471194267272949,
+              "Score": 0.016129032258064516
+            }
+          }
+        ]
+      },
+      "statusCode": 200
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/v1/chat"
+    },
+    "httpResponse": {
+      "body": {
+        "answer": {
+          "text": "Hei! Hvordan kan jeg hjelpe deg i dag?",
+          "citations": []
+        },
+        "context": []
+      },
+      "statusCode": 200
+    }
+  }
+]
