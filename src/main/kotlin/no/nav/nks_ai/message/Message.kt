@@ -22,20 +22,14 @@ import no.nav.nks_ai.citation.toModel
 import no.nav.nks_ai.conversation.ConversationDAO
 import no.nav.nks_ai.conversation.Conversations
 import no.nav.nks_ai.feedback.Feedback
-import no.nav.nks_ai.feedback.FeedbackDAO
-import no.nav.nks_ai.feedback.FeedbackRepo
-import no.nav.nks_ai.feedback.Feedbacks
 import no.nav.nks_ai.feedback.NewFeedback
-import no.nav.nks_ai.feedback.toModel
+import no.nav.nks_ai.feedback.fromNewFeedback
 import no.nav.nks_ai.now
 import no.nav.nks_ai.suspendTransaction
 import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.UUIDTable
-import org.jetbrains.exposed.dao.load
-import org.jetbrains.exposed.dao.with
-import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
@@ -45,12 +39,7 @@ val jsonConfig = Json.Default
 object Messages : UUIDTable() {
     val content = text("content", eagerLoading = true)
     val conversation = reference("conversation", Conversations)
-    val feedback = reference(
-        "feedback",
-        Feedbacks,
-        onDelete = ReferenceOption.SET_NULL,
-        onUpdate = ReferenceOption.CASCADE
-    ).nullable()
+    val feedback = jsonb<Feedback>("feedback", jsonConfig).nullable()
     val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
     val messageType = enumeration<MessageType>("message_type")
     val messageRole = enumeration<MessageRole>("message_role")
@@ -87,7 +76,7 @@ class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
 
     var content by Messages.content
     var conversation by ConversationDAO referencedOn Messages.conversation
-    var feedback by FeedbackDAO optionalReferencedOn Messages.feedback
+    var feedback by Messages.feedback
     val citations by CitationDAO referrersOn Citations.message
     var createdAt by Messages.createdAt
     var messageType by Messages.messageType
@@ -100,7 +89,7 @@ fun MessageDAO.toModel() = Message(
     id = id.toString(),
     content = content,
     createdAt = createdAt,
-    feedback = feedback?.toModel(),
+    feedback = feedback,
     messageType = messageType,
     messageRole = messageRole,
     createdBy = createdBy,
@@ -170,7 +159,6 @@ class MessageRepo() {
     suspend fun getMessage(id: UUID): Message? =
         suspendTransaction {
             MessageDAO.findById(id)
-                ?.load(MessageDAO::feedback)
                 ?.toModel()
         }
 
@@ -178,21 +166,19 @@ class MessageRepo() {
         suspendTransaction {
             MessageDAO.find { Messages.conversation eq conversationId }
                 .sortedBy { Messages.createdAt }
-                .with(MessageDAO::feedback)
                 .map { it.toModel() }
         }
 
-    suspend fun addFeedback(messageId: UUID, feedback: FeedbackDAO): Message? =
+    suspend fun addFeedback(messageId: UUID, newFeedback: NewFeedback): Message? =
         suspendTransaction {
-            MessageDAO.findByIdAndUpdate(messageId) { it.feedback = feedback }
-                ?.load(MessageDAO::feedback)
-                ?.toModel()
+            MessageDAO.findByIdAndUpdate(messageId) {
+                it.feedback = Feedback.fromNewFeedback(newFeedback)
+            }?.toModel()
         }
 }
 
 class MessageService(
     private val messageRepo: MessageRepo,
-    private val feedbackRepo: FeedbackRepo,
     private val citationRepo: CitationRepo
 ) {
     suspend fun addQuestion(
@@ -251,20 +237,7 @@ class MessageService(
         messageRepo.getMessage(messageId)
 
     suspend fun addFeedbackToMessage(messageId: UUID, newFeedback: NewFeedback): Message? {
-        val message = messageRepo.getMessage(messageId) ?: return null
-
-        if (message.feedback != null) {
-            // don't add dupliate feedbacks
-            if (message.feedback.liked == newFeedback.liked) {
-                return message
-            }
-
-            // remove existing
-            feedbackRepo.removeFeedback(UUID.fromString(message.feedback.id))
-        }
-
-        val feedback = feedbackRepo.addFeedback(newFeedback)
-        return messageRepo.addFeedback(messageId, feedback)
+        return messageRepo.addFeedback(messageId, newFeedback)
     }
 }
 

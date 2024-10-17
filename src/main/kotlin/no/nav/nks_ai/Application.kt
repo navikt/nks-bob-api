@@ -17,7 +17,6 @@ import no.nav.nks_ai.citation.CitationRepo
 import no.nav.nks_ai.conversation.ConversationRepo
 import no.nav.nks_ai.conversation.ConversationService
 import no.nav.nks_ai.conversation.conversationRoutes
-import no.nav.nks_ai.feedback.FeedbackRepo
 import no.nav.nks_ai.kbs.KbsClient
 import no.nav.nks_ai.message.MessageRepo
 import no.nav.nks_ai.message.MessageService
@@ -71,12 +70,11 @@ fun Application.module() {
     )
 
     val messageRepo = MessageRepo()
-    val feedbackRepo = FeedbackRepo()
     val citationRepo = CitationRepo()
     val conversationRepo = ConversationRepo()
 
     val conversationService = ConversationService(conversationRepo, messageRepo)
-    val messageService = MessageService(messageRepo, feedbackRepo, citationRepo)
+    val messageService = MessageService(messageRepo, citationRepo)
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val adminService = AdminService(conversationRepo)
 
