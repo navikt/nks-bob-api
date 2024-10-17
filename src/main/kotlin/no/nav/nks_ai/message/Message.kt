@@ -14,11 +14,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import no.nav.nks_ai.citation.Citation
-import no.nav.nks_ai.citation.CitationDAO
-import no.nav.nks_ai.citation.CitationRepo
-import no.nav.nks_ai.citation.Citations
 import no.nav.nks_ai.citation.NewCitation
-import no.nav.nks_ai.citation.toModel
+import no.nav.nks_ai.citation.fromNewCitation
 import no.nav.nks_ai.conversation.ConversationDAO
 import no.nav.nks_ai.conversation.Conversations
 import no.nav.nks_ai.feedback.Feedback
@@ -45,6 +42,7 @@ object Messages : UUIDTable() {
     val messageRole = enumeration<MessageRole>("message_role")
     val createdBy = varchar("created_by", 255)
     val context = jsonb<List<Context>>("context", jsonConfig).clientDefault { emptyList() }
+    val citations = jsonb<List<Citation>>("citations", jsonConfig).clientDefault { emptyList() }
 }
 
 @Serializable
@@ -77,7 +75,7 @@ class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var content by Messages.content
     var conversation by ConversationDAO referencedOn Messages.conversation
     var feedback by Messages.feedback
-    val citations by CitationDAO referrersOn Citations.message
+    var citations by Messages.citations
     var createdAt by Messages.createdAt
     var messageType by Messages.messageType
     var messageRole by Messages.messageRole
@@ -93,7 +91,7 @@ fun MessageDAO.toModel() = Message(
     messageType = messageType,
     messageRole = messageRole,
     createdBy = createdBy,
-    citations = citations.map { it.toModel() },
+    citations = citations,
     context = context
 )
 
@@ -123,6 +121,7 @@ class MessageRepo() {
         messageRole: MessageRole,
         createdBy: String,
         context: List<Context>,
+        citations: List<Citation>
     ): Message? =
         suspendTransaction {
             val conversation = ConversationDAO.findById(conversationId)
@@ -135,6 +134,7 @@ class MessageRepo() {
                 this.messageRole = messageRole
                 this.createdBy = createdBy
                 this.context = context
+                this.citations = citations
             }.toModel()
         }
 
@@ -145,6 +145,7 @@ class MessageRepo() {
         messageRole: MessageRole,
         createdBy: String,
         context: List<Context>,
+        citations: List<Citation>,
     ): Message? =
         suspendTransaction {
             MessageDAO.findByIdAndUpdate(messageId) {
@@ -153,6 +154,7 @@ class MessageRepo() {
                 it.messageRole = messageRole
                 it.createdBy = createdBy
                 it.context = context
+                it.citations = citations
             }?.toModel()
         }
 
@@ -179,7 +181,6 @@ class MessageRepo() {
 
 class MessageService(
     private val messageRepo: MessageRepo,
-    private val citationRepo: CitationRepo
 ) {
     suspend fun addQuestion(
         conversationId: UUID,
@@ -192,6 +193,7 @@ class MessageService(
         messageType = MessageType.Question,
         messageRole = MessageRole.Human,
         context = emptyList(),
+        citations = emptyList(),
     )
 
     suspend fun addAnswer(
@@ -200,17 +202,15 @@ class MessageService(
         citations: List<NewCitation>,
         context: List<Context>,
     ): Message? {
-        val message = messageRepo.addMessage(
+        return messageRepo.addMessage(
             conversationId = conversationId,
             messageContent = messageContent,
             createdBy = "Bob",
             messageType = MessageType.Answer,
             messageRole = MessageRole.AI,
             context = context,
-        ) ?: return null
-
-        citationRepo.addCitations(UUID.fromString(message.id), citations)
-        return message
+            citations = citations.map(Citation::fromNewCitation),
+        )
     }
 
     suspend fun updateAnswer(
@@ -219,18 +219,15 @@ class MessageService(
         citations: List<NewCitation>,
         context: List<Context>,
     ): Message? {
-        val message = messageRepo.updateMessage(
+        return messageRepo.updateMessage(
             messageId = messageId,
             messageContent = messageContent,
             createdBy = "Bob",
             messageType = MessageType.Answer,
             messageRole = MessageRole.AI,
             context = context,
-        ) ?: return null
-
-        // TODO this will create duplicates.
-        citationRepo.addCitations(UUID.fromString(message.id), citations)
-        return message
+            citations = citations.map(Citation::fromNewCitation),
+        )
     }
 
     suspend fun getMessage(messageId: UUID): Message? =

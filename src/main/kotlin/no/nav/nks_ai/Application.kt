@@ -13,7 +13,6 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.auth.EntraClient
-import no.nav.nks_ai.citation.CitationRepo
 import no.nav.nks_ai.conversation.ConversationRepo
 import no.nav.nks_ai.conversation.ConversationService
 import no.nav.nks_ai.conversation.conversationRoutes
@@ -70,11 +69,10 @@ fun Application.module() {
     )
 
     val messageRepo = MessageRepo()
-    val citationRepo = CitationRepo()
     val conversationRepo = ConversationRepo()
 
     val conversationService = ConversationService(conversationRepo, messageRepo)
-    val messageService = MessageService(messageRepo, citationRepo)
+    val messageService = MessageService(messageRepo)
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val adminService = AdminService(conversationRepo)
 
