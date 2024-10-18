@@ -27,6 +27,9 @@ import no.nav.nks_ai.plugins.configureSecurity
 import no.nav.nks_ai.plugins.configureSerialization
 import no.nav.nks_ai.plugins.configureSwagger
 import no.nav.nks_ai.plugins.healthRoutes
+import no.nav.nks_ai.user.UserConfigRepo
+import no.nav.nks_ai.user.UserConfigService
+import no.nav.nks_ai.user.userConfigRoutes
 
 fun main(args: Array<String>) {
     EngineMain.main(args)
@@ -70,17 +73,20 @@ fun Application.module() {
 
     val messageRepo = MessageRepo()
     val conversationRepo = ConversationRepo()
+    val userConfigRepo = UserConfigRepo()
 
     val conversationService = ConversationService(conversationRepo, messageRepo)
     val messageService = MessageService(messageRepo)
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val adminService = AdminService(conversationRepo)
+    val userConfigService = UserConfigService(userConfigRepo)
 
     routing {
         route("/api/v1") {
             authenticate {
                 conversationRoutes(conversationService, sendMessageService)
                 messageRoutes(messageService)
+                userConfigRoutes(userConfigService)
             }
             authenticate("AdminUser") {
                 adminRoutes(adminService)
