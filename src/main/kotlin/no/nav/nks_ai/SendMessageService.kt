@@ -1,5 +1,15 @@
 package no.nav.nks_ai
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.produceIn
 import no.nav.nks_ai.conversation.ConversationService
 import no.nav.nks_ai.kbs.KbsChatMessage
 import no.nav.nks_ai.kbs.KbsClient
@@ -72,4 +82,49 @@ class SendMessageService(
             context = context,
         )
     }
+
+    suspend fun sendMessageStream(
+        message: NewMessage,
+        conversationId: UUID,
+        navIdent: String,
+    ): Flow<Message> {
+        val history = conversationService.getConversationMessages(conversationId, navIdent)
+        val question = messageService.addQuestion(conversationId, navIdent, message.content)
+            ?: return emptyFlow()
+
+        val initialAnswer = messageService.addAnswer(
+            conversationId = conversationId,
+            messageContent = "",
+            citations = emptyList(),
+            context = emptyList()
+        ) ?: return emptyFlow()
+
+        return flowOf(question, initialAnswer).onCompletion {
+            emitAll(
+                kbsClient.sendQuestionStream(
+                    question = message.content,
+                    messageHistory = history.map(KbsChatMessage::fromMessage),
+                ).map { response ->
+                    val answerContent = response.answer.text
+                    val citations = response.answer.citations.map { it.toNewCitation() }
+                    val context = response.context.map { it.toModel() }
+
+                    messageService.updateAnswer(
+                        messageId = UUID.fromString(initialAnswer.id),
+                        messageContent = answerContent,
+                        citations = citations,
+                        context = context,
+                    )!! // TODO fallback
+                }
+            )
+        }
+    }
+
+    suspend fun sendMessageChannel(
+        message: NewMessage,
+        conversationId: UUID,
+        navIdent: String,
+    ): ReceiveChannel<Message> =
+        sendMessageStream(message = message, conversationId = conversationId, navIdent = navIdent)
+            .produceIn(CoroutineScope(Dispatchers.Default))
 }

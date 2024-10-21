@@ -3,14 +3,18 @@ package no.nav.nks_ai.kbs
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.sse.sse
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.citation.NewCitation
@@ -90,11 +94,12 @@ fun KbsChatContext.toModel(): Context =
         metadata = metadata,
     )
 
-val logger = KotlinLogging.logger {}
+private val logger = KotlinLogging.logger {}
 
 class KbsClient(
     private val baseUrl: String,
     private val httpClient: HttpClient,
+    private val sseClient: HttpClient,
     private val entraClient: EntraClient,
     private val scope: String
 ) {
@@ -115,5 +120,32 @@ class KbsClient(
             return null // TODO proper error handling
         }
         return response.body()
+    }
+
+    fun sendQuestionStream(
+        question: String,
+        messageHistory: List<KbsChatMessage>,
+    ): Flow<KbsChatResponse> = channelFlow {
+        val token = entraClient.getMachineToken(scope) ?: return@channelFlow
+
+        sseClient.sse("$baseUrl/api/v1/stream/chat", {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            header(HttpHeaders.ContentType, ContentType.Application.Json)
+            setBody(KbsChatRequest(question, messageHistory))
+        }) {
+            incoming.collect { response ->
+                when (response.event) {
+                    "chat_chunk" -> {
+                        response.data?.let { data ->
+                            send(Json.decodeFromString<KbsChatResponse>(data))
+                        }
+                    }
+
+                    else -> {
+                        logger.debug { "Unknown event received ${response.event}" }
+                    }
+                }
+            }
+        }
     }
 }

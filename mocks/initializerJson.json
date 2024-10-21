@@ -560,5 +560,18 @@
       },
       "statusCode": 200
     }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/api/v1/stream/chat"
+    },
+    "httpResponse": {
+      "body": "event: chat_chunk\ndata: {\"answer\":{\"text\":\"Hei\",\"citations\":[]},\"context\":[]}\n\nevent: chat_chunk\ndata: {\"answer\":{\"text\":\"Hei!\",\"citations\":[]},\"context\":[]}\n\nevent: chat_chunk\ndata: {\"answer\":{\"text\":\"Hei! Hvordan\",\"citations\":[]},\"context\":[]}\n\nevent: chat_chunk\ndata: {\"answer\":{\"text\":\"Hei! Hvordan kan\",\"citations\":[]},\"context\":[]}\n\nevent: chat_chunk\ndata: {\"answer\":{\"text\":\"Hei! Hvordan kan jeg\",\"citations\":[]},\"context\":[]}\n\nevent: chat_chunk\ndata: {\"answer\":{\"text\":\"Hei! Hvordan kan jeg hjelpe\",\"citations\":[]},\"context\":[]}\n\nevent: chat_chunk\ndata: {\"answer\":{\"text\":\"Hei! Hvordan kan jeg hjelpe deg\",\"citations\":[]},\"context\":[]}\n\nevent: chat_chunk\ndata: {\"answer\":{\"text\":\"Hei! Hvordan kan jeg hjelpe deg i\",\"citations\":[]},\"context\":[]}\n\nevent: chat_chunk\ndata: {\"answer\":{\"text\":\"Hei! Hvordan kan jeg hjelpe deg i dag\",\"citations\":[]},\"context\":[]}\n\nevent: chat_chunk\ndata: {\"answer\":{\"text\":\"Hei! Hvordan kan jeg hjelpe deg i dag?\",\"citations\":[]},\"context\":[]}\n\nevent: chat_chunk\ndata: {\"answer\":{\"text\":\"Hei! Hvordan kan jeg hjelpe deg i dag?\",\"citations\":[]},\"context\":[]}\n\n",
+      "headers": {
+        "Content-Type": "text/event-stream"
+      },
+      "statusCode": 200
+    }
   }
 ]

@@ -1,10 +1,16 @@
 package no.nav.nks_ai
 
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.route
+import io.ktor.server.sse.SSE
+import io.ktor.server.sse.ServerSSESession
+import io.ktor.server.sse.sse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
@@ -65,3 +71,15 @@ data class ErrorResponse(
     val message: String,
     val description: String
 )
+
+fun Route.sse(
+    path: String,
+    method: HttpMethod,
+    handler: suspend ServerSSESession.() -> Unit
+) {
+    plugin(SSE)
+
+    route(path, method) {
+        sse(handler)
+    }
+}

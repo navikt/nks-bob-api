@@ -418,5 +418,102 @@ fun Route.conversationRoutes(
 
             call.respond(message)
         }
+        sse("/{id}/messages/stream", HttpMethod.Post) {
+            val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
+                ?: return@sse call.respond(HttpStatusCode.BadRequest)
+
+            val newMessage = call.receiveNullable<NewMessage>()
+                ?: return@sse call.respond(HttpStatusCode.BadRequest)
+
+            val navIdent = call.getNavIdent()
+                ?: return@sse call.respond(HttpStatusCode.Forbidden)
+
+            sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
+                .flowOn(Dispatchers.Default)
+                .onCompletion { cause ->
+                    logger.debug { "receiving message closed. Cause: ${cause?.message}" }
+                    close()
+                }
+                .onEach { message ->
+                    logger.debug { "receiving message: ${message.content}" }
+                }
+                .collect {
+                    send(ServerSentEvent(event = "message_chunk", data = Json.encodeToString(it)))
+                }
+        }
+        val sessions = Collections.synchronizedList<WebSocketServerSession>(ArrayList())
+        webSocket("/{id}/messages/ws") {
+            val navIdent = call.getNavIdent()
+                ?: return@webSocket call.respond(HttpStatusCode.Forbidden)
+
+            val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
+                ?: return@webSocket call.respond(HttpStatusCode.BadRequest)
+
+            sessions.add(this)
+
+            val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
+            existingMessages.forEach { message ->
+                sendSerialized(message)
+            }
+
+            while (true) {
+                val messageEvent = receiveDeserialized<MessageEvent>()
+
+                when (messageEvent) {
+                    is MessageEvent.NewMessageEvent -> {
+                        val newMessage = messageEvent.getData()
+                        val channel = sendMessageService.sendMessageChannel(newMessage, conversationId, navIdent)
+                        for (message in channel) {
+                            for (session in sessions) {
+                                session.sendSerialized(message)
+                            }
+                        }
+                    }
+
+                    is MessageEvent.UpdateMessageEvent -> {
+                        val updateMessage = messageEvent.getData()
+                        logger.debug { "Updating message ${updateMessage.id}" }
+                    }
+
+                    else -> {
+                        logger.warn { "Unknown event type: ${messageEvent.eventType}" }
+                    }
+                }
+            }
+        }
     }
 }
+
+@Serializable
+enum class MessageEventType {
+    NewMessage,
+    UpdateMessage,
+}
+
+@OptIn(ExperimentalSerializationApi::class)
+@JsonClassDiscriminator("eventType")
+@Serializable
+sealed class MessageEvent {
+    abstract val eventType: MessageEventType
+    abstract val data: JsonElement
+
+    @Serializable
+    @SerialName("NewMessage")
+    data class NewMessageEvent(
+        override val eventType: MessageEventType = MessageEventType.NewMessage,
+        override val data: JsonElement
+    ) : MessageEvent() {
+        fun getData(): NewMessage = Json.decodeFromJsonElement(data)
+    }
+
+    @Serializable
+    @SerialName("UpdateMessage")
+    data class UpdateMessageEvent(
+        override val eventType: MessageEventType = MessageEventType.UpdateMessage,
+        override val data: JsonElement
+    ) : MessageEvent() {
+        fun getData(): Message = Json.decodeFromJsonElement(data)
+    }
+}
+
+private val logger = KotlinLogging.logger {}

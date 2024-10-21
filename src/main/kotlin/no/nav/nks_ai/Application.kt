@@ -3,6 +3,7 @@ package no.nav.nks_ai
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.sse.SSE
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
@@ -56,6 +57,15 @@ fun Application.module() {
         }
     }
 
+    val sseClient = HttpClient(Apache) {
+        install(SSE)
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+            })
+        }
+    }
+
     val entraClient = EntraClient(
         entraTokenUrl = Config.jwt.configTokenEndpoint,
         clientId = Config.jwt.clientId,
@@ -65,6 +75,7 @@ fun Application.module() {
 
     val kbsClient = KbsClient(
         httpClient = httpClient,
+        sseClient = sseClient,
         entraClient = entraClient,
         baseUrl = Config.kbs.url,
         scope = Config.kbs.scope,
