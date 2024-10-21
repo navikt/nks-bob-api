@@ -1,7 +1,5 @@
 package no.nav.nks_ai
 
-import io.github.smiley4.ktorswaggerui.routing.openApiSpec
-import io.github.smiley4.ktorswaggerui.routing.swaggerUI
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -9,6 +7,7 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.EngineMain
+import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
@@ -96,10 +95,11 @@ fun Application.module() {
             healthRoutes()
         }
         route("/swagger-ui") {
-            swaggerUI("/swagger-ui/api.json")
-            route("/api.json") {
-                openApiSpec()
-            }
+            swaggerUI(path = "", swaggerFile = "openapi/api.yaml")
+//            swaggerUI("/swagger-ui/api.json")
+//            route("/api.json") {
+//                openApiSpec()
+//            }
         }
     }
 }

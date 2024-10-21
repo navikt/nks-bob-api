@@ -1,43 +1,84 @@
 package no.nav.nks_ai.plugins
 
-//import com.auth0.jwt.JWT
-//import com.auth0.jwt.algorithms.Algorithm
-//import io.ktor.server.auth.jwt.*
-import com.nimbusds.jose.util.DefaultResourceRetriever
+import com.auth0.jwk.JwkProviderBuilder
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.response.respond
 import no.nav.nks_ai.Config
-import no.nav.security.token.support.v2.tokenValidationSupport
+import java.net.URI
+import java.util.concurrent.TimeUnit
+
+private val logger = KotlinLogging.logger {}
 
 fun Application.configureSecurity() {
-    // Please read the jwt property from the config file if you are using EngineMain
-//    val jwtAudience = "jwt-audience"
-//    val jwtDomain = "https://jwt-provider-domain/"
-//    val jwtRealm = "ktor sample app"
-//    val jwtSecret = "secret"
+// NOTE: Not compatible with Ktor 3.0.0 at the moment.
+//    install(Authentication) {
+////        tokenValidationSupport(
+////            config = this@configureSecurity.environment.config,
+////            resourceRetriever = DefaultResourceRetriever()
+////        )
+//
+////        tokenValidationSupport(
+////            name = "AdminUser",
+////            config = this@configureSecurity.environment.config,
+////            additionalValidation = {
+////                val groups = it.getClaims(Config.issuers.head.issuer_name)
+////                    .get("groups")
+////
+////                when (groups) {
+////                    is List<*> -> groups.contains(Config.jwt.adminGroup) == true
+////                    else -> false
+////                }
+////            }
+////        )
+// }
 
-    install(Authentication) {
-        tokenValidationSupport(
-            config = this@configureSecurity.environment.config,
-            resourceRetriever = DefaultResourceRetriever()
-        )
+    val jwkProvider = JwkProviderBuilder(URI.create(Config.issuers.head.jwksurl).toURL())
+        .cached(10, 24, TimeUnit.HOURS)
+        .rateLimited(10, 1, TimeUnit.MINUTES)
+        .build()
 
-        tokenValidationSupport(
-            name = "AdminUser",
-            config = this@configureSecurity.environment.config,
-            additionalValidation = {
-                val groups = it.getClaims(Config.issuers.head.issuer_name)
-                    .get("groups")
-
-                when (groups) {
-                    is List<*> -> groups.contains(Config.jwt.adminGroup) == true
-                    else -> false
-                }
+    authentication {
+        jwt {
+            verifier(jwkProvider, Config.issuers.head.issuer_name) {
+                logger.debug { "Verifying jwt" }
+                withAudience(Config.issuers.head.accepted_audience)
             }
-        )
+
+            validate { credentials ->
+                logger.debug { "Validating jwt" }
+                JWTPrincipal(credentials.payload)
+            }
+
+            challenge { _, _ ->
+                logger.debug { "Jwt is invalid" }
+                call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+            }
+        }
+        jwt("AdminUser") {
+            verifier(jwkProvider, Config.issuers.head.issuer_name) {
+                logger.debug { "Verifying admin jwt" }
+                withAudience(Config.issuers.head.accepted_audience)
+                withArrayClaim("groups", Config.jwt.adminGroup)
+            }
+
+            validate { credentials ->
+                logger.debug { "Validating admin jwt" }
+                JWTPrincipal(credentials.payload)
+            }
+
+            challenge { _, _ ->
+                logger.debug { "Admin jwt is invalid" }
+                call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+            }
+        }
     }
     install(CORS) {
         anyHost()
@@ -51,27 +92,4 @@ fun Application.configureSecurity() {
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.Authorization)
     }
-
-
-//    authentication {
-//        jwt {
-//            realm = jwtRealm
-//            verifier(
-//                JWT
-//                    .require(Algorithm.HMAC256(jwtSecret))
-//                    .withAudience(jwtAudience)
-//                    .withIssuer(jwtDomain)
-//                    .build()
-//            )
-//            validate { credential ->
-//                if (credential.payload.audience.contains(jwtAudience)) JWTPrincipal(credential.payload) else null
-//            }
-//        }
-//    }
 }
-
-//private fun ApplicationCall.getClaim(issuer: String, name: String) =
-//    authentication.principal<TokenValidationContextPrincipal>()
-//        ?.context
-//        ?.getClaims(issuer)
-//        ?.getStringClaim(name)

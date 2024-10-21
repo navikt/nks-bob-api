@@ -1,12 +1,11 @@
 package no.nav.nks_ai.message
 
-import io.github.smiley4.ktorswaggerui.dsl.routing.get
-import io.github.smiley4.ktorswaggerui.dsl.routing.post
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
 import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
@@ -240,22 +239,25 @@ class MessageService(
 
 fun Route.messageRoutes(messageService: MessageService) {
     route("/messages") {
-        get("/{id}", {
-            description = "Get a message with the given ID"
-            request {
-                pathParameter<String>("id") {
-                    description = "ID of the message"
-                }
-            }
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<Message> {
-                        description = "The message requested"
-                    }
-                }
-            }
-        }) {
+        get(
+            "/{id}",
+            /* {
+                       description = "Get a message with the given ID"
+                       request {
+                           pathParameter<String>("id") {
+                               description = "ID of the message"
+                           }
+                       }
+                       response {
+                           HttpStatusCode.OK to {
+                               description = "The operation was successful"
+                               body<Message> {
+                                   description = "The message requested"
+                               }
+                           }
+                       }
+                   } */
+        ) {
             val messageId = call.parameters["id"]?.let { UUID.fromString(it) }
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
 
@@ -266,25 +268,28 @@ fun Route.messageRoutes(messageService: MessageService) {
 
             call.respond(message)
         }
-        post("/{id}/feedback", {
-            description = "Create a new feedback for a message"
-            request {
-                pathParameter<String>("id") {
-                    description = "ID of the message"
-                }
-                body<NewFeedback> {
-                    description = "The feedback to be created"
-                }
-            }
-            response {
-                HttpStatusCode.Created to {
-                    description = "The feedback was created"
-                    body<Feedback> {
-                        description = "The feedback that got created"
-                    }
-                }
-            }
-        }) {
+        post(
+            "/{id}/feedback",
+            /* {
+                       description = "Create a new feedback for a message"
+                       request {
+                           pathParameter<String>("id") {
+                               description = "ID of the message"
+                           }
+                           body<NewFeedback> {
+                               description = "The feedback to be created"
+                           }
+                       }
+                       response {
+                           HttpStatusCode.Created to {
+                               description = "The feedback was created"
+                               body<Feedback> {
+                                   description = "The feedback that got created"
+                               }
+                           }
+                       }
+                   } */
+        ) {
             val messageId = call.parameters["id"]?.let { UUID.fromString(it) }
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
 

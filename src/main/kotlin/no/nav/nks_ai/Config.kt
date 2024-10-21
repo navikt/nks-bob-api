@@ -49,5 +49,6 @@ data class DbConfig(
 data class IssuerConfig(
     val issuer_name: String,
     val discoveryurl: String,
+    val jwksurl: String,
     val accepted_audience: String,
 )

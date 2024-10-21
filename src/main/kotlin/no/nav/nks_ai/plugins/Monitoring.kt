@@ -3,7 +3,6 @@ package no.nav.nks_ai.plugins
 import com.codahale.metrics.*
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.application.call
 import io.ktor.server.metrics.dropwizard.*
 import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.plugins.callid.*

@@ -3,20 +3,37 @@ package no.nav.nks_ai.conversation
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.fold
-import io.github.smiley4.ktorswaggerui.dsl.routing.delete
-import io.github.smiley4.ktorswaggerui.dsl.routing.get
-import io.github.smiley4.ktorswaggerui.dsl.routing.post
-import io.github.smiley4.ktorswaggerui.dsl.routing.put
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.call
 import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import io.ktor.server.routing.route
+import io.ktor.server.websocket.WebSocketServerSession
+import io.ktor.server.websocket.receiveDeserialized
+import io.ktor.server.websocket.sendSerialized
+import io.ktor.server.websocket.webSocket
+import io.ktor.sse.ServerSentEvent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonClassDiscriminator
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.decodeFromJsonElement
 import no.nav.nks_ai.ApplicationError
 import no.nav.nks_ai.SendMessageService
 import no.nav.nks_ai.conversation.ConversationError.ConversationNotFound
@@ -27,6 +44,7 @@ import no.nav.nks_ai.message.MessageRepo
 import no.nav.nks_ai.message.NewMessage
 import no.nav.nks_ai.now
 import no.nav.nks_ai.respondError
+import no.nav.nks_ai.sse
 import no.nav.nks_ai.suspendTransaction
 import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
@@ -35,6 +53,7 @@ import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
+import java.util.Collections
 import java.util.UUID
 
 object Conversations : UUIDTable() {
@@ -182,7 +201,7 @@ fun Route.conversationRoutes(
     sendMessageService: SendMessageService
 ) {
     route("/conversations") {
-        get({
+        get(/* {
             description = "Get all of your conversations"
             response {
                 HttpStatusCode.OK to {
@@ -192,14 +211,15 @@ fun Route.conversationRoutes(
                     }
                 }
             }
-        }) {
+        } */
+        ) {
             val navIdent = call.getNavIdent()
                 ?: return@get call.respond(HttpStatusCode.Forbidden)
 
             conversationService.getAllConversations(navIdent)
                 .let { call.respond(it) }
         }
-        post({
+        post(/*{
             description = "Create a new conversation"
             request {
                 body<NewConversation> {
@@ -214,42 +234,48 @@ fun Route.conversationRoutes(
                     }
                 }
             }
-        }) {
-            val newConversation = call.receiveNullable<NewConversation>()
-                ?: return@post call.respond(HttpStatusCode.BadRequest)
+        } */
+        ) {
+            coroutineScope {
+                val newConversation = call.receiveNullable<NewConversation>()
+                    ?: return@coroutineScope call.respond(HttpStatusCode.BadRequest)
 
-            val navIdent = call.getNavIdent()
-                ?: return@post call.respond(HttpStatusCode.Forbidden)
+                val navIdent = call.getNavIdent()
+                    ?: return@coroutineScope call.respond(HttpStatusCode.Forbidden)
 
-            val conversation = conversationService.addConversation(navIdent, newConversation)
-            if (newConversation.initialMessage != null) {
-                launch(Dispatchers.Default) {
-                    sendMessageService.sendMessageDelayed(
-                        newConversation.initialMessage,
-                        UUID.fromString(conversation.id),
-                        navIdent
-                    )
-                }
-            }
-            // TODO error?
-            call.respond(HttpStatusCode.Created, conversation)
-        }
-        get("/{id}", {
-            description = "Get a conversation with the given ID"
-            request {
-                pathParameter<String>("id") {
-                    description = "The ID of the conversation"
-                }
-            }
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<Conversation> {
-                        description = "The conversation requested"
+                val conversation = conversationService.addConversation(navIdent, newConversation)
+                if (newConversation.initialMessage != null) {
+                    launch(Dispatchers.Default) {
+                        sendMessageService.sendMessageDelayed(
+                            newConversation.initialMessage,
+                            UUID.fromString(conversation.id),
+                            navIdent
+                        )
                     }
                 }
+                // TODO error?
+                call.respond(HttpStatusCode.Created, conversation)
             }
-        }) {
+        }
+        get(
+            "/{id}",
+            /* {
+                       description = "Get a conversation with the given ID"
+                       request {
+                           pathParameter<String>("id") {
+                               description = "The ID of the conversation"
+                           }
+                       }
+                       response {
+                           HttpStatusCode.OK to {
+                               description = "The operation was successful"
+                               body<Conversation> {
+                                   description = "The conversation requested"
+                               }
+                           }
+                       }
+                   } */
+        ) {
             val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
 
@@ -263,19 +289,22 @@ fun Route.conversationRoutes(
                 catch = { call.respondError(ApplicationError.fromThrowable(it)) }
             )
         }
-        delete("/{id}", {
-            description = "Delete a conversation with the given ID"
-            request {
-                pathParameter<String>("id") {
-                    description = "The ID of the conversation"
-                }
-            }
-            response {
-                HttpStatusCode.NoContent to {
-                    description = "The operation was successful"
-                }
-            }
-        }) {
+        delete(
+            "/{id}",
+            /* {
+                       description = "Delete a conversation with the given ID"
+                       request {
+                           pathParameter<String>("id") {
+                               description = "The ID of the conversation"
+                           }
+                       }
+                       response {
+                           HttpStatusCode.NoContent to {
+                               description = "The operation was successful"
+                           }
+                       }
+                   } */
+        ) {
             val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
                 ?: return@delete call.respond(HttpStatusCode.BadRequest)
 
@@ -285,25 +314,28 @@ fun Route.conversationRoutes(
             conversationService.deleteConversation(conversationId, navIdent)
             call.respond(HttpStatusCode.NoContent)
         }
-        put("/{id}", {
-            description = "Update a conversation with the given ID"
-            request {
-                pathParameter<String>("id") {
-                    description = "The ID of the conversation"
-                }
-                body<UpdateConversation> {
-                    description = "The conversation request to update"
-                }
-            }
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<Conversation> {
-                        description = "The updated conversation"
-                    }
-                }
-            }
-        }) {
+        put(
+            "/{id}",
+            /* {
+                       description = "Update a conversation with the given ID"
+                       request {
+                           pathParameter<String>("id") {
+                               description = "The ID of the conversation"
+                           }
+                           body<UpdateConversation> {
+                               description = "The conversation request to update"
+                           }
+                       }
+                       response {
+                           HttpStatusCode.OK to {
+                               description = "The operation was successful"
+                               body<Conversation> {
+                                   description = "The updated conversation"
+                               }
+                           }
+                       }
+                   } */
+        ) {
             val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
                 ?: return@put call.respond(HttpStatusCode.BadRequest)
 
@@ -320,22 +352,25 @@ fun Route.conversationRoutes(
 
             call.respond(updatedConversation)
         }
-        get("/{id}/messages", {
-            description = "Get all messages for a given conversation"
-            request {
-                pathParameter<String>("id") {
-                    description = "The ID of the conversation"
-                }
-            }
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<List<Message>> {
-                        description = "The messages in the conversation"
-                    }
-                }
-            }
-        }) {
+        get(
+            "/{id}/messages",
+            /* {
+                       description = "Get all messages for a given conversation"
+                       request {
+                           pathParameter<String>("id") {
+                               description = "The ID of the conversation"
+                           }
+                       }
+                       response {
+                           HttpStatusCode.OK to {
+                               description = "The operation was successful"
+                               body<List<Message>> {
+                                   description = "The messages in the conversation"
+                               }
+                           }
+                       }
+                   } */
+        ) {
             val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
 
@@ -345,25 +380,28 @@ fun Route.conversationRoutes(
             conversationService.getConversationMessages(conversationId, navIdent)
                 .let { call.respond(it) }
         }
-        post("/{id}/messages", {
-            description = "Add a new message to the conversation"
-            request {
-                pathParameter<String>("id") {
-                    description = "The ID of the conversation"
-                }
-                body<NewMessage> {
-                    description = "The new message for the conversation"
-                }
-            }
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<List<Message>> {
-                        description = "The answer from KBS"
-                    }
-                }
-            }
-        }) {
+        post(
+            "/{id}/messages",
+            /* {
+                       description = "Add a new message to the conversation"
+                       request {
+                           pathParameter<String>("id") {
+                               description = "The ID of the conversation"
+                           }
+                           body<NewMessage> {
+                               description = "The new message for the conversation"
+                           }
+                       }
+                       response {
+                           HttpStatusCode.OK to {
+                               description = "The operation was successful"
+                               body<List<Message>> {
+                                   description = "The answer from KBS"
+                               }
+                           }
+                       }
+                   } */
+        ) {
             val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
 

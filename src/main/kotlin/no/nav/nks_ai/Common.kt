@@ -3,6 +3,7 @@ package no.nav.nks_ai
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.authentication
+import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.response.respond
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
@@ -10,7 +11,6 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
-import no.nav.security.token.support.v2.TokenValidationContextPrincipal
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
@@ -21,10 +21,15 @@ fun LocalDateTime.Companion.now() =
     Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
 
 fun ApplicationCall.getClaim(issuer: String, name: String) =
-    authentication.principal<TokenValidationContextPrincipal>()
-        ?.context
-        ?.getClaims(issuer)
-        ?.getStringClaim(name)
+    authentication.principal<JWTPrincipal>()
+        ?.payload
+        ?.getClaim(name)
+        ?.asString()
+
+// TODO for tokensupport
+//        ?.context
+//        ?.getClaims(issuer)
+//        ?.getStringClaim(name)
 
 fun ApplicationCall.getIssuerName(): String = Config.issuers.head.issuer_name
 
