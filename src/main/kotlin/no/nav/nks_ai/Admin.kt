@@ -11,18 +11,17 @@ import no.nav.nks_ai.conversation.ConversationRepo
 import java.util.UUID
 
 class AdminService(
-    private val conversationRepo: ConversationRepo
 ) {
     suspend fun deleteAllConversations(navIdent: String) {
-        conversationRepo.deleteAllConversations(navIdent)
+        ConversationRepo.deleteAllConversations(navIdent)
     }
 
     suspend fun deleteConversation(conversationId: UUID, navIdent: String) {
-        conversationRepo.deleteConversation(conversationId, navIdent)
+        ConversationRepo.deleteConversation(conversationId, navIdent)
     }
 
     suspend fun getAllConversations(navIdent: String): List<Conversation> =
-        conversationRepo.getAllConversations(navIdent)
+        ConversationRepo.getAllConversations(navIdent)
 }
 
 fun Route.adminRoutes(adminService: AdminService) {

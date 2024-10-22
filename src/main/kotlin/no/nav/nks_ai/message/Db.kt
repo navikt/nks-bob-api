@@ -2,12 +2,8 @@ package no.nav.nks_ai.message
 
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.json.Json
-import no.nav.nks_ai.citation.Citation
 import no.nav.nks_ai.conversation.ConversationDAO
 import no.nav.nks_ai.conversation.Conversations
-import no.nav.nks_ai.feedback.Feedback
-import no.nav.nks_ai.feedback.NewFeedback
-import no.nav.nks_ai.feedback.fromNewFeedback
 import no.nav.nks_ai.now
 import no.nav.nks_ai.suspendTransaction
 import org.jetbrains.exposed.dao.UUIDEntity

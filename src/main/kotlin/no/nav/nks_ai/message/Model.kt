@@ -4,8 +4,6 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
-import no.nav.nks_ai.citation.Citation
-import no.nav.nks_ai.feedback.Feedback
 
 @Serializable
 enum class MessageType {
@@ -29,6 +27,45 @@ enum class MessageRole {
 data class Context(
     val content: String,
     val metadata: JsonObject,
+)
+
+@Serializable
+data class Citation(
+    val text: String,
+    val article: String,
+    val title: String,
+    val section: String,
+)
+
+fun Citation.Companion.fromNewCitation(newCitation: NewCitation) =
+    Citation(
+        text = newCitation.text,
+        article = newCitation.article,
+        title = newCitation.title,
+        section = newCitation.section,
+    )
+
+@Serializable
+data class NewCitation(
+    val text: String,
+    val article: String,
+    val title: String,
+    val section: String,
+)
+
+@Serializable
+data class Feedback(
+    val liked: Boolean,
+)
+
+fun Feedback.Companion.fromNewFeedback(newFeedback: NewFeedback) =
+    Feedback(
+        liked = newFeedback.liked
+    )
+
+@Serializable
+data class NewFeedback(
+    val liked: Boolean,
 )
 
 @Serializable

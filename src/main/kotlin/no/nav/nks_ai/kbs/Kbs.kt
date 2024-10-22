@@ -11,6 +11,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.isSuccess
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.serialization.SerialName
@@ -18,10 +19,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import no.nav.nks_ai.auth.EntraClient
-import no.nav.nks_ai.citation.NewCitation
 import no.nav.nks_ai.message.Context
 import no.nav.nks_ai.message.Message
 import no.nav.nks_ai.message.MessageRole
+import no.nav.nks_ai.message.NewCitation
 
 @Serializable
 data class KbsChatRequest(

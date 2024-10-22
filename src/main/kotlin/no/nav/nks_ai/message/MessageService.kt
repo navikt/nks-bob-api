@@ -1,9 +1,5 @@
 package no.nav.nks_ai.message
 
-import no.nav.nks_ai.citation.Citation
-import no.nav.nks_ai.citation.NewCitation
-import no.nav.nks_ai.citation.fromNewCitation
-import no.nav.nks_ai.feedback.NewFeedback
 import java.util.UUID
 
 class MessageService() {

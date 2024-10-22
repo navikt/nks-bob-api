@@ -13,9 +13,9 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.auth.EntraClient
-import no.nav.nks_ai.conversation.ConversationRepo
 import no.nav.nks_ai.conversation.ConversationService
 import no.nav.nks_ai.conversation.conversationRoutes
+import no.nav.nks_ai.conversation.conversationWebsocket
 import no.nav.nks_ai.kbs.KbsClient
 import no.nav.nks_ai.message.MessageService
 import no.nav.nks_ai.message.messageRoutes
@@ -80,19 +80,19 @@ fun Application.module() {
         scope = Config.kbs.scope,
     )
 
-    val conversationRepo = ConversationRepo()
     val userConfigRepo = UserConfigRepo()
 
-    val conversationService = ConversationService(conversationRepo)
+    val conversationService = ConversationService()
     val messageService = MessageService()
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
-    val adminService = AdminService(conversationRepo)
+    val adminService = AdminService()
     val userConfigService = UserConfigService(userConfigRepo)
 
     routing {
         route("/api/v1") {
             authenticate {
                 conversationRoutes(conversationService, sendMessageService)
+                conversationWebsocket(conversationService, sendMessageService)
                 messageRoutes(messageService)
                 userConfigRoutes(userConfigService)
             }
