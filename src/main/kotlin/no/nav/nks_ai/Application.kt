@@ -17,7 +17,6 @@ import no.nav.nks_ai.conversation.ConversationRepo
 import no.nav.nks_ai.conversation.ConversationService
 import no.nav.nks_ai.conversation.conversationRoutes
 import no.nav.nks_ai.kbs.KbsClient
-import no.nav.nks_ai.message.MessageRepo
 import no.nav.nks_ai.message.MessageService
 import no.nav.nks_ai.message.messageRoutes
 import no.nav.nks_ai.plugins.configureCache
@@ -81,12 +80,11 @@ fun Application.module() {
         scope = Config.kbs.scope,
     )
 
-    val messageRepo = MessageRepo()
     val conversationRepo = ConversationRepo()
     val userConfigRepo = UserConfigRepo()
 
-    val conversationService = ConversationService(conversationRepo, messageRepo)
-    val messageService = MessageService(messageRepo)
+    val conversationService = ConversationService(conversationRepo)
+    val messageService = MessageService()
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val adminService = AdminService(conversationRepo)
     val userConfigService = UserConfigService(userConfigRepo)

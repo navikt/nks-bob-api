@@ -28,7 +28,7 @@ fun Application.configureMonitoring() {
     }
 //    install(CallLogging) {
 //        level = Level.INFO
-//        filter { call -> call.request.path().startsWith("/") }
+//        filter { call -> call.request.path().startsWith("/api/v1") }
 //        callIdMdc("call-id")
 //    }
     install(CallId) {

@@ -159,7 +159,6 @@ sealed class ConversationError(
 
 class ConversationService(
     private val conversationRepo: ConversationRepo,
-    private val messageRepo: MessageRepo
 ) {
     suspend fun addConversation(navIdent: String, conversation: NewConversation) =
         conversationRepo.addConversation(navIdent, conversation)
@@ -181,7 +180,7 @@ class ConversationService(
         conversationRepo.getConversation(conversationId, navIdent)
             ?: return null
 
-        return messageRepo.getMessagesByConversation(conversationId)
+        return MessageRepo.getMessagesByConversation(conversationId)
             .sortedBy { it.createdAt }
     }
 
