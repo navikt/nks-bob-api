@@ -12,6 +12,8 @@ import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
+import no.nav.nks_ai.admin.AdminService
+import no.nav.nks_ai.admin.adminRoutes
 import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.conversation.ConversationService
 import no.nav.nks_ai.conversation.conversationRoutes
@@ -26,7 +28,6 @@ import no.nav.nks_ai.plugins.configureSecurity
 import no.nav.nks_ai.plugins.configureSerialization
 import no.nav.nks_ai.plugins.configureSwagger
 import no.nav.nks_ai.plugins.healthRoutes
-import no.nav.nks_ai.user.UserConfigRepo
 import no.nav.nks_ai.user.UserConfigService
 import no.nav.nks_ai.user.userConfigRoutes
 
@@ -80,13 +81,11 @@ fun Application.module() {
         scope = Config.kbs.scope,
     )
 
-    val userConfigRepo = UserConfigRepo()
-
     val conversationService = ConversationService()
     val messageService = MessageService()
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val adminService = AdminService()
-    val userConfigService = UserConfigService(userConfigRepo)
+    val userConfigService = UserConfigService()
 
     routing {
         route("/api/v1") {
