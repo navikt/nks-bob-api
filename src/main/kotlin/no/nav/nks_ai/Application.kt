@@ -12,24 +12,26 @@ import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
-import no.nav.nks_ai.admin.AdminService
-import no.nav.nks_ai.admin.adminRoutes
+import no.nav.nks_ai.app.Config
+import no.nav.nks_ai.app.plugins.configureCache
+import no.nav.nks_ai.app.plugins.configureDatabases
+import no.nav.nks_ai.app.plugins.configureMonitoring
+import no.nav.nks_ai.app.plugins.configureSecurity
+import no.nav.nks_ai.app.plugins.configureSerialization
+import no.nav.nks_ai.app.plugins.configureSwagger
+import no.nav.nks_ai.app.plugins.healthRoutes
 import no.nav.nks_ai.auth.EntraClient
-import no.nav.nks_ai.conversation.ConversationService
-import no.nav.nks_ai.conversation.conversationRoutes
-import no.nav.nks_ai.conversation.conversationWebsocket
+import no.nav.nks_ai.core.SendMessageService
+import no.nav.nks_ai.core.admin.AdminService
+import no.nav.nks_ai.core.admin.adminRoutes
+import no.nav.nks_ai.core.conversation.ConversationService
+import no.nav.nks_ai.core.conversation.conversationRoutes
+import no.nav.nks_ai.core.conversation.conversationWebsocket
+import no.nav.nks_ai.core.message.MessageService
+import no.nav.nks_ai.core.message.messageRoutes
+import no.nav.nks_ai.core.user.UserConfigService
+import no.nav.nks_ai.core.user.userConfigRoutes
 import no.nav.nks_ai.kbs.KbsClient
-import no.nav.nks_ai.message.MessageService
-import no.nav.nks_ai.message.messageRoutes
-import no.nav.nks_ai.plugins.configureCache
-import no.nav.nks_ai.plugins.configureDatabases
-import no.nav.nks_ai.plugins.configureMonitoring
-import no.nav.nks_ai.plugins.configureSecurity
-import no.nav.nks_ai.plugins.configureSerialization
-import no.nav.nks_ai.plugins.configureSwagger
-import no.nav.nks_ai.plugins.healthRoutes
-import no.nav.nks_ai.user.UserConfigService
-import no.nav.nks_ai.user.userConfigRoutes
 
 fun main(args: Array<String>) {
     EngineMain.main(args)

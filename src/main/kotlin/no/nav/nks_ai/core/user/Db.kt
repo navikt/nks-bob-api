@@ -1,9 +1,8 @@
-package no.nav.nks_ai.user
+package no.nav.nks_ai.core.user
 
 import kotlinx.datetime.LocalDateTime
-import no.nav.nks_ai.conversation.Conversations
-import no.nav.nks_ai.now
-import no.nav.nks_ai.suspendTransaction
+import no.nav.nks_ai.app.now
+import no.nav.nks_ai.app.suspendTransaction
 import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -21,7 +20,7 @@ internal class UserConfigDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     companion object : UUIDEntityClass<UserConfigDAO>(UserConfigs)
 
     var navIdent by UserConfigs.navIdent
-    var createdAt by Conversations.createdAt
+    var createdAt by UserConfigs.createdAt
     var showStartInfo by UserConfigs.showStartInfo
 }
 

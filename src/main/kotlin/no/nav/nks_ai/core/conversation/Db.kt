@@ -1,8 +1,8 @@
-package no.nav.nks_ai.conversation
+package no.nav.nks_ai.core.conversation
 
 import kotlinx.datetime.LocalDateTime
-import no.nav.nks_ai.now
-import no.nav.nks_ai.suspendTransaction
+import no.nav.nks_ai.app.now
+import no.nav.nks_ai.app.suspendTransaction
 import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID

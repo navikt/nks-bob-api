@@ -1,4 +1,4 @@
-package no.nav.nks_ai.user
+package no.nav.nks_ai.core.user
 
 import kotlinx.serialization.Serializable
 

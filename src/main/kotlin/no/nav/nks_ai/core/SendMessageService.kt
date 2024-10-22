@@ -1,4 +1,4 @@
-package no.nav.nks_ai
+package no.nav.nks_ai.core
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -10,15 +10,15 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.produceIn
-import no.nav.nks_ai.conversation.ConversationService
+import no.nav.nks_ai.core.conversation.ConversationService
+import no.nav.nks_ai.core.message.Message
+import no.nav.nks_ai.core.message.MessageService
+import no.nav.nks_ai.core.message.NewMessage
 import no.nav.nks_ai.kbs.KbsChatMessage
 import no.nav.nks_ai.kbs.KbsClient
 import no.nav.nks_ai.kbs.fromMessage
 import no.nav.nks_ai.kbs.toModel
 import no.nav.nks_ai.kbs.toNewCitation
-import no.nav.nks_ai.message.Message
-import no.nav.nks_ai.message.MessageService
-import no.nav.nks_ai.message.NewMessage
 import java.util.UUID
 
 class SendMessageService(

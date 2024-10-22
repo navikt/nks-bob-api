@@ -1,4 +1,4 @@
-package no.nav.nks_ai
+package no.nav.nks_ai.app
 
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode

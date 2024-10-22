@@ -1,4 +1,4 @@
-package no.nav.nks_ai.plugins
+package no.nav.nks_ai.app.plugins
 
 //import io.github.smiley4.ktorswaggerui.SwaggerUI
 import io.ktor.server.application.Application

@@ -1,4 +1,4 @@
-package no.nav.nks_ai.plugins
+package no.nav.nks_ai.app.plugins
 
 import com.ucasoft.ktor.simpleCache.SimpleCache
 import com.ucasoft.ktor.simpleMemoryCache.*

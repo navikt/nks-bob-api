@@ -1,4 +1,4 @@
-package no.nav.nks_ai.plugins
+package no.nav.nks_ai.app.plugins
 
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.*

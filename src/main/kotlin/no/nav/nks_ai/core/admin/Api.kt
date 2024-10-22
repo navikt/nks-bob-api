@@ -1,4 +1,4 @@
-package no.nav.nks_ai.admin
+package no.nav.nks_ai.core.admin
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond

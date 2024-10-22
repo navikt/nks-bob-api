@@ -1,9 +1,9 @@
-package no.nav.nks_ai.plugins
+package no.nav.nks_ai.app.plugins
 
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
-import no.nav.nks_ai.Config
-import no.nav.nks_ai.DbConfig
+import no.nav.nks_ai.app.Config
+import no.nav.nks_ai.app.DbConfig
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.sql.Database
 import javax.sql.DataSource

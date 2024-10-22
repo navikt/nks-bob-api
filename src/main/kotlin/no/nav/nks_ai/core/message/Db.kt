@@ -1,11 +1,11 @@
-package no.nav.nks_ai.message
+package no.nav.nks_ai.core.message
 
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.json.Json
-import no.nav.nks_ai.conversation.ConversationDAO
-import no.nav.nks_ai.conversation.Conversations
-import no.nav.nks_ai.now
-import no.nav.nks_ai.suspendTransaction
+import no.nav.nks_ai.app.now
+import no.nav.nks_ai.app.suspendTransaction
+import no.nav.nks_ai.core.conversation.ConversationDAO
+import no.nav.nks_ai.core.conversation.Conversations
 import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -32,7 +32,7 @@ internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     companion object : UUIDEntityClass<MessageDAO>(Messages)
 
     var content by Messages.content
-    var conversation by ConversationDAO referencedOn Messages.conversation
+    var conversation by ConversationDAO.Companion referencedOn Messages.conversation
     var feedback by Messages.feedback
     var citations by Messages.citations
     var createdAt by Messages.createdAt
@@ -65,7 +65,7 @@ object MessageRepo {
         citations: List<Citation>
     ): Message? =
         suspendTransaction {
-            val conversation = ConversationDAO.findById(conversationId)
+            val conversation = ConversationDAO.Companion.findById(conversationId)
                 ?: return@suspendTransaction null // TODO error
 
             MessageDAO.new {

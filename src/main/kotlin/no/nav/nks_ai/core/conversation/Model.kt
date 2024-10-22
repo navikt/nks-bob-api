@@ -1,10 +1,10 @@
-package no.nav.nks_ai.conversation
+package no.nav.nks_ai.core.conversation
 
 import io.ktor.http.HttpStatusCode
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
-import no.nav.nks_ai.ApplicationError
-import no.nav.nks_ai.message.NewMessage
+import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.core.message.NewMessage
 import java.util.UUID
 
 @Serializable

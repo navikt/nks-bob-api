@@ -1,4 +1,4 @@
-package no.nav.nks_ai.user
+package no.nav.nks_ai.core.user
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receiveNullable
@@ -7,7 +7,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
-import no.nav.nks_ai.getNavIdent
+import no.nav.nks_ai.app.getNavIdent
 
 fun Route.userConfigRoutes(userConfigService: UserConfigService) {
     route("/user/config") {

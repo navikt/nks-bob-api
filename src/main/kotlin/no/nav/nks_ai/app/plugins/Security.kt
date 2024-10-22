@@ -1,4 +1,4 @@
-package no.nav.nks_ai.plugins
+package no.nav.nks_ai.app.plugins
 
 import com.auth0.jwk.JwkProviderBuilder
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -11,7 +11,7 @@ import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.response.respond
-import no.nav.nks_ai.Config
+import no.nav.nks_ai.app.Config
 import java.net.URI
 import java.util.concurrent.TimeUnit
 

@@ -1,4 +1,4 @@
-package no.nav.nks_ai.conversation
+package no.nav.nks_ai.core.conversation
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpStatusCode
@@ -18,10 +18,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
-import no.nav.nks_ai.SendMessageService
-import no.nav.nks_ai.getNavIdent
-import no.nav.nks_ai.message.NewMessage
-import no.nav.nks_ai.message.UpdateMessage
+import no.nav.nks_ai.app.getNavIdent
+import no.nav.nks_ai.core.SendMessageService
+import no.nav.nks_ai.core.message.NewMessage
+import no.nav.nks_ai.core.message.UpdateMessage
 import java.util.Collections
 import java.util.UUID
 import kotlin.collections.set

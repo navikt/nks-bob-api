@@ -1,4 +1,4 @@
-package no.nav.nks_ai.message
+package no.nav.nks_ai.core.message
 
 import java.util.UUID
 

@@ -1,4 +1,4 @@
-package no.nav.nks_ai
+package no.nav.nks_ai.app
 
 import arrow.core.NonEmptyList
 import arrow.core.toNonEmptyListOrNull

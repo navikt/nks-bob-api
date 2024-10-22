@@ -1,7 +1,7 @@
-package no.nav.nks_ai.admin
+package no.nav.nks_ai.core.admin
 
-import no.nav.nks_ai.conversation.Conversation
-import no.nav.nks_ai.conversation.ConversationRepo
+import no.nav.nks_ai.core.conversation.Conversation
+import no.nav.nks_ai.core.conversation.ConversationRepo
 import java.util.UUID
 
 class AdminService(

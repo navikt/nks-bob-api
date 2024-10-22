@@ -19,10 +19,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import no.nav.nks_ai.auth.EntraClient
-import no.nav.nks_ai.message.Context
-import no.nav.nks_ai.message.Message
-import no.nav.nks_ai.message.MessageRole
-import no.nav.nks_ai.message.NewCitation
+import no.nav.nks_ai.core.message.Context
+import no.nav.nks_ai.core.message.Message
+import no.nav.nks_ai.core.message.MessageRole
+import no.nav.nks_ai.core.message.NewCitation
 
 @Serializable
 data class KbsChatRequest(

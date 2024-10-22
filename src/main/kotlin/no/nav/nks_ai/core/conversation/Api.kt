@@ -1,4 +1,4 @@
-package no.nav.nks_ai.conversation
+package no.nav.nks_ai.core.conversation
 
 import arrow.core.raise.fold
 import io.ktor.http.HttpStatusCode
@@ -13,12 +13,12 @@ import io.ktor.server.routing.route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import no.nav.nks_ai.ApplicationError
-import no.nav.nks_ai.SendMessageService
-import no.nav.nks_ai.fromThrowable
-import no.nav.nks_ai.getNavIdent
-import no.nav.nks_ai.message.NewMessage
-import no.nav.nks_ai.respondError
+import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.fromThrowable
+import no.nav.nks_ai.app.getNavIdent
+import no.nav.nks_ai.app.respondError
+import no.nav.nks_ai.core.SendMessageService
+import no.nav.nks_ai.core.message.NewMessage
 import java.util.UUID
 
 fun Route.conversationRoutes(
@@ -203,8 +203,8 @@ fun Route.conversationRoutes(
                 ?: return@get call.respond(HttpStatusCode.Forbidden)
 
             conversationService.getConversationMessages(conversationId, navIdent)
+                ?.let { call.respond(it) }
                 ?: return@get call.respond(HttpStatusCode.NotFound)
-                    .let { call.respond(it) }
         }
         post(
             "/{id}/messages",

@@ -1,10 +1,9 @@
-package no.nav.nks_ai.conversation
+package no.nav.nks_ai.core.conversation
 
 import arrow.core.Either
 import arrow.core.raise.either
-import no.nav.nks_ai.conversation.ConversationError.ConversationNotFound
-import no.nav.nks_ai.message.Message
-import no.nav.nks_ai.message.MessageRepo
+import no.nav.nks_ai.core.message.Message
+import no.nav.nks_ai.core.message.MessageRepo
 import java.util.UUID
 
 class ConversationService(
@@ -16,16 +15,19 @@ class ConversationService(
     suspend fun getConversation(
         conversationId: UUID,
         navIdent: String
-    ): Either<ConversationNotFound, Conversation> =
+    ): Either<ConversationError.ConversationNotFound, Conversation> =
         either {
             ConversationRepo.getConversation(conversationId, navIdent)
-                ?: raise(ConversationNotFound(conversationId))
+                ?: raise(ConversationError.ConversationNotFound(conversationId))
         }
 
     suspend fun getAllConversations(navIdent: String): List<Conversation> =
         ConversationRepo.getAllConversations(navIdent)
 
-    suspend fun getConversationMessages(conversationId: UUID, navIdent: String): List<Message>? {
+    suspend fun getConversationMessages(
+        conversationId: UUID,
+        navIdent: String
+    ): List<Message>? {
         ConversationRepo.getConversation(conversationId, navIdent)
             ?: return null
 
