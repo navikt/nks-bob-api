@@ -112,6 +112,12 @@ data class NewMessage(
     val content: String,
 )
 
+@Serializable
+data class UpdateMessage(
+    val id: String,
+    val feedback: Feedback?,
+)
+
 class MessageRepo() {
     suspend fun addMessage(
         conversationId: UUID,

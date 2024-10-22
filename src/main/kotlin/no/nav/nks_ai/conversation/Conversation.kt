@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.fold
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
@@ -18,18 +17,15 @@ import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
-import io.ktor.sse.ServerSentEvent
+import io.ktor.utils.io.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonElement
@@ -42,9 +38,9 @@ import no.nav.nks_ai.getNavIdent
 import no.nav.nks_ai.message.Message
 import no.nav.nks_ai.message.MessageRepo
 import no.nav.nks_ai.message.NewMessage
+import no.nav.nks_ai.message.UpdateMessage
 import no.nav.nks_ai.now
 import no.nav.nks_ai.respondError
-import no.nav.nks_ai.sse
 import no.nav.nks_ai.suspendTransaction
 import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
@@ -181,9 +177,9 @@ class ConversationService(
     suspend fun getAllConversations(navIdent: String): List<Conversation> =
         conversationRepo.getAllConversations(navIdent)
 
-    suspend fun getConversationMessages(conversationId: UUID, navIdent: String): List<Message> {
+    suspend fun getConversationMessages(conversationId: UUID, navIdent: String): List<Message>? {
         conversationRepo.getConversation(conversationId, navIdent)
-            ?: return emptyList()
+            ?: return null
 
         return messageRepo.getMessagesByConversation(conversationId)
             .sortedBy { it.createdAt }
@@ -378,7 +374,8 @@ fun Route.conversationRoutes(
                 ?: return@get call.respond(HttpStatusCode.Forbidden)
 
             conversationService.getConversationMessages(conversationId, navIdent)
-                .let { call.respond(it) }
+                ?: return@get call.respond(HttpStatusCode.NotFound)
+                    .let { call.respond(it) }
         }
         post(
             "/{id}/messages",
@@ -418,30 +415,6 @@ fun Route.conversationRoutes(
 
             call.respond(message)
         }
-        sse("/{id}/messages/stream", HttpMethod.Post) {
-            val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
-                ?: return@sse call.respond(HttpStatusCode.BadRequest)
-
-            val newMessage = call.receiveNullable<NewMessage>()
-                ?: return@sse call.respond(HttpStatusCode.BadRequest)
-
-            val navIdent = call.getNavIdent()
-                ?: return@sse call.respond(HttpStatusCode.Forbidden)
-
-            sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
-                .flowOn(Dispatchers.Default)
-                .onCompletion { cause ->
-                    logger.debug { "receiving message closed. Cause: ${cause?.message}" }
-                    close()
-                }
-                .onEach { message ->
-                    logger.debug { "receiving message: ${message.content}" }
-                }
-                .collect {
-                    send(ServerSentEvent(event = "message_chunk", data = Json.encodeToString(it)))
-                }
-        }
-        val sessions = Collections.synchronizedList<WebSocketServerSession>(ArrayList())
         webSocket("/{id}/messages/ws") {
             val navIdent = call.getNavIdent()
                 ?: return@webSocket call.respond(HttpStatusCode.Forbidden)
@@ -449,36 +422,48 @@ fun Route.conversationRoutes(
             val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
                 ?: return@webSocket call.respond(HttpStatusCode.BadRequest)
 
-            sessions.add(this)
-
             val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
-            existingMessages.forEach { message ->
-                sendSerialized(message)
-            }
+                ?: return@webSocket call.respond(HttpStatusCode.NotFound)
 
-            while (true) {
-                val messageEvent = receiveDeserialized<MessageEvent>()
+            try {
+                WebsocketSessionHandler.addSession(conversationId, this)
 
-                when (messageEvent) {
-                    is MessageEvent.NewMessageEvent -> {
-                        val newMessage = messageEvent.getData()
-                        val channel = sendMessageService.sendMessageChannel(newMessage, conversationId, navIdent)
-                        for (message in channel) {
-                            for (session in sessions) {
-                                session.sendSerialized(message)
+                existingMessages.forEach { message ->
+                    sendSerialized(message)
+                }
+
+                while (true) {
+                    val messageEvent = receiveDeserialized<MessageEvent>()
+
+                    when (messageEvent) {
+                        is MessageEvent.NewMessageEvent -> {
+                            val newMessage = messageEvent.getData()
+                            val channel = sendMessageService.sendMessageChannel(newMessage, conversationId, navIdent)
+                            for (message in channel) {
+                                for (session in WebsocketSessionHandler.getSessions(conversationId)) {
+                                    session.sendSerialized(message)
+                                }
                             }
                         }
-                    }
 
-                    is MessageEvent.UpdateMessageEvent -> {
-                        val updateMessage = messageEvent.getData()
-                        logger.debug { "Updating message ${updateMessage.id}" }
-                    }
+                        is MessageEvent.UpdateMessageEvent -> {
+                            val updateMessage = messageEvent.getData()
+                            logger.debug { "Updating message ${updateMessage.id}" }
+                        }
 
-                    else -> {
-                        logger.warn { "Unknown event type: ${messageEvent.eventType}" }
+                        else -> {
+                            logger.warn { "Unknown event type: ${messageEvent.type}" }
+                        }
                     }
                 }
+            } catch (e: ClosedReceiveChannelException) {
+                logger.debug { "onClose: ${e.message}" }
+            } catch (e: CancellationException) {
+                logger.debug { "onCancel: ${e.message}" }
+            } catch (e: Throwable) {
+                logger.warn { "Error when closing websocket connection: ${e.message}" }
+            } finally {
+                WebsocketSessionHandler.removeSession(conversationId, this)
             }
         }
     }
@@ -491,16 +476,16 @@ enum class MessageEventType {
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-@JsonClassDiscriminator("eventType")
+@JsonClassDiscriminator("type")
 @Serializable
 sealed class MessageEvent {
-    abstract val eventType: MessageEventType
+    abstract val type: MessageEventType
     abstract val data: JsonElement
 
     @Serializable
     @SerialName("NewMessage")
     data class NewMessageEvent(
-        override val eventType: MessageEventType = MessageEventType.NewMessage,
+        override val type: MessageEventType = MessageEventType.NewMessage,
         override val data: JsonElement
     ) : MessageEvent() {
         fun getData(): NewMessage = Json.decodeFromJsonElement(data)
@@ -509,11 +494,39 @@ sealed class MessageEvent {
     @Serializable
     @SerialName("UpdateMessage")
     data class UpdateMessageEvent(
-        override val eventType: MessageEventType = MessageEventType.UpdateMessage,
+        override val type: MessageEventType = MessageEventType.UpdateMessage,
         override val data: JsonElement
     ) : MessageEvent() {
-        fun getData(): Message = Json.decodeFromJsonElement(data)
+        fun getData(): UpdateMessage = Json.decodeFromJsonElement(data)
     }
 }
 
 private val logger = KotlinLogging.logger {}
+
+object WebsocketSessionHandler {
+    private val sessions = Collections.synchronizedMap<UUID, MutableList<WebSocketServerSession>>(HashMap())
+
+    fun getSessions(conversationId: UUID): MutableList<WebSocketServerSession> {
+        if (sessions[conversationId] == null) {
+            sessions[conversationId] = Collections.synchronizedList(ArrayList())
+        }
+        return sessions[conversationId]!!
+    }
+
+    fun addSession(conversationId: UUID, session: WebSocketServerSession) {
+        if (sessions[conversationId] == null) {
+            sessions[conversationId] = Collections.synchronizedList(ArrayList())
+        }
+        sessions[conversationId]!!.add(session)
+        logger.debug { "Websocket session added. Active sessions: ${sessions.size}" }
+    }
+
+    fun removeSession(conversationId: UUID, session: WebSocketServerSession) {
+        if (sessions[conversationId] == null) {
+            sessions[conversationId] = Collections.synchronizedList(ArrayList())
+            return
+        }
+        sessions[conversationId]!!.remove(session)
+        logger.debug { "Websocket session removed. Active sessions: ${sessions.size}" }
+    }
+}

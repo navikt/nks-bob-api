@@ -31,7 +31,7 @@ class SendMessageService(
         conversationId: UUID,
         navIdent: String,
     ): Message? {
-        val history = conversationService.getConversationMessages(conversationId, navIdent)
+        val history = conversationService.getConversationMessages(conversationId, navIdent) ?: return null
         messageService.addQuestion(conversationId, navIdent, message.content)
 
         val response = kbsClient.sendQuestion(
@@ -56,7 +56,7 @@ class SendMessageService(
         conversationId: UUID,
         navIdent: String,
     ): Message? {
-        val history = conversationService.getConversationMessages(conversationId, navIdent)
+        val history = conversationService.getConversationMessages(conversationId, navIdent) ?: return null
         messageService.addQuestion(conversationId, navIdent, message.content)
 
         val emptyMessage = messageService.addAnswer(
@@ -88,7 +88,7 @@ class SendMessageService(
         conversationId: UUID,
         navIdent: String,
     ): Flow<Message> {
-        val history = conversationService.getConversationMessages(conversationId, navIdent)
+        val history = conversationService.getConversationMessages(conversationId, navIdent) ?: return emptyFlow()
         val question = messageService.addQuestion(conversationId, navIdent, message.content)
             ?: return emptyFlow()
 
