@@ -9,6 +9,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -107,7 +108,7 @@ class KbsClient(
         question: String,
         messageHistory: List<KbsChatMessage>,
     ): KbsChatResponse? {
-        val token = entraClient.getMachineToken(scope) ?: return null
+        val token = entraClient.getMachineToken(scope)
 
         val response = httpClient.post("$baseUrl/api/v1/chat") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -126,9 +127,10 @@ class KbsClient(
         question: String,
         messageHistory: List<KbsChatMessage>,
     ): Flow<KbsChatResponse> = channelFlow {
-        val token = entraClient.getMachineToken(scope) ?: return@channelFlow
+        val token = entraClient.getMachineToken(scope)
 
         sseClient.sse("$baseUrl/api/v1/stream/chat", {
+            method = HttpMethod.Post
             header(HttpHeaders.Authorization, "Bearer $token")
             header(HttpHeaders.ContentType, ContentType.Application.Json)
             setBody(KbsChatRequest(question, messageHistory))

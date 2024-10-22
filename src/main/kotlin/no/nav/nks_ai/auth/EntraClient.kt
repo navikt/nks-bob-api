@@ -13,7 +13,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.minutes
 
-val logger = KotlinLogging.logger { }
+private val logger = KotlinLogging.logger { }
 
 class EntraClient(
     private val entraTokenUrl: String,
@@ -25,11 +25,12 @@ class EntraClient(
         expireAfterWrite = 55.minutes
     }.build()
 
-    suspend fun getMachineToken(scope: String): String? = createMachineToken(scope).accessToken
+    suspend fun getMachineToken(scope: String): String = createMachineToken(scope).accessToken
 
     private suspend fun createMachineToken(
         scope: String
     ): EntraTokenResponse = tokenCache.get(scope) { // TODO usikker på om den faktisk lagrer til cache.
+        logger.debug { "Fetching machine token for scope $scope" }
         val response = httpClient.post(entraTokenUrl) {
             setBody(
                 FormDataContent(
