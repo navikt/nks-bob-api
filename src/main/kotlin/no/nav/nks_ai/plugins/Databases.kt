@@ -28,10 +28,10 @@ object Db {
                 addDataSourceProperty("password", config.password)
             }
             maximumPoolSize = 10
-            minimumIdle = 1
-            idleTimeout = 10001
-            connectionTimeout = 1000
-            maxLifetime = 30001
+            minimumIdle = 2
+            connectionTimeout = 30_000
+            maxLifetime = 1_800_000
+            isAutoCommit = false
         }
 
         runMigration()
