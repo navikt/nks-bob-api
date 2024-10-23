@@ -228,21 +228,25 @@ fun Route.conversationRoutes(
                        }
                    } */
         ) {
-            val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
-                ?: return@post call.respond(HttpStatusCode.BadRequest)
+            coroutineScope {
+                val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
+                    ?: return@coroutineScope call.respond(HttpStatusCode.BadRequest)
 
-            val newMessage = call.receiveNullable<NewMessage>()
-                ?: return@post call.respond(HttpStatusCode.BadRequest)
+                val newMessage = call.receiveNullable<NewMessage>()
+                    ?: return@coroutineScope call.respond(HttpStatusCode.BadRequest)
 
-            val navIdent = call.getNavIdent()
-                ?: return@post call.respond(HttpStatusCode.Forbidden)
+                val navIdent = call.getNavIdent()
+                    ?: return@coroutineScope call.respond(HttpStatusCode.Forbidden)
 
-            val message = sendMessageService.sendMessage(newMessage, conversationId, navIdent)
-            if (message == null) {
-                return@post call.respond(HttpStatusCode.InternalServerError)
+                launch {
+                    val channel = sendMessageService.sendMessageChannel(newMessage, conversationId, navIdent)
+                    for (message in channel) {
+                        SseChannelHandler.getChannel(conversationId).send(message)
+                    }
+                }
+
+                call.respond(HttpStatusCode.NoContent)
             }
-
-            call.respond(message)
         }
     }
 }

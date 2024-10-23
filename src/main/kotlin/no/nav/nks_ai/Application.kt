@@ -26,6 +26,7 @@ import no.nav.nks_ai.core.admin.AdminService
 import no.nav.nks_ai.core.admin.adminRoutes
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.conversation.conversationRoutes
+import no.nav.nks_ai.core.conversation.conversationSse
 import no.nav.nks_ai.core.conversation.conversationWebsocket
 import no.nav.nks_ai.core.message.MessageService
 import no.nav.nks_ai.core.message.messageRoutes
@@ -94,6 +95,7 @@ fun Application.module() {
             authenticate {
                 conversationRoutes(conversationService, sendMessageService)
                 conversationWebsocket(conversationService, sendMessageService)
+                conversationSse(conversationService)
                 messageRoutes(messageService)
                 userConfigRoutes(userConfigService)
             }
