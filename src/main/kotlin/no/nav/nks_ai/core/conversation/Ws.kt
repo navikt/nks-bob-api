@@ -10,6 +10,7 @@ import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
 import io.ktor.utils.io.CancellationException
+import io.ktor.websocket.send
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
@@ -69,6 +70,15 @@ fun Route.conversationWebsocket(
                             logger.debug { "Updating message ${updateMessage.id}" }
                         }
 
+                        is MessageEvent.HeartbeatEvent -> {
+                            if (messageEvent.isPing()) {
+                                logger.trace { "ping pong" }
+                                send("pong")
+                            } else {
+                                logger.warn { "Unknown heartbeat message received ${messageEvent.getData()}" }
+                            }
+                        }
+
                         else -> {
                             logger.warn { "Unknown event type: ${messageEvent.type}" }
                         }
@@ -91,6 +101,7 @@ fun Route.conversationWebsocket(
 internal enum class MessageEventType {
     NewMessage,
     UpdateMessage,
+    Heartbeat,
 }
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -98,7 +109,7 @@ internal enum class MessageEventType {
 @Serializable
 internal sealed class MessageEvent {
     abstract val type: MessageEventType
-    abstract val data: JsonElement
+    protected abstract val data: JsonElement
 
     @Serializable
     @SerialName("NewMessage")
@@ -116,6 +127,17 @@ internal sealed class MessageEvent {
         override val data: JsonElement
     ) : MessageEvent() {
         fun getData(): UpdateMessage = Json.decodeFromJsonElement(data)
+    }
+
+    @Serializable
+    @SerialName("Heartbeat")
+    data class HeartbeatEvent(
+        override val type: MessageEventType = MessageEventType.Heartbeat,
+        override val data: JsonElement
+    ) : MessageEvent() {
+        fun getData(): String = Json.decodeFromJsonElement(data)
+
+        fun isPing() = getData() == "ping"
     }
 }
 
