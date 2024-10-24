@@ -6,7 +6,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
-import io.ktor.sse.ServerSentEvent
+import io.ktor.server.sse.ServerSSESession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -37,23 +37,17 @@ fun Route.conversationSse(
             val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
                 ?: return@sse call.respond(HttpStatusCode.NotFound)
 
-            logger.debug { "Sending existing messages for conversation $conversationId" }
-            existingMessages.forEach { message ->
-                send(
-                    ServerSentEvent(
-                        data = Json.encodeToString(message)
-                    )
-                )
-            }
+            launch(Dispatchers.IO) {
+                logger.debug { "Sending existing messages for conversation $conversationId" }
+                existingMessages.forEach { message ->
+                    send(data = Json.encodeToString(message))
+                }
 
-            launch(Dispatchers.Default) {
                 val channel = SseChannelHandler.getChannel(conversationId)
                 logger.debug { "Waiting for events for conversation $conversationId" }
                 for (message in channel) {
                     send(
-                        ServerSentEvent(
-                            data = Json.encodeToString(message)
-                        )
+                        data = Json.encodeToString(message),
                     )
                 }
             }
@@ -67,8 +61,47 @@ object SseChannelHandler {
     fun getChannel(conversationId: UUID): Channel<Message> {
         if (channels[conversationId] == null) {
             logger.debug { "Creating new channel for conversation $conversationId" }
-            channels[conversationId] = Channel<Message>()
+            channels[conversationId] =
+                Channel<Message>(
+                    capacity = Channel.UNLIMITED,
+                    onUndeliveredElement = { message ->
+                        logger.error { "message ${message.id} was not delivered" }
+                    }
+                )
         }
         return channels[conversationId]!!
     }
+}
+
+object SseSessionHandler {
+    private val sessions = Collections.synchronizedMap<UUID, MutableList<ServerSSESession>>(HashMap())
+
+    suspend fun closeAllSessions() {
+        logger.debug { "Closing all (${sessionCount()}) SSE sessions" }
+        sessions.forEach { entry ->
+            entry.value.forEach { session ->
+                session.close()
+                removeSession(entry.key, session)
+            }
+        }
+    }
+
+    internal fun addSession(conversationId: UUID, session: ServerSSESession) {
+        if (sessions[conversationId] == null) {
+            sessions[conversationId] = Collections.synchronizedList(ArrayList())
+        }
+        sessions[conversationId]!!.add(session)
+        logger.debug { "SSE session added. Active sessions: ${sessionCount()}" }
+    }
+
+    private fun removeSession(conversationId: UUID, session: ServerSSESession) {
+        if (sessions[conversationId] == null) {
+            sessions[conversationId] = Collections.synchronizedList(ArrayList())
+            return
+        }
+        sessions[conversationId]!!.remove(session)
+        logger.debug { "SSE session removed. Active sessions: ${sessionCount()}" }
+    }
+
+    private fun sessionCount() = sessions.flatMap { it.value }.count()
 }

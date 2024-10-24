@@ -69,16 +69,23 @@ fun Route.conversationRoutes(
                     ?: return@coroutineScope call.respond(HttpStatusCode.Forbidden)
 
                 val conversation = conversationService.addConversation(navIdent, newConversation)
+                val conversationId = UUID.fromString(conversation.id)
+
                 if (newConversation.initialMessage != null) {
                     launch(Dispatchers.Default) {
-                        sendMessageService.sendMessageDelayed(
-                            newConversation.initialMessage,
-                            UUID.fromString(conversation.id),
-                            navIdent
+                        val channel = sendMessageService.sendMessageChannel(
+                            message = newConversation.initialMessage,
+                            conversationId = conversationId,
+                            navIdent = navIdent,
                         )
+
+                        val sseChannel = SseChannelHandler.getChannel(conversationId)
+                        for (message in channel) {
+                            sseChannel.send(message)
+                        }
                     }
                 }
-                // TODO error?
+
                 call.respond(HttpStatusCode.Created, conversation)
             }
         }
@@ -239,13 +246,19 @@ fun Route.conversationRoutes(
                     ?: return@coroutineScope call.respond(HttpStatusCode.Forbidden)
 
                 launch {
-                    val channel = sendMessageService.sendMessageChannel(newMessage, conversationId, navIdent)
+                    val channel = sendMessageService.sendMessageChannel(
+                        message = newMessage,
+                        conversationId = conversationId,
+                        navIdent = navIdent
+                    )
+
+                    val sseChannel = SseChannelHandler.getChannel(conversationId)
                     for (message in channel) {
-                        SseChannelHandler.getChannel(conversationId).send(message)
+                        sseChannel.send(message)
                     }
                 }
 
-                call.respond(HttpStatusCode.NoContent)
+                call.respond(HttpStatusCode.Accepted)
             }
         }
     }

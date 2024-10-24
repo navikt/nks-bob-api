@@ -4,11 +4,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.produceIn
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.message.Message
@@ -99,24 +97,24 @@ class SendMessageService(
             context = emptyList()
         ) ?: return emptyFlow()
 
-        return flowOf(question, initialAnswer).onCompletion {
-            emitAll(
-                kbsClient.sendQuestionStream(
-                    question = message.content,
-                    messageHistory = history.map(KbsChatMessage::fromMessage),
-                ).map { response ->
-                    val answerContent = response.answer.text
-                    val citations = response.answer.citations.map { it.toNewCitation() }
-                    val context = response.context.map { it.toModel() }
+        return kbsClient.sendQuestionStream(
+            question = message.content,
+            messageHistory = history.map(KbsChatMessage::fromMessage),
+        ).map { response ->
+            val answerContent = response.answer.text
+            val citations = response.answer.citations.map { it.toNewCitation() }
+            val context = response.context.map { it.toModel() }
 
-                    messageService.updateAnswer(
-                        messageId = UUID.fromString(initialAnswer.id),
-                        messageContent = answerContent,
-                        citations = citations,
-                        context = context,
-                    )!! // TODO fallback
-                }
-            )
+            messageService.updateAnswer(
+                messageId = UUID.fromString(initialAnswer.id),
+                messageContent = answerContent,
+                citations = citations,
+                context = context,
+            )!! // TODO fallback
+        }.onStart {
+            // Start the flow with the question and the empty answer.
+            emit(question)
+            emit(initialAnswer)
         }
     }
 
