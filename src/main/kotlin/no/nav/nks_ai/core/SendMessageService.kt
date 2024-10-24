@@ -112,6 +112,9 @@ class SendMessageService(
                 context = context,
             )!! // TODO fallback
         }.onStart {
+            // Workaround for when the first message won't be sent over SSE (ChannelWriteException)
+            emit(initialAnswer)
+
             // Start the flow with the question and the empty answer.
             emit(question)
             emit(initialAnswer)
