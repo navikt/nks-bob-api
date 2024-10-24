@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -100,7 +101,7 @@ class SendMessageService(
         return kbsClient.sendQuestionStream(
             question = message.content,
             messageHistory = history.map(KbsChatMessage::fromMessage),
-        ).map { response ->
+        ).conflate().map { response ->
             val answerContent = response.answer.text
             val citations = response.answer.citations.map { it.toNewCitation() }
             val context = response.context.map { it.toModel() }
@@ -112,9 +113,6 @@ class SendMessageService(
                 context = context,
             )!! // TODO fallback
         }.onStart {
-            // Workaround for when the first message won't be sent over SSE (ChannelWriteException)
-            emit(initialAnswer)
-
             // Start the flow with the question and the empty answer.
             emit(question)
             emit(initialAnswer)
@@ -127,5 +125,5 @@ class SendMessageService(
         navIdent: String,
     ): ReceiveChannel<Message> =
         sendMessageStream(message = message, conversationId = conversationId, navIdent = navIdent)
-            .produceIn(CoroutineScope(Dispatchers.Default))
+            .produceIn(CoroutineScope(Dispatchers.IO))
 }

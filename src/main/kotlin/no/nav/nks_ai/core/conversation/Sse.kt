@@ -6,10 +6,12 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
-import io.ktor.server.sse.ServerSSESession
+import io.ktor.sse.ServerSentEvent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.getNavIdent
@@ -37,25 +39,43 @@ fun Route.conversationSse(
             val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
                 ?: return@sse call.respond(HttpStatusCode.NotFound)
 
-            launch(Dispatchers.IO) {
+            val deferred = async(Dispatchers.IO) {
                 logger.debug { "Sending existing messages for conversation $conversationId" }
                 existingMessages.forEach { message ->
-                    send(data = Json.encodeToString(message))
+                    send(messageEvent(message))
                 }
 
-                val channel = SseChannelHandler.getChannel(conversationId)
                 logger.debug { "Waiting for events for conversation $conversationId" }
-                for (message in channel) {
-                    send(
-                        data = Json.encodeToString(message),
-                    )
+                SseChannelHandler.getFlow(conversationId).asSharedFlow().collect { message ->
+                    send(messageEvent(message))
                 }
             }
+
+            deferred.await()
+            logger.debug { "Closing SSE session" }
+            close()
         }
     }
 }
 
+private fun messageEvent(message: Message) = ServerSentEvent(
+    data = Json.encodeToString(message),
+//    event = "MessageEvent",
+//    id = UUID.randomUUID().toString(),
+//    retry = 100
+)
+
 object SseChannelHandler {
+    private val messageFlows = Collections.synchronizedMap<UUID, MutableSharedFlow<Message>>(HashMap())
+
+    fun getFlow(conversationId: UUID): MutableSharedFlow<Message> {
+        if (messageFlows[conversationId] == null) {
+            logger.debug { "Creating new flow for conversation $conversationId" }
+            messageFlows[conversationId] = MutableSharedFlow()
+        }
+        return messageFlows[conversationId]!!
+    }
+
     private val channels = Collections.synchronizedMap<UUID, Channel<Message>>(HashMap())
 
     fun getChannel(conversationId: UUID): Channel<Message> {
@@ -71,37 +91,4 @@ object SseChannelHandler {
         }
         return channels[conversationId]!!
     }
-}
-
-object SseSessionHandler {
-    private val sessions = Collections.synchronizedMap<UUID, MutableList<ServerSSESession>>(HashMap())
-
-    suspend fun closeAllSessions() {
-        logger.debug { "Closing all (${sessionCount()}) SSE sessions" }
-        sessions.forEach { entry ->
-            entry.value.forEach { session ->
-                session.close()
-                removeSession(entry.key, session)
-            }
-        }
-    }
-
-    internal fun addSession(conversationId: UUID, session: ServerSSESession) {
-        if (sessions[conversationId] == null) {
-            sessions[conversationId] = Collections.synchronizedList(ArrayList())
-        }
-        sessions[conversationId]!!.add(session)
-        logger.debug { "SSE session added. Active sessions: ${sessionCount()}" }
-    }
-
-    private fun removeSession(conversationId: UUID, session: ServerSSESession) {
-        if (sessions[conversationId] == null) {
-            sessions[conversationId] = Collections.synchronizedList(ArrayList())
-            return
-        }
-        sessions[conversationId]!!.remove(session)
-        logger.debug { "SSE session removed. Active sessions: ${sessionCount()}" }
-    }
-
-    private fun sessionCount() = sessions.flatMap { it.value }.count()
 }

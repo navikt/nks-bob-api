@@ -12,6 +12,7 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.launch
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.fromThrowable
@@ -72,17 +73,14 @@ fun Route.conversationRoutes(
                 val conversationId = UUID.fromString(conversation.id)
 
                 if (newConversation.initialMessage != null) {
-                    launch(Dispatchers.Default) {
-                        val channel = sendMessageService.sendMessageChannel(
-                            message = newConversation.initialMessage,
-                            conversationId = conversationId,
-                            navIdent = navIdent,
+                    launch(Dispatchers.IO) {
+                        SseChannelHandler.getFlow(conversationId).emitAll(
+                            sendMessageService.sendMessageStream(
+                                message = newConversation.initialMessage,
+                                conversationId = conversationId,
+                                navIdent = navIdent
+                            )
                         )
-
-                        val sseChannel = SseChannelHandler.getChannel(conversationId)
-                        for (message in channel) {
-                            sseChannel.send(message)
-                        }
                     }
                 }
 
@@ -245,17 +243,14 @@ fun Route.conversationRoutes(
                 val navIdent = call.getNavIdent()
                     ?: return@coroutineScope call.respond(HttpStatusCode.Forbidden)
 
-                launch {
-                    val channel = sendMessageService.sendMessageChannel(
-                        message = newMessage,
-                        conversationId = conversationId,
-                        navIdent = navIdent
+                launch(Dispatchers.IO) {
+                    SseChannelHandler.getFlow(conversationId).emitAll(
+                        sendMessageService.sendMessageStream(
+                            message = newMessage,
+                            conversationId = conversationId,
+                            navIdent = navIdent
+                        )
                     )
-
-                    val sseChannel = SseChannelHandler.getChannel(conversationId)
-                    for (message in channel) {
-                        sseChannel.send(message)
-                    }
                 }
 
                 call.respond(HttpStatusCode.Accepted)
