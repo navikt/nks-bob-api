@@ -3,17 +3,18 @@ package no.nav.nks_ai.core.admin
 import no.nav.nks_ai.core.conversation.Conversation
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationRepo
+import no.nav.nks_ai.core.user.NavIdent
 
 class AdminService(
 ) {
-    suspend fun deleteAllConversations(navIdent: String) {
+    suspend fun deleteAllConversations(navIdent: NavIdent) {
         ConversationRepo.deleteAllConversations(navIdent)
     }
 
-    suspend fun deleteConversation(conversationId: ConversationId, navIdent: String) {
+    suspend fun deleteConversation(conversationId: ConversationId, navIdent: NavIdent) {
         ConversationRepo.deleteConversation(conversationId, navIdent)
     }
 
-    suspend fun getAllConversations(navIdent: String): List<Conversation> =
+    suspend fun getAllConversations(navIdent: NavIdent): List<Conversation> =
         ConversationRepo.getAllConversations(navIdent)
 }

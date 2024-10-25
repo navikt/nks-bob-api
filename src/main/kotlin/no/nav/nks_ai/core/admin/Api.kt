@@ -7,6 +7,7 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import no.nav.nks_ai.core.conversation.conversationId
+import no.nav.nks_ai.core.user.NavIdent
 
 fun Route.adminRoutes(adminService: AdminService) {
     route("/admin") {
@@ -29,6 +30,7 @@ fun Route.adminRoutes(adminService: AdminService) {
             } */
             ) {
                 val navIdent = call.request.queryParameters["navIdent"]
+                    ?.let { NavIdent(it) }
                     ?: return@get call.respond(HttpStatusCode.BadRequest)
 
                 adminService.getAllConversations(navIdent)
@@ -49,6 +51,7 @@ fun Route.adminRoutes(adminService: AdminService) {
             } */
             ) {
                 val navIdent = call.request.queryParameters["navIdent"]
+                    ?.let { NavIdent(it) }
                     ?: return@delete call.respond(HttpStatusCode.BadRequest)
 
                 adminService.deleteAllConversations(navIdent)
@@ -74,6 +77,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                            } */
             ) {
                 val navIdent = call.request.queryParameters["navIdent"]
+                    ?.let { NavIdent(it) }
                     ?: return@delete call.respond(HttpStatusCode.BadRequest)
 
                 val conversationId = call.conversationId()

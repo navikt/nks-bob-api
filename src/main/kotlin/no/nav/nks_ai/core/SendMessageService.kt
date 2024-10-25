@@ -16,6 +16,7 @@ import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageService
 import no.nav.nks_ai.core.message.NewMessage
+import no.nav.nks_ai.core.user.NavIdent
 import no.nav.nks_ai.kbs.KbsChatMessage
 import no.nav.nks_ai.kbs.KbsClient
 import no.nav.nks_ai.kbs.fromMessage
@@ -32,7 +33,7 @@ class SendMessageService(
     suspend fun sendMessage(
         message: NewMessage,
         conversationId: ConversationId,
-        navIdent: String,
+        navIdent: NavIdent,
     ): Message? {
         val history = conversationService.getConversationMessages(conversationId, navIdent) ?: return null
         messageService.addQuestion(conversationId, navIdent, message.content)
@@ -57,7 +58,7 @@ class SendMessageService(
     suspend fun sendMessageDelayed(
         message: NewMessage,
         conversationId: ConversationId,
-        navIdent: String,
+        navIdent: NavIdent,
     ): Message? {
         val history = conversationService.getConversationMessages(conversationId, navIdent) ?: return null
         messageService.addQuestion(conversationId, navIdent, message.content)
@@ -89,7 +90,7 @@ class SendMessageService(
     suspend fun sendMessageStream(
         message: NewMessage,
         conversationId: ConversationId,
-        navIdent: String,
+        navIdent: NavIdent,
     ): Flow<Message> {
         val history = conversationService.getConversationMessages(conversationId, navIdent)
             ?: return emptyFlow()
@@ -124,7 +125,7 @@ class SendMessageService(
     suspend fun sendMessageChannel(
         message: NewMessage,
         conversationId: ConversationId,
-        navIdent: String,
+        navIdent: NavIdent,
     ): ReceiveChannel<Message> =
         sendMessageStream(message = message, conversationId = conversationId, navIdent = navIdent)
             .produceIn(CoroutineScope(Dispatchers.IO))

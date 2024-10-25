@@ -3,6 +3,7 @@ package no.nav.nks_ai.core.conversation
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
+import no.nav.nks_ai.core.user.NavIdent
 import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -28,15 +29,15 @@ internal class ConversationDAO(id: EntityID<UUID>) : UUIDEntity(id) {
 
 private fun ConversationDAO.Companion.findByIdAndNavIdent(
     conversationId: ConversationId,
-    navIdent: String
+    navIdent: NavIdent,
 ): ConversationDAO? =
     find {
-        Conversations.id eq conversationId.value and (Conversations.owner eq navIdent)
+        Conversations.id eq conversationId.value and (Conversations.owner eq navIdent.value)
     }.firstOrNull()
 
 private fun ConversationDAO.Companion.findAllByNavIdent(
-    navIdent: String
-): SizedIterable<ConversationDAO> = find { Conversations.owner eq navIdent }
+    navIdent: NavIdent,
+): SizedIterable<ConversationDAO> = find { Conversations.owner eq navIdent.value }
 
 private fun ConversationDAO.toModel() = Conversation(
     id = id.value.toConversationId(),
@@ -46,39 +47,39 @@ private fun ConversationDAO.toModel() = Conversation(
 )
 
 object ConversationRepo {
-    suspend fun addConversation(navIdent: String, conversation: NewConversation): Conversation =
+    suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): Conversation =
         suspendTransaction {
             ConversationDAO.new {
                 title = conversation.title
-                owner = navIdent
+                owner = navIdent.value
             }.toModel()
         }
 
-    suspend fun deleteConversation(conversationId: ConversationId, navIdent: String): Unit =
+    suspend fun deleteConversation(conversationId: ConversationId, navIdent: NavIdent): Unit =
         suspendTransaction {
             ConversationDAO.findByIdAndNavIdent(conversationId, navIdent)?.delete()
         }
 
-    suspend fun deleteAllConversations(navIdent: String): Unit =
+    suspend fun deleteAllConversations(navIdent: NavIdent): Unit =
         suspendTransaction {
             ConversationDAO.findAllByNavIdent(navIdent).forEach { it.delete() }
         }
 
-    suspend fun getConversation(conversationId: ConversationId, navIdent: String): Conversation? =
+    suspend fun getConversation(conversationId: ConversationId, navIdent: NavIdent): Conversation? =
         suspendTransaction {
             ConversationDAO.findByIdAndNavIdent(conversationId, navIdent)
                 ?.toModel()
         }
 
-    suspend fun getAllConversations(navIdent: String): List<Conversation> =
+    suspend fun getAllConversations(navIdent: NavIdent): List<Conversation> =
         suspendTransaction {
-            ConversationDAO.find { Conversations.owner eq navIdent }
+            ConversationDAO.findAllByNavIdent(navIdent)
                 .map { it.toModel() }
         }
 
     suspend fun updateConversation(
         id: ConversationId,
-        navIdent: String,
+        navIdent: NavIdent,
         conversation: UpdateConversation
     ): Conversation? =
         suspendTransaction {

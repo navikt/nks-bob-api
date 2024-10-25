@@ -17,6 +17,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
+import no.nav.nks_ai.core.user.NavIdent
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
@@ -32,15 +33,11 @@ fun ApplicationCall.getClaim(issuer: String, name: String) =
         ?.getClaim(name)
         ?.asString()
 
-// TODO for tokensupport
-//        ?.context
-//        ?.getClaims(issuer)
-//        ?.getStringClaim(name)
-
 fun ApplicationCall.getIssuerName(): String = Config.issuers.head.issuer_name
 
-fun ApplicationCall.getNavIdent(): String? =
+fun ApplicationCall.getNavIdent(): NavIdent? =
     getClaim(getIssuerName(), "NAVident")
+        ?.let { NavIdent(it) }
 
 open class ApplicationError(
     open val code: HttpStatusCode,

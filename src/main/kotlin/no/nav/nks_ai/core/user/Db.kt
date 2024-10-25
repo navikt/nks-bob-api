@@ -24,9 +24,9 @@ internal class UserConfigDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var showStartInfo by UserConfigs.showStartInfo
 }
 
-internal fun UserConfigDAO.Companion.findByNavIdent(navIdent: String): UserConfigDAO? =
+internal fun UserConfigDAO.Companion.findByNavIdent(navIdent: NavIdent): UserConfigDAO? =
     find {
-        UserConfigs.navIdent eq navIdent
+        UserConfigs.navIdent eq navIdent.value
     }.firstOrNull()
 
 internal fun UserConfigDAO.toModel() = UserConfig(
@@ -34,20 +34,20 @@ internal fun UserConfigDAO.toModel() = UserConfig(
 )
 
 object UserConfigRepo {
-    suspend fun getUserConfig(navIdent: String): UserConfig? =
+    suspend fun getUserConfig(navIdent: NavIdent): UserConfig? =
         suspendTransaction {
             UserConfigDAO.findByNavIdent(navIdent)?.toModel()
         }
 
-    suspend fun addConfig(config: UserConfig, navIdent: String): UserConfig =
+    suspend fun addConfig(config: UserConfig, navIdent: NavIdent): UserConfig =
         suspendTransaction {
             UserConfigDAO.new {
-                this.navIdent = navIdent
+                this.navIdent = navIdent.value
                 this.showStartInfo = config.showStartInfo
             }.toModel()
         }
 
-    suspend fun updateUserConfig(config: UserConfig, navIdent: String): UserConfig? =
+    suspend fun updateUserConfig(config: UserConfig, navIdent: NavIdent): UserConfig? =
         suspendTransaction {
             UserConfigDAO
                 .findByNavIdent(navIdent)

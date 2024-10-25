@@ -1,16 +1,17 @@
 package no.nav.nks_ai.core.message
 
 import no.nav.nks_ai.core.conversation.ConversationId
+import no.nav.nks_ai.core.user.NavIdent
 
 class MessageService() {
     suspend fun addQuestion(
         conversationId: ConversationId,
-        navIdent: String,
+        navIdent: NavIdent,
         messageContent: String,
     ) = MessageRepo.addMessage(
         conversationId = conversationId,
         messageContent = messageContent,
-        createdBy = navIdent,
+        createdBy = navIdent.value,
         messageType = MessageType.Question,
         messageRole = MessageRole.Human,
         context = emptyList(),
