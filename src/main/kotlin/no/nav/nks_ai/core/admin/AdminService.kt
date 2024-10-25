@@ -1,8 +1,8 @@
 package no.nav.nks_ai.core.admin
 
 import no.nav.nks_ai.core.conversation.Conversation
+import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationRepo
-import java.util.UUID
 
 class AdminService(
 ) {
@@ -10,7 +10,7 @@ class AdminService(
         ConversationRepo.deleteAllConversations(navIdent)
     }
 
-    suspend fun deleteConversation(conversationId: UUID, navIdent: String) {
+    suspend fun deleteConversation(conversationId: ConversationId, navIdent: String) {
         ConversationRepo.deleteConversation(conversationId, navIdent)
     }
 

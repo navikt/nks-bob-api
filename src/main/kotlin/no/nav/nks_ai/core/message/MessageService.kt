@@ -1,10 +1,10 @@
 package no.nav.nks_ai.core.message
 
-import java.util.UUID
+import no.nav.nks_ai.core.conversation.ConversationId
 
 class MessageService() {
     suspend fun addQuestion(
-        conversationId: UUID,
+        conversationId: ConversationId,
         navIdent: String,
         messageContent: String,
     ) = MessageRepo.addMessage(
@@ -18,7 +18,7 @@ class MessageService() {
     )
 
     suspend fun addAnswer(
-        conversationId: UUID,
+        conversationId: ConversationId,
         messageContent: String,
         citations: List<NewCitation>,
         context: List<Context>,
@@ -34,8 +34,16 @@ class MessageService() {
         )
     }
 
+    suspend fun addEmptyAnswer(conversationId: ConversationId): Message? =
+        addAnswer(
+            conversationId = conversationId,
+            messageContent = "",
+            citations = emptyList(),
+            context = emptyList()
+        )
+
     suspend fun updateAnswer(
-        messageId: UUID,
+        messageId: MessageId,
         messageContent: String,
         citations: List<NewCitation>,
         context: List<Context>,
@@ -51,10 +59,10 @@ class MessageService() {
         )
     }
 
-    suspend fun getMessage(messageId: UUID): Message? =
+    suspend fun getMessage(messageId: MessageId): Message? =
         MessageRepo.getMessage(messageId)
 
-    suspend fun addFeedbackToMessage(messageId: UUID, newFeedback: NewFeedback): Message? {
+    suspend fun addFeedbackToMessage(messageId: MessageId, newFeedback: NewFeedback): Message? {
         return MessageRepo.addFeedback(messageId, newFeedback)
     }
 }

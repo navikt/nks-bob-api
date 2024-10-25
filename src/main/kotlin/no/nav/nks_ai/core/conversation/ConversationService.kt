@@ -4,7 +4,6 @@ import arrow.core.Either
 import arrow.core.raise.either
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageRepo
-import java.util.UUID
 
 class ConversationService(
 ) {
@@ -13,7 +12,7 @@ class ConversationService(
 
     // TODO metrics
     suspend fun getConversation(
-        conversationId: UUID,
+        conversationId: ConversationId,
         navIdent: String
     ): Either<ConversationError.ConversationNotFound, Conversation> =
         either {
@@ -25,7 +24,7 @@ class ConversationService(
         ConversationRepo.getAllConversations(navIdent)
 
     suspend fun getConversationMessages(
-        conversationId: UUID,
+        conversationId: ConversationId,
         navIdent: String
     ): List<Message>? {
         ConversationRepo.getConversation(conversationId, navIdent)
@@ -35,10 +34,10 @@ class ConversationService(
             .sortedBy { it.createdAt }
     }
 
-    suspend fun deleteConversation(conversationId: UUID, navIdent: String): Unit =
+    suspend fun deleteConversation(conversationId: ConversationId, navIdent: String): Unit =
         ConversationRepo.deleteConversation(conversationId, navIdent)
 
-    suspend fun updateConversation(id: UUID, navIdent: String, conversation: UpdateConversation) =
+    suspend fun updateConversation(id: ConversationId, navIdent: String, conversation: UpdateConversation) =
         ConversationRepo.updateConversation(id, navIdent, conversation)
 }
 

@@ -18,7 +18,6 @@ import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.sse
 import no.nav.nks_ai.core.message.Message
 import java.util.Collections
-import java.util.UUID
 import kotlin.collections.set
 
 private val logger = KotlinLogging.logger { }
@@ -32,7 +31,7 @@ fun Route.conversationSse(
             val navIdent = call.getNavIdent()
                 ?: return@sse call.respond(HttpStatusCode.Forbidden)
 
-            val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
+            val conversationId = call.conversationId()
                 ?: return@sse call.respond(HttpStatusCode.BadRequest)
             logger.debug { "SSE connection established for conversation $conversationId" }
 
@@ -66,9 +65,9 @@ private fun messageEvent(message: Message) = ServerSentEvent(
 )
 
 object SseChannelHandler {
-    private val messageFlows = Collections.synchronizedMap<UUID, MutableSharedFlow<Message>>(HashMap())
+    private val messageFlows = Collections.synchronizedMap<ConversationId, MutableSharedFlow<Message>>(HashMap())
 
-    fun getFlow(conversationId: UUID): MutableSharedFlow<Message> {
+    fun getFlow(conversationId: ConversationId): MutableSharedFlow<Message> {
         if (messageFlows[conversationId] == null) {
             logger.debug { "Creating new flow for conversation $conversationId" }
             messageFlows[conversationId] = MutableSharedFlow()
@@ -76,9 +75,9 @@ object SseChannelHandler {
         return messageFlows[conversationId]!!
     }
 
-    private val channels = Collections.synchronizedMap<UUID, Channel<Message>>(HashMap())
+    private val channels = Collections.synchronizedMap<ConversationId, Channel<Message>>(HashMap())
 
-    fun getChannel(conversationId: UUID): Channel<Message> {
+    fun getChannel(conversationId: ConversationId): Channel<Message> {
         if (channels[conversationId] == null) {
             logger.debug { "Creating new channel for conversation $conversationId" }
             channels[conversationId] =

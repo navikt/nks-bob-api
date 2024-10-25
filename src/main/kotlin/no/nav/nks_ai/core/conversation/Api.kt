@@ -20,7 +20,6 @@ import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.message.NewMessage
-import java.util.UUID
 
 fun Route.conversationRoutes(
     conversationService: ConversationService,
@@ -70,7 +69,7 @@ fun Route.conversationRoutes(
                     ?: return@coroutineScope call.respond(HttpStatusCode.Forbidden)
 
                 val conversation = conversationService.addConversation(navIdent, newConversation)
-                val conversationId = UUID.fromString(conversation.id)
+                val conversationId = conversation.id
 
                 if (newConversation.initialMessage != null) {
                     launch(Dispatchers.IO) {
@@ -106,7 +105,7 @@ fun Route.conversationRoutes(
                        }
                    } */
         ) {
-            val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
+            val conversationId = call.conversationId()
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
 
             val navIdent = call.getNavIdent()
@@ -135,7 +134,7 @@ fun Route.conversationRoutes(
                        }
                    } */
         ) {
-            val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
+            val conversationId = call.conversationId()
                 ?: return@delete call.respond(HttpStatusCode.BadRequest)
 
             val navIdent = call.getNavIdent()
@@ -166,7 +165,7 @@ fun Route.conversationRoutes(
                        }
                    } */
         ) {
-            val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
+            val conversationId = call.conversationId()
                 ?: return@put call.respond(HttpStatusCode.BadRequest)
 
             val conversation = call.receiveNullable<UpdateConversation>()
@@ -201,7 +200,7 @@ fun Route.conversationRoutes(
                        }
                    } */
         ) {
-            val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
+            val conversationId = call.conversationId()
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
 
             val navIdent = call.getNavIdent()
@@ -234,7 +233,7 @@ fun Route.conversationRoutes(
                    } */
         ) {
             coroutineScope {
-                val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
+                val conversationId = call.conversationId()
                     ?: return@coroutineScope call.respond(HttpStatusCode.BadRequest)
 
                 val newMessage = call.receiveNullable<NewMessage>()

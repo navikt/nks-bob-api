@@ -24,7 +24,6 @@ import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.message.NewMessage
 import no.nav.nks_ai.core.message.UpdateMessage
 import java.util.Collections
-import java.util.UUID
 import kotlin.collections.set
 
 private val logger = KotlinLogging.logger {}
@@ -38,7 +37,7 @@ fun Route.conversationWebsocket(
             val navIdent = call.getNavIdent()
                 ?: return@webSocket call.respond(HttpStatusCode.Forbidden)
 
-            val conversationId = call.parameters["id"]?.let { UUID.fromString(it) }
+            val conversationId = call.conversationId()
                 ?: return@webSocket call.respond(HttpStatusCode.BadRequest)
 
             val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
@@ -142,16 +141,16 @@ internal sealed class MessageEvent {
 }
 
 private object WebsocketSessionHandler {
-    private val sessions = Collections.synchronizedMap<UUID, MutableList<WebSocketServerSession>>(HashMap())
+    private val sessions = Collections.synchronizedMap<ConversationId, MutableList<WebSocketServerSession>>(HashMap())
 
-    fun getSessions(conversationId: UUID): MutableList<WebSocketServerSession> {
+    fun getSessions(conversationId: ConversationId): MutableList<WebSocketServerSession> {
         if (sessions[conversationId] == null) {
             sessions[conversationId] = Collections.synchronizedList(ArrayList())
         }
         return sessions[conversationId]!!
     }
 
-    fun addSession(conversationId: UUID, session: WebSocketServerSession) {
+    fun addSession(conversationId: ConversationId, session: WebSocketServerSession) {
         if (sessions[conversationId] == null) {
             sessions[conversationId] = Collections.synchronizedList(ArrayList())
         }
@@ -159,7 +158,7 @@ private object WebsocketSessionHandler {
         logger.debug { "Websocket session added. Active sessions: ${sessions.size}" }
     }
 
-    fun removeSession(conversationId: UUID, session: WebSocketServerSession) {
+    fun removeSession(conversationId: ConversationId, session: WebSocketServerSession) {
         if (sessions[conversationId] == null) {
             sessions[conversationId] = Collections.synchronizedList(ArrayList())
             return

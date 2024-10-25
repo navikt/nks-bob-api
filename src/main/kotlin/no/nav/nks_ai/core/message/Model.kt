@@ -1,9 +1,41 @@
 package no.nav.nks_ai.core.message
 
+import io.ktor.server.application.ApplicationCall
 import kotlinx.datetime.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonObject
+import java.util.UUID
+
+object MessageIdSerializer : KSerializer<MessageId> {
+    override fun deserialize(decoder: Decoder): MessageId {
+        return UUID.fromString(decoder.decodeString()).toMessageId()
+    }
+
+    override val descriptor: SerialDescriptor
+        get() = TODO("Not yet implemented")
+
+    override fun serialize(
+        encoder: Encoder,
+        messageId: MessageId
+    ) {
+        encoder.encodeString(messageId.value.toString())
+    }
+}
+
+@Serializable(MessageIdSerializer::class)
+@JvmInline
+value class MessageId(@Contextual val value: UUID)
+
+fun UUID.toMessageId() = MessageId(this)
+
+fun ApplicationCall.messageId(name: String = "id"): MessageId? =
+    MessageId(UUID.fromString(this.parameters[name]))
 
 @Serializable
 enum class MessageType {
@@ -70,7 +102,7 @@ data class NewFeedback(
 
 @Serializable
 data class Message(
-    val id: String,
+    val id: MessageId,
     val content: String,
     val createdAt: LocalDateTime,
     val feedback: Feedback?,
@@ -88,6 +120,6 @@ data class NewMessage(
 
 @Serializable
 data class UpdateMessage(
-    val id: String,
+    val id: MessageId,
     val feedback: Feedback?,
 )

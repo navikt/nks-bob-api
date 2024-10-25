@@ -27,11 +27,11 @@ internal class ConversationDAO(id: EntityID<UUID>) : UUIDEntity(id) {
 }
 
 private fun ConversationDAO.Companion.findByIdAndNavIdent(
-    conversationId: UUID,
+    conversationId: ConversationId,
     navIdent: String
 ): ConversationDAO? =
     find {
-        Conversations.id eq conversationId and (Conversations.owner eq navIdent)
+        Conversations.id eq conversationId.value and (Conversations.owner eq navIdent)
     }.firstOrNull()
 
 private fun ConversationDAO.Companion.findAllByNavIdent(
@@ -39,7 +39,7 @@ private fun ConversationDAO.Companion.findAllByNavIdent(
 ): SizedIterable<ConversationDAO> = find { Conversations.owner eq navIdent }
 
 private fun ConversationDAO.toModel() = Conversation(
-    id = id.toString(),
+    id = id.value.toConversationId(),
     title = title,
     createdAt = createdAt,
     owner = owner,
@@ -54,7 +54,7 @@ object ConversationRepo {
             }.toModel()
         }
 
-    suspend fun deleteConversation(conversationId: UUID, navIdent: String): Unit =
+    suspend fun deleteConversation(conversationId: ConversationId, navIdent: String): Unit =
         suspendTransaction {
             ConversationDAO.findByIdAndNavIdent(conversationId, navIdent)?.delete()
         }
@@ -64,7 +64,7 @@ object ConversationRepo {
             ConversationDAO.findAllByNavIdent(navIdent).forEach { it.delete() }
         }
 
-    suspend fun getConversation(conversationId: UUID, navIdent: String): Conversation? =
+    suspend fun getConversation(conversationId: ConversationId, navIdent: String): Conversation? =
         suspendTransaction {
             ConversationDAO.findByIdAndNavIdent(conversationId, navIdent)
                 ?.toModel()
@@ -76,7 +76,11 @@ object ConversationRepo {
                 .map { it.toModel() }
         }
 
-    suspend fun updateConversation(id: UUID, navIdent: String, conversation: UpdateConversation): Conversation? =
+    suspend fun updateConversation(
+        id: ConversationId,
+        navIdent: String,
+        conversation: UpdateConversation
+    ): Conversation? =
         suspendTransaction {
             ConversationDAO
                 .findByIdAndNavIdent(id, navIdent)

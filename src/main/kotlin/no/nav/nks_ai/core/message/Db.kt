@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.core.conversation.ConversationDAO
+import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.Conversations
 import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
@@ -43,7 +44,7 @@ internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
 }
 
 internal fun MessageDAO.toModel() = Message(
-    id = id.toString(),
+    id = id.value.toMessageId(),
     content = content,
     createdAt = createdAt,
     feedback = feedback,
@@ -56,7 +57,7 @@ internal fun MessageDAO.toModel() = Message(
 
 object MessageRepo {
     suspend fun addMessage(
-        conversationId: UUID,
+        conversationId: ConversationId,
         messageContent: String,
         messageType: MessageType,
         messageRole: MessageRole,
@@ -65,7 +66,7 @@ object MessageRepo {
         citations: List<Citation>
     ): Message? =
         suspendTransaction {
-            val conversation = ConversationDAO.Companion.findById(conversationId)
+            val conversation = ConversationDAO.Companion.findById(conversationId.value)
                 ?: return@suspendTransaction null // TODO error
 
             MessageDAO.new {
@@ -80,7 +81,7 @@ object MessageRepo {
         }
 
     suspend fun updateMessage(
-        messageId: UUID,
+        messageId: MessageId,
         messageContent: String,
         messageType: MessageType,
         messageRole: MessageRole,
@@ -89,7 +90,7 @@ object MessageRepo {
         citations: List<Citation>,
     ): Message? =
         suspendTransaction {
-            MessageDAO.findByIdAndUpdate(messageId) {
+            MessageDAO.findByIdAndUpdate(messageId.value) {
                 it.content = messageContent
                 it.messageType = messageType
                 it.messageRole = messageRole
@@ -99,22 +100,22 @@ object MessageRepo {
             }?.toModel()
         }
 
-    suspend fun getMessage(id: UUID): Message? =
+    suspend fun getMessage(id: MessageId): Message? =
         suspendTransaction {
-            MessageDAO.findById(id)
+            MessageDAO.findById(id.value)
                 ?.toModel()
         }
 
-    suspend fun getMessagesByConversation(conversationId: UUID): List<Message> =
+    suspend fun getMessagesByConversation(conversationId: ConversationId): List<Message> =
         suspendTransaction {
-            MessageDAO.find { Messages.conversation eq conversationId }
+            MessageDAO.find { Messages.conversation eq conversationId.value }
                 .sortedBy { Messages.createdAt }
                 .map { it.toModel() }
         }
 
-    suspend fun addFeedback(messageId: UUID, newFeedback: NewFeedback): Message? =
+    suspend fun addFeedback(messageId: MessageId, newFeedback: NewFeedback): Message? =
         suspendTransaction {
-            MessageDAO.findByIdAndUpdate(messageId) {
+            MessageDAO.findByIdAndUpdate(messageId.value) {
                 it.feedback = Feedback.fromNewFeedback(newFeedback)
             }?.toModel()
         }

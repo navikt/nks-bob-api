@@ -7,7 +7,6 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
-import java.util.UUID
 
 fun Route.messageRoutes(messageService: MessageService) {
     route("/messages") {
@@ -30,7 +29,7 @@ fun Route.messageRoutes(messageService: MessageService) {
                        }
                    } */
         ) {
-            val messageId = call.parameters["id"]?.let { UUID.fromString(it) }
+            val messageId = call.messageId()
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
 
             val message = messageService.getMessage(messageId)
@@ -62,7 +61,7 @@ fun Route.messageRoutes(messageService: MessageService) {
                        }
                    } */
         ) {
-            val messageId = call.parameters["id"]?.let { UUID.fromString(it) }
+            val messageId = call.messageId()
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
 
             val feedback = call.receiveNullable<NewFeedback>()
