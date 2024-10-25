@@ -56,12 +56,12 @@ fun Route.conversationWebsocket(
                     when (messageEvent) {
                         is MessageEvent.NewMessageEvent -> {
                             val newMessage = messageEvent.getData()
-                            val channel = sendMessageService.sendMessageChannel(newMessage, conversationId, navIdent)
-                            for (message in channel) {
-                                for (session in WebsocketSessionHandler.getSessions(conversationId)) {
-                                    session.sendSerialized(message)
+                            sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
+                                .collect { message ->
+                                    for (session in WebsocketSessionHandler.getSessions(conversationId)) {
+                                        session.sendSerialized(message)
+                                    }
                                 }
-                            }
                         }
 
                         is MessageEvent.UpdateMessageEvent -> {
