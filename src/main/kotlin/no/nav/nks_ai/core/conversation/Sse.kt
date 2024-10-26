@@ -10,8 +10,10 @@ import io.ktor.sse.ServerSentEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.getNavIdent
@@ -19,6 +21,7 @@ import no.nav.nks_ai.app.sse
 import no.nav.nks_ai.core.message.Message
 import java.util.Collections
 import kotlin.collections.set
+import kotlin.time.Duration.Companion.hours
 
 private val logger = KotlinLogging.logger { }
 
@@ -37,6 +40,12 @@ fun Route.conversationSse(
 
             val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
                 ?: return@sse call.respond(HttpStatusCode.NotFound)
+
+            launch {
+                // Close the connection after a set time
+                delay(2.hours)
+                close()
+            }
 
             val deferred = async(Dispatchers.IO) {
                 logger.debug { "Sending existing messages for conversation $conversationId" }
