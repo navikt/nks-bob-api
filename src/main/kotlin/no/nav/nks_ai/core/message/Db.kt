@@ -1,5 +1,7 @@
 package no.nav.nks_ai.core.message
 
+import arrow.core.None
+import arrow.core.Option
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.now
@@ -27,6 +29,7 @@ internal object Messages : UUIDTable() {
     val createdBy = varchar("created_by", 255)
     val context = jsonb<List<Context>>("context", jsonConfig).clientDefault { emptyList() }
     val citations = jsonb<List<Citation>>("citations", jsonConfig).clientDefault { emptyList() }
+    val pending = bool("pending").clientDefault { false }
 }
 
 internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -41,6 +44,7 @@ internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var messageRole by Messages.messageRole
     var createdBy by Messages.createdBy
     var context by Messages.context
+    var pending by Messages.pending
 }
 
 internal fun MessageDAO.toModel() = Message(
@@ -52,7 +56,8 @@ internal fun MessageDAO.toModel() = Message(
     messageRole = messageRole,
     createdBy = createdBy,
     citations = citations,
-    context = context
+    context = context,
+    pending = pending,
 )
 
 object MessageRepo {
@@ -63,7 +68,8 @@ object MessageRepo {
         messageRole: MessageRole,
         createdBy: String,
         context: List<Context>,
-        citations: List<Citation>
+        citations: List<Citation>,
+        pending: Boolean,
     ): Message? =
         suspendTransaction {
             val conversation = ConversationDAO.Companion.findById(conversationId.value)
@@ -77,7 +83,30 @@ object MessageRepo {
                 this.createdBy = createdBy
                 this.context = context
                 this.citations = citations
+                this.pending = pending
             }.toModel()
+        }
+
+    suspend fun patchMessage(
+        messageId: MessageId,
+        messageContent: Option<String> = None,
+        messageType: Option<MessageType> = None,
+        messageRole: Option<MessageRole> = None,
+        createdBy: Option<String> = None,
+        context: Option<List<Context>> = None,
+        citations: Option<List<Citation>> = None,
+        pending: Option<Boolean> = None,
+    ): Message? =
+        suspendTransaction {
+            MessageDAO.findByIdAndUpdate(messageId.value) { entity ->
+                messageContent.onSome { entity.content = it }
+                messageType.onSome { entity.messageType = it }
+                messageRole.onSome { entity.messageRole = it }
+                createdBy.onSome { entity.createdBy = it }
+                context.onSome { entity.context = it }
+                citations.onSome { entity.citations = it }
+                pending.onSome { entity.pending = it }
+            }?.toModel()
         }
 
     suspend fun updateMessage(
@@ -88,6 +117,7 @@ object MessageRepo {
         createdBy: String,
         context: List<Context>,
         citations: List<Citation>,
+        pending: Boolean,
     ): Message? =
         suspendTransaction {
             MessageDAO.findByIdAndUpdate(messageId.value) {
@@ -97,6 +127,7 @@ object MessageRepo {
                 it.createdBy = createdBy
                 it.context = context
                 it.citations = citations
+                it.pending = pending
             }?.toModel()
         }
 

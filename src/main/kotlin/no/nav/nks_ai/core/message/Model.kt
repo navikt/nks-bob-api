@@ -111,6 +111,7 @@ data class Message(
     val createdBy: String,
     val citations: List<Citation>,
     val context: List<Context>,
+    val pending: Boolean
 )
 
 @Serializable

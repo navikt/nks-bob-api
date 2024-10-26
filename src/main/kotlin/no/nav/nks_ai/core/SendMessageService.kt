@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationService
@@ -76,11 +77,17 @@ class SendMessageService(
                 messageContent = answerContent,
                 citations = citations,
                 context = context,
+                pending = true
             )
         }.filterNotNull().onStart {
             // Start the flow with the question and the empty answer.
             emit(question)
             emit(initialAnswer)
+        }.onCompletion {
+            messageService.updatePendingMessage(
+                messageId = initialAnswer.id,
+                pending = false
+            )?.let { emit(it) }
         }
     }
 }

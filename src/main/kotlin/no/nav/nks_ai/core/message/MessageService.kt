@@ -1,5 +1,6 @@
 package no.nav.nks_ai.core.message
 
+import arrow.core.Some
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.user.NavIdent
 
@@ -16,6 +17,7 @@ class MessageService() {
         messageRole = MessageRole.Human,
         context = emptyList(),
         citations = emptyList(),
+        pending = false,
     )
 
     suspend fun addAnswer(
@@ -32,6 +34,7 @@ class MessageService() {
             messageRole = MessageRole.AI,
             context = context,
             citations = citations.map(Citation::fromNewCitation),
+            pending = true,
         )
     }
 
@@ -48,6 +51,7 @@ class MessageService() {
         messageContent: String,
         citations: List<NewCitation>,
         context: List<Context>,
+        pending: Boolean,
     ): Message? {
         return MessageRepo.updateMessage(
             messageId = messageId,
@@ -57,6 +61,17 @@ class MessageService() {
             messageRole = MessageRole.AI,
             context = context,
             citations = citations.map(Citation::fromNewCitation),
+            pending = pending,
+        )
+    }
+
+    suspend fun updatePendingMessage(
+        messageId: MessageId,
+        pending: Boolean,
+    ): Message? {
+        return MessageRepo.patchMessage(
+            messageId = messageId,
+            pending = Some(pending),
         )
     }
 
