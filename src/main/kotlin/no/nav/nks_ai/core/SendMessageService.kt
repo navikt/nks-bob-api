@@ -2,11 +2,10 @@ package no.nav.nks_ai.core
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.message.Message
@@ -50,44 +49,49 @@ class SendMessageService(
         )
     }
 
-    suspend fun sendMessageStream(
+    fun sendMessageStream(
         message: NewMessage,
         conversationId: ConversationId,
         navIdent: NavIdent,
-    ): Flow<Message> {
+    ): Flow<Message> = flow {
         val history = conversationService.getConversationMessages(conversationId, navIdent)
-            ?: return emptyFlow()
+            ?: return@flow
 
         val question = messageService.addQuestion(conversationId, navIdent, message.content)
-            ?: return emptyFlow()
+            ?: return@flow
 
         val initialAnswer = messageService.addEmptyAnswer(conversationId)
-            ?: return emptyFlow()
+            ?: return@flow
 
-        return kbsClient.sendQuestionStream(
+        // Start the flow with the question and the empty answer.
+        emit(question)
+        emit(initialAnswer)
+
+        kbsClient.sendQuestionStream(
             question = message.content,
             messageHistory = history.map(KbsChatMessage::fromMessage),
-        ).conflate().map { response ->
-            val answerContent = response.answer.text
-            val citations = response.answer.citations.map { it.toNewCitation() }
-            val context = response.context.map { it.toModel() }
+        )
+            .conflate()
+            .map { response ->
+                val answerContent = response.answer.text
+                val citations = response.answer.citations.map { it.toNewCitation() }
+                val context = response.context.map { it.toModel() }
 
-            messageService.updateAnswer(
-                messageId = initialAnswer.id,
-                messageContent = answerContent,
-                citations = citations,
-                context = context,
-                pending = true
-            )
-        }.filterNotNull().onStart {
-            // Start the flow with the question and the empty answer.
-            emit(question)
-            emit(initialAnswer)
-        }.onCompletion {
+                messageService.updateAnswer(
+                    messageId = initialAnswer.id,
+                    messageContent = answerContent,
+                    citations = citations,
+                    context = context,
+                    pending = true
+                )
+            }
+            .let { emitAll(it) }
+
+        emit(
             messageService.updatePendingMessage(
                 messageId = initialAnswer.id,
                 pending = false
-            )?.let { emit(it) }
-        }
-    }
+            )
+        )
+    }.filterNotNull()
 }

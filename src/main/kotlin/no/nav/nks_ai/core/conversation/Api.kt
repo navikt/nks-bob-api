@@ -10,10 +10,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.launch
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.fromThrowable
 import no.nav.nks_ai.app.getNavIdent
@@ -61,30 +58,26 @@ fun Route.conversationRoutes(
             }
         } */
         ) {
-            coroutineScope {
-                val newConversation = call.receiveNullable<NewConversation>()
-                    ?: return@coroutineScope call.respond(HttpStatusCode.BadRequest)
+            val newConversation = call.receiveNullable<NewConversation>()
+                ?: return@post call.respond(HttpStatusCode.BadRequest)
 
-                val navIdent = call.getNavIdent()
-                    ?: return@coroutineScope call.respond(HttpStatusCode.Forbidden)
+            val navIdent = call.getNavIdent()
+                ?: return@post call.respond(HttpStatusCode.Forbidden)
 
-                val conversation = conversationService.addConversation(navIdent, newConversation)
-                val conversationId = conversation.id
+            val conversation = conversationService.addConversation(navIdent, newConversation)
+            val conversationId = conversation.id
 
-                if (newConversation.initialMessage != null) {
-                    launch(Dispatchers.IO) {
-                        SseChannelHandler.getFlow(conversationId).emitAll(
-                            sendMessageService.sendMessageStream(
-                                message = newConversation.initialMessage,
-                                conversationId = conversationId,
-                                navIdent = navIdent
-                            )
-                        )
-                    }
-                }
-
-                call.respond(HttpStatusCode.Created, conversation)
+            if (newConversation.initialMessage != null) {
+                SseChannelHandler.getFlow(conversationId).emitAll(
+                    sendMessageService.sendMessageStream(
+                        message = newConversation.initialMessage,
+                        conversationId = conversationId,
+                        navIdent = navIdent
+                    )
+                )
             }
+
+            call.respond(HttpStatusCode.Created, conversation)
         }
         get(
             "/{id}",
@@ -232,28 +225,24 @@ fun Route.conversationRoutes(
                        }
                    } */
         ) {
-            coroutineScope {
-                val conversationId = call.conversationId()
-                    ?: return@coroutineScope call.respond(HttpStatusCode.BadRequest)
+            val conversationId = call.conversationId()
+                ?: return@post call.respond(HttpStatusCode.BadRequest)
 
-                val newMessage = call.receiveNullable<NewMessage>()
-                    ?: return@coroutineScope call.respond(HttpStatusCode.BadRequest)
+            val newMessage = call.receiveNullable<NewMessage>()
+                ?: return@post call.respond(HttpStatusCode.BadRequest)
 
-                val navIdent = call.getNavIdent()
-                    ?: return@coroutineScope call.respond(HttpStatusCode.Forbidden)
+            val navIdent = call.getNavIdent()
+                ?: return@post call.respond(HttpStatusCode.Forbidden)
 
-                launch(Dispatchers.IO) {
-                    SseChannelHandler.getFlow(conversationId).emitAll(
-                        sendMessageService.sendMessageStream(
-                            message = newMessage,
-                            conversationId = conversationId,
-                            navIdent = navIdent
-                        )
-                    )
-                }
+            SseChannelHandler.getFlow(conversationId).emitAll(
+                sendMessageService.sendMessageStream(
+                    message = newMessage,
+                    conversationId = conversationId,
+                    navIdent = navIdent
+                )
+            )
 
-                call.respond(HttpStatusCode.Accepted)
-            }
+            call.respond(HttpStatusCode.Accepted)
         }
     }
 }
