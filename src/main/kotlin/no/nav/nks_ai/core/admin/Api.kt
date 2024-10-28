@@ -1,18 +1,19 @@
 package no.nav.nks_ai.core.admin
 
+import io.github.smiley4.ktorswaggerui.dsl.routing.delete
+import io.github.smiley4.ktorswaggerui.dsl.routing.get
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
 import io.ktor.server.routing.route
+import no.nav.nks_ai.core.conversation.Conversation
 import no.nav.nks_ai.core.conversation.conversationId
 import no.nav.nks_ai.core.user.NavIdent
 
 fun Route.adminRoutes(adminService: AdminService) {
     route("/admin") {
         route("/conversations") {
-            get(/* {
+            get({
                 description = "Get all conversations for a given user"
                 request {
                     queryParameter<String>("navIdent") {
@@ -27,8 +28,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                         }
                     }
                 }
-            } */
-            ) {
+            }) {
                 val navIdent = call.request.queryParameters["navIdent"]
                     ?.let { NavIdent(it) }
                     ?: return@get call.respond(HttpStatusCode.BadRequest)
@@ -36,7 +36,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 adminService.getAllConversations(navIdent)
                     .let { call.respond(it) }
             }
-            delete(/* {
+            delete({
                 description = "Delete all conversations for a given user"
                 request {
                     queryParameter<String>("navIdent") {
@@ -48,8 +48,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                         description = "The operation was successful"
                     }
                 }
-            } */
-            ) {
+            }) {
                 val navIdent = call.request.queryParameters["navIdent"]
                     ?.let { NavIdent(it) }
                     ?: return@delete call.respond(HttpStatusCode.BadRequest)
@@ -57,25 +56,22 @@ fun Route.adminRoutes(adminService: AdminService) {
                 adminService.deleteAllConversations(navIdent)
                 call.respond(HttpStatusCode.NoContent)
             }
-            delete(
-                "/{id}",
-                /* {
-                               description = "Delete a conversation with the given ID for the given user"
-                               request {
-                                   pathParameter<String>("id") {
-                                       description = "The ID of the conversation"
-                                   }
-                                   queryParameter<String>("navIdent") {
-                                       description = "navIdent for the given user"
-                                   }
-                               }
-                               response {
-                                   HttpStatusCode.NoContent to {
-                                       description = "The operation was successful"
-                                   }
-                               }
-                           } */
-            ) {
+            delete("/{id}", {
+                description = "Delete a conversation with the given ID for the given user"
+                request {
+                    pathParameter<String>("id") {
+                        description = "The ID of the conversation"
+                    }
+                    queryParameter<String>("navIdent") {
+                        description = "navIdent for the given user"
+                    }
+                }
+                response {
+                    HttpStatusCode.NoContent to {
+                        description = "The operation was successful"
+                    }
+                }
+            }) {
                 val navIdent = call.request.queryParameters["navIdent"]
                     ?.let { NavIdent(it) }
                     ?: return@delete call.respond(HttpStatusCode.BadRequest)

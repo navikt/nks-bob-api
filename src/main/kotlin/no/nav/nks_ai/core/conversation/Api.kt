@@ -1,14 +1,14 @@
 package no.nav.nks_ai.core.conversation
 
 import arrow.core.raise.fold
+import io.github.smiley4.ktorswaggerui.dsl.routing.delete
+import io.github.smiley4.ktorswaggerui.dsl.routing.get
+import io.github.smiley4.ktorswaggerui.dsl.routing.post
+import io.github.smiley4.ktorswaggerui.dsl.routing.put
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import kotlinx.coroutines.flow.emitAll
 import no.nav.nks_ai.app.ApplicationError
@@ -16,6 +16,7 @@ import no.nav.nks_ai.app.fromThrowable
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.core.SendMessageService
+import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.NewMessage
 
 fun Route.conversationRoutes(
@@ -23,7 +24,7 @@ fun Route.conversationRoutes(
     sendMessageService: SendMessageService
 ) {
     route("/conversations") {
-        get(/* {
+        get({
             description = "Get all of your conversations"
             response {
                 HttpStatusCode.OK to {
@@ -33,15 +34,14 @@ fun Route.conversationRoutes(
                     }
                 }
             }
-        } */
-        ) {
+        }) {
             val navIdent = call.getNavIdent()
                 ?: return@get call.respond(HttpStatusCode.Forbidden)
 
             conversationService.getAllConversations(navIdent)
                 .let { call.respond(it) }
         }
-        post(/*{
+        post({
             description = "Create a new conversation"
             request {
                 body<NewConversation> {
@@ -56,8 +56,7 @@ fun Route.conversationRoutes(
                     }
                 }
             }
-        } */
-        ) {
+        }) {
             val newConversation = call.receiveNullable<NewConversation>()
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
 
@@ -79,25 +78,22 @@ fun Route.conversationRoutes(
 
             call.respond(HttpStatusCode.Created, conversation)
         }
-        get(
-            "/{id}",
-            /* {
-                       description = "Get a conversation with the given ID"
-                       request {
-                           pathParameter<String>("id") {
-                               description = "The ID of the conversation"
-                           }
-                       }
-                       response {
-                           HttpStatusCode.OK to {
-                               description = "The operation was successful"
-                               body<Conversation> {
-                                   description = "The conversation requested"
-                               }
-                           }
-                       }
-                   } */
-        ) {
+        get("/{id}", {
+            description = "Get a conversation with the given ID"
+            request {
+                pathParameter<String>("id") {
+                    description = "The ID of the conversation"
+                }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    description = "The operation was successful"
+                    body<Conversation> {
+                        description = "The conversation requested"
+                    }
+                }
+            }
+        }) {
             val conversationId = call.conversationId()
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
 
@@ -111,22 +107,19 @@ fun Route.conversationRoutes(
                 catch = { call.respondError(ApplicationError.fromThrowable(it)) }
             )
         }
-        delete(
-            "/{id}",
-            /* {
-                       description = "Delete a conversation with the given ID"
-                       request {
-                           pathParameter<String>("id") {
-                               description = "The ID of the conversation"
-                           }
-                       }
-                       response {
-                           HttpStatusCode.NoContent to {
-                               description = "The operation was successful"
-                           }
-                       }
-                   } */
-        ) {
+        delete("/{id}", {
+            description = "Delete a conversation with the given ID"
+            request {
+                pathParameter<String>("id") {
+                    description = "The ID of the conversation"
+                }
+            }
+            response {
+                HttpStatusCode.NoContent to {
+                    description = "The operation was successful"
+                }
+            }
+        }) {
             val conversationId = call.conversationId()
                 ?: return@delete call.respond(HttpStatusCode.BadRequest)
 
@@ -136,28 +129,25 @@ fun Route.conversationRoutes(
             conversationService.deleteConversation(conversationId, navIdent)
             call.respond(HttpStatusCode.NoContent)
         }
-        put(
-            "/{id}",
-            /* {
-                       description = "Update a conversation with the given ID"
-                       request {
-                           pathParameter<String>("id") {
-                               description = "The ID of the conversation"
-                           }
-                           body<UpdateConversation> {
-                               description = "The conversation request to update"
-                           }
-                       }
-                       response {
-                           HttpStatusCode.OK to {
-                               description = "The operation was successful"
-                               body<Conversation> {
-                                   description = "The updated conversation"
-                               }
-                           }
-                       }
-                   } */
-        ) {
+        put("/{id}", {
+            description = "Update a conversation with the given ID"
+            request {
+                pathParameter<String>("id") {
+                    description = "The ID of the conversation"
+                }
+                body<UpdateConversation> {
+                    description = "The conversation request to update"
+                }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    description = "The operation was successful"
+                    body<Conversation> {
+                        description = "The updated conversation"
+                    }
+                }
+            }
+        }) {
             val conversationId = call.conversationId()
                 ?: return@put call.respond(HttpStatusCode.BadRequest)
 
@@ -174,25 +164,22 @@ fun Route.conversationRoutes(
 
             call.respond(updatedConversation)
         }
-        get(
-            "/{id}/messages",
-            /* {
-                       description = "Get all messages for a given conversation"
-                       request {
-                           pathParameter<String>("id") {
-                               description = "The ID of the conversation"
-                           }
-                       }
-                       response {
-                           HttpStatusCode.OK to {
-                               description = "The operation was successful"
-                               body<List<Message>> {
-                                   description = "The messages in the conversation"
-                               }
-                           }
-                       }
-                   } */
-        ) {
+        get("/{id}/messages", {
+            description = "Get all messages for a given conversation"
+            request {
+                pathParameter<String>("id") {
+                    description = "The ID of the conversation"
+                }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    description = "The operation was successful"
+                    body<List<Message>> {
+                        description = "The messages in the conversation"
+                    }
+                }
+            }
+        }) {
             val conversationId = call.conversationId()
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
 
@@ -203,28 +190,22 @@ fun Route.conversationRoutes(
                 ?.let { call.respond(it) }
                 ?: return@get call.respond(HttpStatusCode.NotFound)
         }
-        post(
-            "/{id}/messages",
-            /* {
-                       description = "Add a new message to the conversation"
-                       request {
-                           pathParameter<String>("id") {
-                               description = "The ID of the conversation"
-                           }
-                           body<NewMessage> {
-                               description = "The new message for the conversation"
-                           }
-                       }
-                       response {
-                           HttpStatusCode.OK to {
-                               description = "The operation was successful"
-                               body<List<Message>> {
-                                   description = "The answer from KBS"
-                               }
-                           }
-                       }
-                   } */
-        ) {
+        post("/{id}/messages", {
+            description = "Add a new message to the conversation"
+            request {
+                pathParameter<String>("id") {
+                    description = "The ID of the conversation"
+                }
+                body<NewMessage> {
+                    description = "The new message for the conversation"
+                }
+            }
+            response {
+                HttpStatusCode.Accepted to {
+                    description = "The operation will be processed"
+                }
+            }
+        }) {
             val conversationId = call.conversationId()
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
 

@@ -56,7 +56,7 @@ dependencies {
     implementation("io.arrow-kt:arrow-core:1.2.4")
     implementation("io.github.config4k:config4k:0.7.0")
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.0")
-//    implementation("io.github.smiley4:ktor-swagger-ui:3.3.1") // TODO waiting for ktor 3.0.0 support
+    implementation("io.github.smiley4:ktor-swagger-ui:4.0.0")
     implementation("io.ktor:ktor-client-apache")
     implementation("io.ktor:ktor-client-content-negotiation")
     implementation("io.ktor:ktor-client-core")
@@ -71,7 +71,6 @@ dependencies {
     implementation("io.ktor:ktor-server-metrics-micrometer-jvm")
     implementation("io.ktor:ktor-server-netty-jvm")
     implementation("io.ktor:ktor-server-sse-jvm")
-    implementation("io.ktor:ktor-server-swagger-jvm")
     implementation("io.ktor:ktor-server-webjars-jvm")
     implementation("io.ktor:ktor-server-websockets-jvm")
     implementation("io.ktor:ktor-server-cors")
