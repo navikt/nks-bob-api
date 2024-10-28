@@ -10,7 +10,10 @@ import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.launch
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.fromThrowable
 import no.nav.nks_ai.app.getNavIdent
@@ -57,26 +60,30 @@ fun Route.conversationRoutes(
                 }
             }
         }) {
-            val newConversation = call.receiveNullable<NewConversation>()
-                ?: return@post call.respond(HttpStatusCode.BadRequest)
+            coroutineScope {
+                val newConversation = call.receiveNullable<NewConversation>()
+                    ?: return@coroutineScope call.respond(HttpStatusCode.BadRequest)
 
-            val navIdent = call.getNavIdent()
-                ?: return@post call.respond(HttpStatusCode.Forbidden)
+                val navIdent = call.getNavIdent()
+                    ?: return@coroutineScope call.respond(HttpStatusCode.Forbidden)
 
-            val conversation = conversationService.addConversation(navIdent, newConversation)
-            val conversationId = conversation.id
+                val conversation = conversationService.addConversation(navIdent, newConversation)
+                val conversationId = conversation.id
 
-            if (newConversation.initialMessage != null) {
-                SseFlowHandler.getFlow(conversationId).emitAll(
-                    sendMessageService.sendMessageStream(
-                        message = newConversation.initialMessage,
-                        conversationId = conversationId,
-                        navIdent = navIdent
-                    )
-                )
+                if (newConversation.initialMessage != null) {
+                    launch(Dispatchers.IO) {
+                        SseFlowHandler.getFlow(conversationId).emitAll(
+                            sendMessageService.sendMessageStream(
+                                message = newConversation.initialMessage,
+                                conversationId = conversationId,
+                                navIdent = navIdent
+                            )
+                        )
+                    }
+                }
+
+                call.respond(HttpStatusCode.Created, conversation)
             }
-
-            call.respond(HttpStatusCode.Created, conversation)
         }
         get("/{id}", {
             description = "Get a conversation with the given ID"
