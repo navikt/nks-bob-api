@@ -68,7 +68,7 @@ fun Route.conversationRoutes(
             val conversationId = conversation.id
 
             if (newConversation.initialMessage != null) {
-                SseChannelHandler.getFlow(conversationId).emitAll(
+                SseFlowHandler.getFlow(conversationId).emitAll(
                     sendMessageService.sendMessageStream(
                         message = newConversation.initialMessage,
                         conversationId = conversationId,
@@ -234,7 +234,7 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@post call.respond(HttpStatusCode.Forbidden)
 
-            SseChannelHandler.getFlow(conversationId).emitAll(
+            SseFlowHandler.getFlow(conversationId).emitAll(
                 sendMessageService.sendMessageStream(
                     message = newMessage,
                     conversationId = conversationId,

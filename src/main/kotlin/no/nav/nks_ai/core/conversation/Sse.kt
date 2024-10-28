@@ -43,6 +43,7 @@ fun Route.conversationSse(
             launch {
                 // Close the connection after a set time
                 delay(2.hours)
+                SseFlowHandler.removeFlow(conversationId)
                 close()
             }
 
@@ -53,7 +54,7 @@ fun Route.conversationSse(
                 }
 
                 logger.debug { "Waiting for events for conversation $conversationId" }
-                SseChannelHandler.getFlow(conversationId).asSharedFlow().collect { message ->
+                SseFlowHandler.getFlow(conversationId).asSharedFlow().collect { message ->
                     send(messageEvent(message))
                 }
             }
@@ -72,7 +73,7 @@ private fun messageEvent(message: Message) = ServerSentEvent(
 //    retry = 100
 )
 
-object SseChannelHandler {
+object SseFlowHandler {
     private val messageFlows = Collections.synchronizedMap<ConversationId, MutableSharedFlow<Message>>(HashMap())
 
     fun getFlow(conversationId: ConversationId): MutableSharedFlow<Message> {
@@ -81,5 +82,12 @@ object SseChannelHandler {
             messageFlows[conversationId] = MutableSharedFlow()
         }
         return messageFlows[conversationId]!!
+    }
+
+    fun removeFlow(conversationId: ConversationId) {
+        if (messageFlows[conversationId] != null) {
+            logger.debug { "Removing flow for conversation $conversationId" }
+            messageFlows.remove(conversationId)
+        }
     }
 }
