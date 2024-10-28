@@ -9,7 +9,6 @@ import io.ktor.server.routing.route
 import io.ktor.sse.ServerSentEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -82,21 +81,5 @@ object SseChannelHandler {
             messageFlows[conversationId] = MutableSharedFlow()
         }
         return messageFlows[conversationId]!!
-    }
-
-    private val channels = Collections.synchronizedMap<ConversationId, Channel<Message>>(HashMap())
-
-    fun getChannel(conversationId: ConversationId): Channel<Message> {
-        if (channels[conversationId] == null) {
-            logger.debug { "Creating new channel for conversation $conversationId" }
-            channels[conversationId] =
-                Channel<Message>(
-                    capacity = Channel.UNLIMITED,
-                    onUndeliveredElement = { message ->
-                        logger.error { "message ${message.id} was not delivered" }
-                    }
-                )
-        }
-        return channels[conversationId]!!
     }
 }
