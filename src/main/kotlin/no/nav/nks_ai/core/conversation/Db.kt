@@ -89,4 +89,22 @@ object ConversationRepo {
                     title = conversation.title
                 }?.toModel()
         }
+
+    suspend fun deleteConversations(
+        conversationIds: List<ConversationId>,
+    ): Unit =
+        suspendTransaction {
+            ConversationDAO.find {
+                Conversations.id inList conversationIds.map { it.value }
+            }.forEach { it.delete() }
+        }
+
+    suspend fun getConversationsCreatedBefore(
+        dateTime: LocalDateTime,
+    ): List<Conversation> =
+        suspendTransaction {
+            ConversationDAO.find {
+                Conversations.createdAt.less(dateTime)
+            }.map { it.toModel() }
+        }
 }

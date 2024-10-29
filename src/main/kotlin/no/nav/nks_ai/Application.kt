@@ -22,6 +22,7 @@ import no.nav.nks_ai.app.plugins.configureSerialization
 import no.nav.nks_ai.app.plugins.configureSwagger
 import no.nav.nks_ai.app.plugins.healthRoutes
 import no.nav.nks_ai.auth.EntraClient
+import no.nav.nks_ai.core.ConversationDeletionJob
 import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.admin.AdminService
 import no.nav.nks_ai.core.admin.adminRoutes
@@ -90,6 +91,8 @@ fun Application.module() {
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val adminService = AdminService()
     val userConfigService = UserConfigService()
+
+    ConversationDeletionJob(conversationService).start()
 
     routing {
         route("/api/v1") {

@@ -44,6 +44,7 @@ tasks.withType<ShadowJar> {
 
 repositories {
     mavenCentral()
+    maven("https://jitpack.io")
 }
 
 dependencies {
@@ -86,6 +87,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
     implementation("org.postgresql:postgresql:$postgres_version")
+    implementation("com.github.Pool-Of-Tears:KtScheduler:1.1.6")
     testImplementation("io.ktor:ktor-server-test-host-jvm")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
 }
