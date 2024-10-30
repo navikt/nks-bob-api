@@ -14,9 +14,9 @@ import io.micrometer.prometheus.*
 import org.slf4j.event.Level
 import java.util.concurrent.TimeUnit
 
-fun Application.configureMonitoring() {
-    val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+private val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
+fun Application.configureMonitoring() {
     install(MicrometerMetrics) {
         registry = appMicrometerRegistry
         // ...
@@ -41,11 +41,6 @@ fun Application.configureMonitoring() {
             callId.isNotEmpty()
         }
     }
-    routing {
-        get("/internal/prometheus") {
-            call.respond(appMicrometerRegistry.scrape())
-        }
-    }
 }
 
 fun Route.healthRoutes() {
@@ -54,5 +49,8 @@ fun Route.healthRoutes() {
     }
     get("/is_ready") {
         call.respondText("ready", ContentType.Text.Plain, HttpStatusCode.OK)
+    }
+    get("/prometheus") {
+        call.respond(appMicrometerRegistry.scrape())
     }
 }
