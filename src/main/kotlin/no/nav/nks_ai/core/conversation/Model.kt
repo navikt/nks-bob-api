@@ -38,13 +38,11 @@ fun UUID.toConversationId() = ConversationId(this)
 fun ApplicationCall.conversationId(name: String = "id"): ConversationId? =
     ConversationId(UUID.fromString(this.parameters[name]))
 
-
 @Serializable
 data class Conversation(
     val id: ConversationId,
     val title: String,
     val createdAt: LocalDateTime,
-    val owner: String,
 )
 
 @Serializable

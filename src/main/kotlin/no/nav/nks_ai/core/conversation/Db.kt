@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.conversation
 
 import kotlinx.datetime.LocalDateTime
+import no.nav.nks_ai.app.bcryptVerified
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.core.user.NavIdent
@@ -32,18 +33,18 @@ private fun ConversationDAO.Companion.findByIdAndNavIdent(
     navIdent: NavIdent,
 ): ConversationDAO? =
     find {
-        Conversations.id eq conversationId.value and (Conversations.owner eq navIdent.value)
+        Conversations.id eq conversationId.value and (Conversations.owner bcryptVerified navIdent)
     }.firstOrNull()
 
 private fun ConversationDAO.Companion.findAllByNavIdent(
     navIdent: NavIdent,
-): SizedIterable<ConversationDAO> = find { Conversations.owner eq navIdent.value }
+): SizedIterable<ConversationDAO> =
+    find { Conversations.owner bcryptVerified navIdent }
 
 private fun ConversationDAO.toModel() = Conversation(
     id = id.value.toConversationId(),
     title = title,
     createdAt = createdAt,
-    owner = owner,
 )
 
 object ConversationRepo {
@@ -51,7 +52,7 @@ object ConversationRepo {
         suspendTransaction {
             ConversationDAO.new {
                 title = conversation.title
-                owner = navIdent.value
+                owner = navIdent.hash
             }.toModel()
         }
 

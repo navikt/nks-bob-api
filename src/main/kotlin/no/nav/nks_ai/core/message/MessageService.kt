@@ -12,7 +12,7 @@ class MessageService() {
     ) = MessageRepo.addMessage(
         conversationId = conversationId,
         messageContent = messageContent,
-        createdBy = navIdent.value,
+        createdBy = navIdent.hash,
         messageType = MessageType.Question,
         messageRole = MessageRole.Human,
         context = emptyList(),

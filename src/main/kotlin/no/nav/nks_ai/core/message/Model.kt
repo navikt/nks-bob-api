@@ -108,7 +108,6 @@ data class Message(
     val feedback: Feedback?,
     val messageType: MessageType,
     val messageRole: MessageRole,
-    val createdBy: String,
     val citations: List<Citation>,
     val context: List<Context>,
     val pending: Boolean

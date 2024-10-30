@@ -18,11 +18,30 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.core.user.NavIdent
+import org.jetbrains.exposed.sql.ComplexExpression
+import org.jetbrains.exposed.sql.Expression
+import org.jetbrains.exposed.sql.ExpressionWithColumnType
+import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.QueryBuilder
 import org.jetbrains.exposed.sql.Transaction
+import org.jetbrains.exposed.sql.append
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 suspend fun <T> suspendTransaction(block: Transaction.() -> T): T =
     newSuspendedTransaction(Dispatchers.IO, statement = block)
+
+infix fun <T> ExpressionWithColumnType<T>.bcryptVerified(t: NavIdent): Op<Boolean> =
+    BcryptVerifiedOp(this, Expression.build { asLiteral(t.plaintext.value) })
+
+class BcryptVerifiedOp(
+    val expr1: Expression<*>,
+    val expr2: Expression<*>
+) : Op<Boolean>(), ComplexExpression {
+    override fun toQueryBuilder(queryBuilder: QueryBuilder) =
+        queryBuilder {
+            append(expr1, " = crypt(", expr2, ", ", expr1, ") ")
+        }
+}
 
 fun LocalDateTime.Companion.now() =
     Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())

@@ -54,7 +54,6 @@ internal fun MessageDAO.toModel() = Message(
     feedback = feedback,
     messageType = messageType,
     messageRole = messageRole,
-    createdBy = createdBy,
     citations = citations,
     context = context,
     pending = pending,
