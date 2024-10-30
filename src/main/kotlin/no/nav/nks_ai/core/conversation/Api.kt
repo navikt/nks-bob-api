@@ -222,15 +222,19 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@post call.respond(HttpStatusCode.Forbidden)
 
-            SseFlowHandler.getFlow(conversationId).emitAll(
-                sendMessageService.sendMessageStream(
-                    message = newMessage,
-                    conversationId = conversationId,
-                    navIdent = navIdent
-                )
-            )
+            coroutineScope {
+                launch(Dispatchers.IO) {
+                    SseFlowHandler.getFlow(conversationId).emitAll(
+                        sendMessageService.sendMessageStream(
+                            message = newMessage,
+                            conversationId = conversationId,
+                            navIdent = navIdent
+                        )
+                    )
+                }
 
-            call.respond(HttpStatusCode.Accepted)
+                call.respond(HttpStatusCode.Accepted)
+            }
         }
     }
 }
