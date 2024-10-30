@@ -68,9 +68,6 @@ fun Route.conversationSse(
 
 private fun messageEvent(message: Message) = ServerSentEvent(
     data = Json.encodeToString(message),
-//    event = "MessageEvent",
-//    id = UUID.randomUUID().toString(),
-//    retry = 100
 )
 
 object SseFlowHandler {
