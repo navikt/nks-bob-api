@@ -58,6 +58,11 @@ spec:
   readiness:
     path: /internal/is_ready
     initialDelay: 20
+  observability:
+    logging:
+      destinations:
+        - id: loki
+        - id: elastic
   gcp:
     sqlInstances:
       - name: nks-bob-api
