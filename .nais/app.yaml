@@ -63,6 +63,12 @@ spec:
       destinations:
         - id: loki
         - id: elastic
+    autoInstrumentation:
+      enabled: true
+      runtime: java
+  prometheus:
+    enabled: true
+    path: /internal/prometheus
   gcp:
     sqlInstances:
       - name: nks-bob-api
