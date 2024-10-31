@@ -9,6 +9,7 @@ import io.ktor.client.engine.apache.ApacheEngineConfig
 import io.ktor.client.plugins.callid.CallId
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.sse.SSE
+import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
@@ -123,7 +124,10 @@ private fun defaultHttpClient(
             })
         }
         install(CallId) {
-            addToHeader(HttpHeaders.XRequestId)
+            // TODO currently not supporting sse-client.
+            intercept { request, callId ->
+                request.header(HttpHeaders.XRequestId, callId)
+            }
         }
         block()
     }

@@ -1,6 +1,7 @@
 package no.nav.nks_ai.kbs
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.callid.KtorCallIdContextElement
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.sse.sse
@@ -134,6 +135,10 @@ class KbsClient(
             header(HttpHeaders.Authorization, "Bearer $token")
             header(HttpHeaders.ContentType, ContentType.Application.Json)
             setBody(KbsChatRequest(question, messageHistory))
+
+            // FIXME: Manually setting callId-header. Possibly a bug in Ktor SSE client.
+            coroutineContext[KtorCallIdContextElement.Companion]?.callId
+                ?.let { callId -> header(HttpHeaders.XRequestId, callId) }
         }) {
             incoming.collect { response ->
                 when (response.event) {
