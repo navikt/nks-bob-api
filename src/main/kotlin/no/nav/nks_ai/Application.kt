@@ -3,9 +3,13 @@ package no.nav.nks_ai
 import io.github.smiley4.ktorswaggerui.routing.openApiSpec
 import io.github.smiley4.ktorswaggerui.routing.swaggerUI
 import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.apache.Apache
+import io.ktor.client.engine.apache.ApacheEngineConfig
+import io.ktor.client.plugins.callid.CallId
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.sse.SSE
+import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
@@ -49,26 +53,16 @@ fun Application.module() {
     configureSecurity()
     configureSwagger()
 
-    val httpClient = HttpClient(Apache) {
+    val httpClient = defaultHttpClient {
         engine {
             socketTimeout = Config.HTTP_CLIENT_TIMEOUT_MS
             connectTimeout = Config.HTTP_CLIENT_TIMEOUT_MS
             connectionRequestTimeout = Config.HTTP_CLIENT_TIMEOUT_MS * 2
         }
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-            })
-        }
     }
 
-    val sseClient = HttpClient(Apache) {
+    val sseClient = defaultHttpClient {
         install(SSE)
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-            })
-        }
     }
 
     val entraClient = EntraClient(
@@ -118,3 +112,18 @@ fun Application.module() {
         }
     }
 }
+
+private fun defaultHttpClient(
+    block: HttpClientConfig<ApacheEngineConfig>.() -> Unit = {}
+): HttpClient =
+    HttpClient(Apache) {
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+            })
+        }
+        install(CallId) {
+            addToHeader(HttpHeaders.XRequestId)
+        }
+        block()
+    }

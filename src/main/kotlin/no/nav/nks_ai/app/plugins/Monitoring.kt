@@ -36,7 +36,8 @@ fun Application.configureMonitoring() {
     }
     install(CallId) {
         retrieveFromHeader("nav-call-id")
-        header(HttpHeaders.XRequestId)
+        replyToHeader(HttpHeaders.XRequestId)
+        replyToHeader("nav-call-id")
         verify { callId: String ->
             callId.isNotEmpty()
         }

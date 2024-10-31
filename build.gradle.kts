@@ -61,6 +61,7 @@ dependencies {
     implementation("io.github.smiley4:ktor-swagger-ui:4.0.0")
     implementation("io.ktor:ktor-client-apache")
     implementation("io.ktor:ktor-client-content-negotiation")
+    implementation("io.ktor:ktor-client-call-id")
     implementation("io.ktor:ktor-client-core")
     implementation("io.ktor:ktor-serialization-kotlinx-json-jvm")
     implementation("io.ktor:ktor-server-auth-jvm")
