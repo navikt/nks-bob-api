@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.message
 
 import arrow.core.Some
+import no.nav.nks_ai.app.plugins.MetricRegister
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.user.NavIdent
 
@@ -9,16 +10,19 @@ class MessageService() {
         conversationId: ConversationId,
         navIdent: NavIdent,
         messageContent: String,
-    ) = MessageRepo.addMessage(
-        conversationId = conversationId,
-        messageContent = messageContent,
-        createdBy = navIdent.hash,
-        messageType = MessageType.Question,
-        messageRole = MessageRole.Human,
-        context = emptyList(),
-        citations = emptyList(),
-        pending = false,
-    )
+    ): Message? {
+        MetricRegister.questionsCreated.inc()
+        return MessageRepo.addMessage(
+            conversationId = conversationId,
+            messageContent = messageContent,
+            createdBy = navIdent.hash,
+            messageType = MessageType.Question,
+            messageRole = MessageRole.Human,
+            context = emptyList(),
+            citations = emptyList(),
+            pending = false,
+        )
+    }
 
     suspend fun addAnswer(
         conversationId: ConversationId,
@@ -26,6 +30,7 @@ class MessageService() {
         citations: List<NewCitation>,
         context: List<Context>,
     ): Message? {
+        MetricRegister.answersCreated.inc()
         return MessageRepo.addMessage(
             conversationId = conversationId,
             messageContent = messageContent,
@@ -79,6 +84,12 @@ class MessageService() {
         MessageRepo.getMessage(messageId)
 
     suspend fun addFeedbackToMessage(messageId: MessageId, newFeedback: NewFeedback): Message? {
+        if (newFeedback.liked) {
+            MetricRegister.answersLiked.inc()
+        } else {
+            MetricRegister.answersDisliked.inc()
+        }
+
         return MessageRepo.addFeedback(messageId, newFeedback)
     }
 }

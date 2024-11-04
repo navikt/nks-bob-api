@@ -9,9 +9,40 @@ import io.ktor.server.request.path
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.micrometer.prometheus.*
+import io.prometheus.client.Counter
+import io.prometheus.client.Gauge
 import org.slf4j.event.Level
 
 private val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+
+private const val METRICS_NS = "nksbobapi"
+
+object MetricRegister {
+    val conversationsCreated = Counter.Builder()
+        .name("${METRICS_NS}conversations_created")
+        .help("Hvor mange samtaler som er blitt opprettet")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    val questionsCreated = Counter.Builder()
+        .name("${METRICS_NS}questions_created")
+        .help("Hvor mange spørsmål som er blitt stilt")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    val answersCreated = Counter.Builder()
+        .name("${METRICS_NS}answers_created")
+        .help("Hvor mange svar som er blitt opprettet")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    val answersLiked = Counter.Builder()
+        .name("${METRICS_NS}answers_liked")
+        .help("Hvor mange svar som har fått tommel opp")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    val answersDisliked = Counter.Builder()
+        .name("${METRICS_NS}answers_disliked")
+        .help("Hvor mange svar som har fått tommel ned")
+        .register(appMicrometerRegistry.prometheusRegistry)
+}
 
 fun Application.configureMonitoring() {
     install(MicrometerMetrics) {
