@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.getNavIdent
+import no.nav.nks_ai.app.plugins.MetricRegister
 import no.nav.nks_ai.app.sse
 import no.nav.nks_ai.core.message.Message
 import java.util.Collections
@@ -29,7 +30,6 @@ fun Route.conversationSse(
 ) {
     route("/conversations") {
         sse("/{id}/messages/sse", HttpMethod.Get) {
-            logger.debug { "SSE connection opened" }
             val navIdent = call.getNavIdent()
                 ?: return@sse call.respond(HttpStatusCode.Forbidden)
 
@@ -40,6 +40,7 @@ fun Route.conversationSse(
             val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
                 ?: return@sse call.respond(HttpStatusCode.NotFound)
 
+            MetricRegister.sseConnections.inc()
             launch {
                 // Close the connection after a set time
                 delay(2.hours)
@@ -62,6 +63,7 @@ fun Route.conversationSse(
             deferred.await()
             logger.debug { "Closing SSE session" }
             close()
+            MetricRegister.sseConnections.dec()
         }
     }
 }

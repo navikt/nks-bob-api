@@ -42,6 +42,11 @@ object MetricRegister {
         .name("${METRICS_NS}answers_disliked")
         .help("Hvor mange svar som har fått tommel ned")
         .register(appMicrometerRegistry.prometheusRegistry)
+
+    val sseConnections = Gauge.Builder()
+        .name("${METRICS_NS}sse_connections")
+        .help("Hvor mange aktive SSE-tilkoblinger som er aktive")
+        .register(appMicrometerRegistry.prometheusRegistry)
 }
 
 fun Application.configureMonitoring() {
