@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.user
 
 import kotlinx.datetime.LocalDateTime
+import no.nav.nks_ai.app.bcryptVerified
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import org.jetbrains.exposed.dao.UUIDEntity
@@ -26,7 +27,7 @@ internal class UserConfigDAO(id: EntityID<UUID>) : UUIDEntity(id) {
 
 internal fun UserConfigDAO.Companion.findByNavIdent(navIdent: NavIdent): UserConfigDAO? =
     find {
-        UserConfigs.navIdent eq navIdent.value
+        UserConfigs.navIdent bcryptVerified navIdent
     }.firstOrNull()
 
 internal fun UserConfigDAO.toModel() = UserConfig(
@@ -42,7 +43,7 @@ object UserConfigRepo {
     suspend fun addConfig(config: UserConfig, navIdent: NavIdent): UserConfig =
         suspendTransaction {
             UserConfigDAO.new {
-                this.navIdent = navIdent.value
+                this.navIdent = navIdent.hash
                 this.showStartInfo = config.showStartInfo
             }.toModel()
         }

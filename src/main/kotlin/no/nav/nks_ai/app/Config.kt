@@ -4,6 +4,8 @@ import arrow.core.NonEmptyList
 import arrow.core.toNonEmptyListOrNull
 import com.typesafe.config.ConfigFactory
 import io.github.config4k.extract
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 
 object Config {
     val kbs: KbsConfig
@@ -12,6 +14,8 @@ object Config {
     val issuers: NonEmptyList<IssuerConfig>
 
     const val HTTP_CLIENT_TIMEOUT_MS = 60 * 1000
+
+    val conversationsMaxAge: Duration = 30.days
 
     init {
         ConfigFactory.load()?.let {

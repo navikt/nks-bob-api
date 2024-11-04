@@ -1,9 +1,21 @@
 package no.nav.nks_ai.core.user
 
+import at.favre.lib.crypto.bcrypt.BCrypt
 import kotlinx.serialization.Serializable
 
 @JvmInline
-value class NavIdent(val value: String)
+internal value class PlaintextValue(val value: String)
+
+class NavIdent(value: String) {
+    // Should only be used when verifying with a hash.
+    internal val plaintext: PlaintextValue = PlaintextValue(value)
+
+    val hash: String by lazy {
+        BCrypt.withDefaults().hashToString(6, value.toCharArray())
+    }
+
+    override fun toString(): String = "NavIdent($hash)"
+}
 
 @Serializable
 data class UserConfig(
