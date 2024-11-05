@@ -19,32 +19,32 @@ private const val METRICS_NS = "nksbobapi"
 
 object MetricRegister {
     val conversationsCreated = Counter.Builder()
-        .name("${METRICS_NS}conversations_created")
+        .name("${METRICS_NS}_conversations_created")
         .help("Hvor mange samtaler som er blitt opprettet")
         .register(appMicrometerRegistry.prometheusRegistry)
 
     val questionsCreated = Counter.Builder()
-        .name("${METRICS_NS}questions_created")
+        .name("${METRICS_NS}_questions_created")
         .help("Hvor mange spørsmål som er blitt stilt")
         .register(appMicrometerRegistry.prometheusRegistry)
 
     val answersCreated = Counter.Builder()
-        .name("${METRICS_NS}answers_created")
+        .name("${METRICS_NS}_answers_created")
         .help("Hvor mange svar som er blitt opprettet")
         .register(appMicrometerRegistry.prometheusRegistry)
 
     val answersLiked = Counter.Builder()
-        .name("${METRICS_NS}answers_liked")
+        .name("${METRICS_NS}_answers_liked")
         .help("Hvor mange svar som har fått tommel opp")
         .register(appMicrometerRegistry.prometheusRegistry)
 
     val answersDisliked = Counter.Builder()
-        .name("${METRICS_NS}answers_disliked")
+        .name("${METRICS_NS}_answers_disliked")
         .help("Hvor mange svar som har fått tommel ned")
         .register(appMicrometerRegistry.prometheusRegistry)
 
     val sseConnections = Gauge.Builder()
-        .name("${METRICS_NS}sse_connections")
+        .name("${METRICS_NS}_sse_connections")
         .help("Hvor mange aktive SSE-tilkoblinger som er aktive")
         .register(appMicrometerRegistry.prometheusRegistry)
 }
