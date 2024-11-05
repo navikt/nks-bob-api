@@ -7,6 +7,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import no.nav.nks_ai.app.Config
+import no.nav.nks_ai.app.plugins.MetricRegister
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageRepo
 import no.nav.nks_ai.core.user.NavIdent
@@ -15,10 +16,11 @@ private val logger = KotlinLogging.logger { }
 
 class ConversationService(
 ) {
-    suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation) =
-        ConversationRepo.addConversation(navIdent, conversation)
+    suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): Conversation {
+        MetricRegister.conversationsCreated.inc()
+        return ConversationRepo.addConversation(navIdent, conversation)
+    }
 
-    // TODO metrics
     suspend fun getConversation(
         conversationId: ConversationId,
         navIdent: NavIdent,

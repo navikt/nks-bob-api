@@ -139,6 +139,7 @@ class KbsClient(
             // FIXME: Manually setting callId-header. Possibly a bug in Ktor SSE client.
             coroutineContext[KtorCallIdContextElement.Companion]?.callId
                 ?.let { callId -> header(HttpHeaders.XRequestId, callId) }
+                ?: logger.warn { "Could not find callId when sending message to KBS" }
         }) {
             incoming.collect { response ->
                 when (response.event) {
