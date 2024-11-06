@@ -47,6 +47,11 @@ object MetricRegister {
         .name("${METRICS_NS}_sse_connections")
         .help("Hvor mange aktive SSE-tilkoblinger som er aktive")
         .register(appMicrometerRegistry.prometheusRegistry)
+
+    val sharedMessageFlows = Gauge.Builder()
+        .name("${METRICS_NS}_shared_message_flows")
+        .help("Hvor mange aktive shared message flows")
+        .register(appMicrometerRegistry.prometheusRegistry)
 }
 
 fun Application.configureMonitoring() {
