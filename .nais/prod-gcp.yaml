@@ -1,0 +1,80 @@
+apiVersion: nais.io/v1alpha1
+kind: Application
+
+metadata:
+  labels:
+    team: nks-aiautomatisering
+  name: nks-bob-api
+  namespace: nks-aiautomatisering
+spec:
+  envFrom:
+  image: "{{ image }}"
+  port: 8080
+  replicas:
+    max: 1
+    min: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+  accessPolicy:
+    inbound:
+      rules:
+        - application: nks-bob-frontend
+    outbound:
+      rules:
+        - application: nks-kbs
+  env:
+    - name: NKS_KBS_URL
+      value: http://nks-kbs
+    - name: NKS_KBS_SCOPE
+      value: api://prod-gcp.nks-aiautomatisering.nks-kbs/.default
+    - name: AZURE_LOGIN_URL
+      value: https://login.microsoftonline.com/navno.onmicrosoft.com/oauth2/v2.0
+    - name: NKS_BOB_API_SCOPE
+      value: api://prod-gcp.nks-aiautomatisering.nks-bob-api/.default
+    - name: NKS_BOB_API_ADMIN_GROUP
+      value: dcb5ec4c-8027-428c-9dfd-15852388001c
+  azure:
+    application:
+      tenant: nav.no
+      enabled: true
+      allowAllUsers: false
+      claims:
+        groups:
+          - id: "dcb5ec4c-8027-428c-9dfd-15852388001c" # Administratorgruppe
+          - id: "ad604335-b339-4804-82ee-fb5e2bcb87c9" # Brukergruppe
+    sidecar:
+      enabled: true
+      autoLogin: true
+      autoLoginIgnorePaths:
+        - /api/**
+        - /internal/**
+  ingresses:
+    - https://{{ingress}}/
+  liveness:
+    path: /internal/is_alive
+    initialDelay: 20
+  readiness:
+    path: /internal/is_ready
+    initialDelay: 20
+  observability:
+    logging:
+      destinations:
+        - id: loki
+        - id: elastic
+    autoInstrumentation:
+      enabled: true
+      runtime: java
+  prometheus:
+    enabled: true
+    path: /internal/prometheus
+  gcp:
+    sqlInstances:
+      - name: nks-bob-api
+        tier: db-f1-micro
+        collation: nb_NO.UTF8
+        type: POSTGRES_16
+        databases:
+          - name: nks-bob-api
+            envVarPrefix: DB
