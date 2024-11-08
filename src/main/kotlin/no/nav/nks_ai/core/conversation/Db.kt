@@ -4,6 +4,7 @@ import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.bcryptVerified
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
+import no.nav.nks_ai.app.truncate
 import no.nav.nks_ai.core.user.NavIdent
 import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
@@ -51,7 +52,7 @@ object ConversationRepo {
     suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): Conversation =
         suspendTransaction {
             ConversationDAO.new {
-                title = conversation.title
+                title = conversation.title.truncate(255)
                 owner = navIdent.hash
             }.toModel()
         }
