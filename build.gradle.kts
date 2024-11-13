@@ -8,6 +8,7 @@ val prometheus_version: String by project
 val hikari_version: String by project
 val postgres_version: String by project
 val flyway_version: String by project
+val opentelemetry_version: String by project
 
 plugins {
     kotlin("jvm") version "2.0.20"
@@ -88,6 +89,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposed_version")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:$opentelemetry_version")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-ktor-3.0:$opentelemetry_version")
     implementation("org.postgresql:postgresql:$postgres_version")
     implementation("com.github.Pool-Of-Tears:KtScheduler:1.1.6")
     testImplementation("io.ktor:ktor-server-test-host-jvm")
