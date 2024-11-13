@@ -57,10 +57,10 @@ spec:
     - https://{{ingress}}/
   liveness:
     path: /internal/is_alive
-    initialDelay: 20
+    initialDelay: 40
   readiness:
     path: /internal/is_ready
-    initialDelay: 20
+    initialDelay: 40
   observability:
     logging:
       destinations:
