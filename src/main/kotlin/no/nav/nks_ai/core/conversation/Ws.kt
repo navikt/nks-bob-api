@@ -9,9 +9,12 @@ import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
-import io.ktor.utils.io.CancellationException
+import io.ktor.websocket.close
 import io.ktor.websocket.send
-import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -20,7 +23,9 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
 import no.nav.nks_ai.app.getNavIdent
+import no.nav.nks_ai.app.plugins.MetricRegister
 import no.nav.nks_ai.core.SendMessageService
+import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.NewMessage
 import no.nav.nks_ai.core.message.UpdateMessage
 import java.util.Collections
@@ -43,25 +48,29 @@ fun Route.conversationWebsocket(
             val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
                 ?: return@webSocket call.respond(HttpStatusCode.NotFound)
 
-            try {
-                WebsocketSessionHandler.addSession(conversationId, this)
-
+            val messageFlow = WebsocketFlowHandler.getFlow(conversationId)
+            val job = launch {
                 existingMessages.forEach { message ->
-                    sendSerialized(message)
+                    this@webSocket.sendSerialized(message)
                 }
 
+                messageFlow
+                    .asSharedFlow()
+                    .collect { message ->
+                        this@webSocket.sendSerialized(message)
+                    }
+            }
+
+            runCatching {
                 while (true) {
-                    val messageEvent = receiveDeserialized<MessageEvent>()
+                    val messageEvent = this@webSocket.receiveDeserialized<MessageEvent>()
 
                     when (messageEvent) {
                         is MessageEvent.NewMessageEvent -> {
                             val newMessage = messageEvent.getData()
-                            sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
-                                .collect { message ->
-                                    for (session in WebsocketSessionHandler.getSessions(conversationId)) {
-                                        session.sendSerialized(message)
-                                    }
-                                }
+                            messageFlow.emitAll(
+                                sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
+                            )
                         }
 
                         is MessageEvent.UpdateMessageEvent -> {
@@ -72,7 +81,7 @@ fun Route.conversationWebsocket(
                         is MessageEvent.HeartbeatEvent -> {
                             if (messageEvent.isPing()) {
                                 logger.trace { "ping pong" }
-                                send("pong")
+                                this@webSocket.send("pong")
                             } else {
                                 logger.warn { "Unknown heartbeat message received ${messageEvent.getData()}" }
                             }
@@ -83,14 +92,12 @@ fun Route.conversationWebsocket(
                         }
                     }
                 }
-            } catch (e: ClosedReceiveChannelException) {
-                logger.debug { "onClose: ${e.message}" }
-            } catch (e: CancellationException) {
-                logger.debug { "onCancel: ${e.message}" }
-            } catch (e: Throwable) {
-                logger.warn { "Error when closing websocket connection: ${e.message}" }
-            } finally {
-                WebsocketSessionHandler.removeSession(conversationId, this)
+            }.onFailure { exception ->
+                logger.error(exception) { "Error when listening for websocket events" }
+            }.also {
+                job.cancel()
+                this@webSocket.close()
+                WebsocketFlowHandler.removeFlow(conversationId)
             }
         }
     }
@@ -165,5 +172,26 @@ private object WebsocketSessionHandler {
         }
         sessions[conversationId]!!.remove(session)
         logger.debug { "Websocket session removed. Active sessions: ${sessions.size}" }
+    }
+}
+
+object WebsocketFlowHandler {
+    private val messageFlows = Collections.synchronizedMap<ConversationId, MutableSharedFlow<Message>>(HashMap())
+
+    fun getFlow(conversationId: ConversationId): MutableSharedFlow<Message> {
+        if (messageFlows[conversationId] == null) {
+            logger.debug { "Creating new flow for conversation $conversationId" }
+            MetricRegister.sharedMessageFlows.inc()
+            messageFlows[conversationId] = MutableSharedFlow()
+        }
+        return messageFlows[conversationId]!!
+    }
+
+    fun removeFlow(conversationId: ConversationId) {
+        if (messageFlows[conversationId] != null) {
+            logger.debug { "Removing flow for conversation $conversationId" }
+            MetricRegister.sharedMessageFlows.dec()
+            messageFlows.remove(conversationId)
+        }
     }
 }
