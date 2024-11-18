@@ -5,7 +5,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
-import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
@@ -68,9 +67,8 @@ fun Route.conversationWebsocket(
                     when (messageEvent) {
                         is MessageEvent.NewMessageEvent -> {
                             val newMessage = messageEvent.getData()
-                            messageFlow.emitAll(
-                                sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
-                            )
+                            sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
+                                .let { messageFlow.emitAll(it) }
                         }
 
                         is MessageEvent.UpdateMessageEvent -> {
@@ -144,34 +142,6 @@ internal sealed class MessageEvent {
         fun getData(): String = Json.decodeFromJsonElement(data)
 
         fun isPing() = getData() == "ping"
-    }
-}
-
-private object WebsocketSessionHandler {
-    private val sessions = Collections.synchronizedMap<ConversationId, MutableList<WebSocketServerSession>>(HashMap())
-
-    fun getSessions(conversationId: ConversationId): MutableList<WebSocketServerSession> {
-        if (sessions[conversationId] == null) {
-            sessions[conversationId] = Collections.synchronizedList(ArrayList())
-        }
-        return sessions[conversationId]!!
-    }
-
-    fun addSession(conversationId: ConversationId, session: WebSocketServerSession) {
-        if (sessions[conversationId] == null) {
-            sessions[conversationId] = Collections.synchronizedList(ArrayList())
-        }
-        sessions[conversationId]!!.add(session)
-        logger.debug { "Websocket session added. Active sessions: ${sessions.size}" }
-    }
-
-    fun removeSession(conversationId: ConversationId, session: WebSocketServerSession) {
-        if (sessions[conversationId] == null) {
-            sessions[conversationId] = Collections.synchronizedList(ArrayList())
-            return
-        }
-        sessions[conversationId]!!.remove(session)
-        logger.debug { "Websocket session removed. Active sessions: ${sessions.size}" }
     }
 }
 
