@@ -47,6 +47,7 @@ fun Route.conversationWebsocket(
             val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
                 ?: return@webSocket call.respond(HttpStatusCode.NotFound)
 
+            MetricRegister.websocketConnections.inc()
             val messageFlow = WebsocketFlowHandler.getFlow(conversationId)
             val job = launch {
                 existingMessages.forEach { message ->
@@ -96,6 +97,7 @@ fun Route.conversationWebsocket(
                 job.cancel()
                 this@webSocket.close()
                 WebsocketFlowHandler.removeFlow(conversationId)
+                MetricRegister.websocketConnections.dec()
             }
         }
     }

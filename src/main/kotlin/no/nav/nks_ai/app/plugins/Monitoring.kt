@@ -45,7 +45,12 @@ object MetricRegister {
 
     val sseConnections = Gauge.Builder()
         .name("${METRICS_NS}_sse_connections")
-        .help("Hvor mange aktive SSE-tilkoblinger som er aktive")
+        .help("Hvor mange aktive SSE-tilkoblinger")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    val websocketConnections = Gauge.Builder()
+        .name("${METRICS_NS}_websocket_connections")
+        .help("Hvor mange aktive websocket-tilkoblinger")
         .register(appMicrometerRegistry.prometheusRegistry)
 
     val sharedMessageFlows = Gauge.Builder()
