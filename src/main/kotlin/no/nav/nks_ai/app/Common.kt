@@ -46,6 +46,13 @@ class BcryptVerifiedOp(
 fun LocalDateTime.Companion.now() =
     Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
 
+fun String.truncate(limit: Int): String =
+    if (length + 3 > limit) {
+        this.substring(0..limit - 4) + "..."
+    } else {
+        this
+    }
+
 fun ApplicationCall.getClaim(issuer: String, name: String) =
     authentication.principal<JWTPrincipal>()
         ?.payload

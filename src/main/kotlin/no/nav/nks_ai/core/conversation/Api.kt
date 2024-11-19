@@ -72,7 +72,7 @@ fun Route.conversationRoutes(
 
                 if (newConversation.initialMessage != null) {
                     launch(Dispatchers.IO) {
-                        SseFlowHandler.getFlow(conversationId).emitAll(
+                        WebsocketFlowHandler.getFlow(conversationId).emitAll(
                             sendMessageService.sendMessageStream(
                                 message = newConversation.initialMessage,
                                 conversationId = conversationId,
@@ -224,7 +224,7 @@ fun Route.conversationRoutes(
 
             coroutineScope {
                 launch(Dispatchers.IO) {
-                    SseFlowHandler.getFlow(conversationId).emitAll(
+                    WebsocketFlowHandler.getFlow(conversationId).emitAll(
                         sendMessageService.sendMessageStream(
                             message = newMessage,
                             conversationId = conversationId,

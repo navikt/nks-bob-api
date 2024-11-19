@@ -88,6 +88,7 @@ object SseFlowHandler {
     fun getFlow(conversationId: ConversationId): MutableSharedFlow<Message> {
         if (messageFlows[conversationId] == null) {
             logger.debug { "Creating new flow for conversation $conversationId" }
+            MetricRegister.sharedMessageFlows.inc()
             messageFlows[conversationId] = MutableSharedFlow()
         }
         return messageFlows[conversationId]!!
@@ -96,6 +97,7 @@ object SseFlowHandler {
     fun removeFlow(conversationId: ConversationId) {
         if (messageFlows[conversationId] != null) {
             logger.debug { "Removing flow for conversation $conversationId" }
+            MetricRegister.sharedMessageFlows.dec()
             messageFlows.remove(conversationId)
         }
     }

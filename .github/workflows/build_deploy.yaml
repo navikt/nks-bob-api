@@ -50,14 +50,14 @@ jobs:
         env:
           IMAGE: ${{ needs.build.outputs.image }}
           CLUSTER: dev-gcp
-          RESOURCE: .nais/app.yaml
+          RESOURCE: .nais/dev-gcp.yaml
           VAR: ingress=nks-bob-api.ansatt.dev.nav.no
-      # - name: Deploy produksjon
-      #   uses: nais/deploy/actions/deploy@v2
-      #   if: contains(github.ref, 'refs/tags/v')
-      #   env:
-      #     IMAGE: ${{ needs.build.outputs.image }}
-      #     CLUSTER: prod-gcp
-      #     RESOURCE: .nais/app.yaml
-      #     VAR: ingress=nks-bob-api.ansatt.nav.no
+      - name: Deploy production
+        uses: nais/deploy/actions/deploy@v2
+        if: contains(github.ref, 'refs/tags/v')
+        env:
+          IMAGE: ${{ needs.build.outputs.image }}
+          CLUSTER: prod-gcp
+          RESOURCE: .nais/prod-gcp.yaml
+          VAR: ingress=nks-bob-api.ansatt.nav.no
 

@@ -14,9 +14,12 @@ spec:
     max: 1
     min: 1
   resources:
+    limits:
+      cpu: 500m
+      memory: 2048Mi
     requests:
-      cpu: 200m
-      memory: 512Mi
+      cpu: 250m
+      memory: 1024Mi
   accessPolicy:
     inbound:
       rules:
@@ -54,10 +57,10 @@ spec:
     - https://{{ingress}}/
   liveness:
     path: /internal/is_alive
-    initialDelay: 20
+    initialDelay: 40
   readiness:
     path: /internal/is_ready
-    initialDelay: 20
+    initialDelay: 40
   observability:
     logging:
       destinations:
