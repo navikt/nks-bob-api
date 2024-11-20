@@ -57,8 +57,8 @@ fun Route.conversationWebsocket(
             val messageFlow = WebsocketFlowHandler.getFlow(conversationId)
             val job = launch {
                 existingMessages.forEach { message ->
-                    this@webSocket.sendSerialized<MessageDiff>(
-                        MessageDiff.NewMessage(
+                    this@webSocket.sendSerialized<MessageEvent>(
+                        MessageEvent.NewMessage(
                             id = message.id,
                             message = message
                         )
@@ -69,8 +69,8 @@ fun Route.conversationWebsocket(
                     .asSharedFlow()
                     .runningFold(none<Message>()) { prevMessage, message ->
                         prevMessage.onNone {
-                            this@webSocket.sendSerialized<MessageDiff>(
-                                MessageDiff.NewMessage(
+                            this@webSocket.sendSerialized<MessageEvent>(
+                                MessageEvent.NewMessage(
                                     id = message.id,
                                     message = message
                                 )
@@ -79,8 +79,8 @@ fun Route.conversationWebsocket(
 
                         prevMessage.onSome { prevMessage: Message ->
                             val diff = prevMessage.diff(message)
-                            if (diff !is MessageDiff.NoOp) {
-                                this@webSocket.sendSerialized(diff)
+                            if (diff !is MessageEvent.NoOp) {
+                                this@webSocket.sendSerialized<MessageEvent>(diff)
                             }
                         }
 
@@ -199,34 +199,34 @@ object WebsocketFlowHandler {
 @OptIn(ExperimentalSerializationApi::class)
 @JsonClassDiscriminator("type")
 @Serializable
-internal sealed class MessageDiff() {
+internal sealed class MessageEvent() {
     @Serializable
     @SerialName("NewMessage")
     data class NewMessage(
         val id: MessageId,
         val message: Message
-    ) : MessageDiff()
+    ) : MessageEvent()
 
     @Serializable
     @SerialName("ContentUpdated")
     data class ContentUpdated(
         val id: MessageId,
         val content: String,
-    ) : MessageDiff()
+    ) : MessageEvent()
 
     @Serializable
     @SerialName("CitationsUpdated")
     data class CitationsUpdated(
         val id: MessageId,
         val citations: List<Citation>,
-    ) : MessageDiff()
+    ) : MessageEvent()
 
     @Serializable
     @SerialName("ContextUpdated")
     data class ContextUpdated(
         val id: MessageId,
         val context: List<Context>,
-    ) : MessageDiff()
+    ) : MessageEvent()
 
     @Serializable
     @SerialName("PendingUpdated")
@@ -234,47 +234,47 @@ internal sealed class MessageDiff() {
         val id: MessageId,
         val message: Message,
         val pending: Boolean,
-    ) : MessageDiff()
+    ) : MessageEvent()
 
-    class NoOp : MessageDiff()
+    class NoOp : MessageEvent()
 }
 
-private fun Message.diff(message: Message): MessageDiff {
+private fun Message.diff(message: Message): MessageEvent {
     if (this.id != message.id) {
-        return MessageDiff.NewMessage(
+        return MessageEvent.NewMessage(
             id = message.id,
             message = message
         )
     }
 
     if (this.content != message.content) {
-        return MessageDiff.ContentUpdated(
+        return MessageEvent.ContentUpdated(
             id = message.id,
             content = message.content.removePrefix(this.content)
         )
     }
 
     if (this.citations != message.citations) {
-        return MessageDiff.CitationsUpdated(
+        return MessageEvent.CitationsUpdated(
             id = message.id,
             citations = message.citations
         )
     }
 
     if (this.context != message.context) {
-        return MessageDiff.ContextUpdated(
+        return MessageEvent.ContextUpdated(
             id = message.id,
             context = message.context
         )
     }
 
     if (this.pending != message.pending) {
-        return MessageDiff.PendingUpdated(
+        return MessageEvent.PendingUpdated(
             id = message.id,
             message = message,
             pending = message.pending,
         )
     }
 
-    return MessageDiff.NoOp()
+    return MessageEvent.NoOp()
 }
