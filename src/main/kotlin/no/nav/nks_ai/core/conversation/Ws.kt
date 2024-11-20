@@ -91,36 +91,36 @@ fun Route.conversationWebsocket(
 
             runCatching {
                 while (true) {
-                    val messageEvent = this@webSocket.receiveDeserialized<MessageEvent>()
+                    val messageAction = this@webSocket.receiveDeserialized<MessageAction>()
 
-                    when (messageEvent) {
-                        is MessageEvent.NewMessageEvent -> {
-                            val newMessage = messageEvent.getData()
+                    when (messageAction) {
+                        is MessageAction.NewMessageAction -> {
+                            val newMessage = messageAction.getData()
                             sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
                                 .let { messageFlow.emitAll(it) }
                         }
 
-                        is MessageEvent.UpdateMessageEvent -> {
-                            val updateMessage = messageEvent.getData()
+                        is MessageAction.UpdateMessageAction -> {
+                            val updateMessage = messageAction.getData()
                             logger.debug { "Updating message ${updateMessage.id}" }
                         }
 
-                        is MessageEvent.HeartbeatEvent -> {
-                            if (messageEvent.isPing()) {
+                        is MessageAction.HeartbeatAction -> {
+                            if (messageAction.isPing()) {
                                 logger.trace { "ping pong" }
                                 this@webSocket.send("pong")
                             } else {
-                                logger.warn { "Unknown heartbeat message received ${messageEvent.getData()}" }
+                                logger.warn { "Unknown heartbeat message received ${messageAction.getData()}" }
                             }
                         }
 
                         else -> {
-                            logger.warn { "Unknown event type: ${messageEvent.type}" }
+                            logger.warn { "Unknown action type: ${messageAction.type}" }
                         }
                     }
                 }
             }.onFailure { exception ->
-                logger.error(exception) { "Error when listening for websocket events" }
+                logger.error(exception) { "Error when listening for websocket actions" }
             }.also {
                 job.cancel()
                 this@webSocket.close()
@@ -132,7 +132,7 @@ fun Route.conversationWebsocket(
 }
 
 @Serializable
-internal enum class MessageEventType {
+internal enum class MessageActionType {
     NewMessage,
     UpdateMessage,
     Heartbeat,
@@ -141,34 +141,34 @@ internal enum class MessageEventType {
 @OptIn(ExperimentalSerializationApi::class)
 @JsonClassDiscriminator("type")
 @Serializable
-internal sealed class MessageEvent {
-    abstract val type: MessageEventType
+internal sealed class MessageAction {
+    abstract val type: MessageActionType
     protected abstract val data: JsonElement
 
     @Serializable
     @SerialName("NewMessage")
-    data class NewMessageEvent(
-        override val type: MessageEventType = MessageEventType.NewMessage,
+    data class NewMessageAction(
+        override val type: MessageActionType = MessageActionType.NewMessage,
         override val data: JsonElement
-    ) : MessageEvent() {
+    ) : MessageAction() {
         fun getData(): NewMessage = Json.decodeFromJsonElement(data)
     }
 
     @Serializable
     @SerialName("UpdateMessage")
-    data class UpdateMessageEvent(
-        override val type: MessageEventType = MessageEventType.UpdateMessage,
+    data class UpdateMessageAction(
+        override val type: MessageActionType = MessageActionType.UpdateMessage,
         override val data: JsonElement
-    ) : MessageEvent() {
+    ) : MessageAction() {
         fun getData(): UpdateMessage = Json.decodeFromJsonElement(data)
     }
 
     @Serializable
     @SerialName("Heartbeat")
-    data class HeartbeatEvent(
-        override val type: MessageEventType = MessageEventType.Heartbeat,
+    data class HeartbeatAction(
+        override val type: MessageActionType = MessageActionType.Heartbeat,
         override val data: JsonElement
-    ) : MessageEvent() {
+    ) : MessageAction() {
         fun getData(): String = Json.decodeFromJsonElement(data)
 
         fun isPing() = getData() == "ping"
