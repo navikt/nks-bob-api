@@ -11,6 +11,8 @@ import io.ktor.server.routing.*
 import io.micrometer.prometheus.*
 import io.prometheus.client.Counter
 import io.prometheus.client.Gauge
+import io.prometheus.client.SimpleTimer
+import io.prometheus.client.Summary
 import org.slf4j.event.Level
 
 private val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -57,6 +59,34 @@ object MetricRegister {
         .name("${METRICS_NS}_shared_message_flows")
         .help("Hvor mange aktive shared message flows")
         .register(appMicrometerRegistry.prometheusRegistry)
+
+    private val answerFirstContentReceivedSummary = Summary.Builder()
+        .name("${METRICS_NS}_answer_first_content_received")
+        .help("Hvor lang tid fra spørsmål er stilt til første del av innholdet i svaret mottas")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    fun answerFirstContentReceived(): Timer = Timer(answerFirstContentReceivedSummary)
+}
+
+class Timer {
+    private val summary: Summary
+    private val timer: SimpleTimer
+    var isRunning: Boolean
+        private set
+
+    constructor(summary: Summary) {
+        this.summary = summary
+        this.timer = SimpleTimer()
+        this.isRunning = true
+    }
+
+    fun stop() {
+        summary.startTimer()
+        if (isRunning) {
+            summary.observe(timer.elapsedSeconds())
+            isRunning = false
+        }
+    }
 }
 
 fun Application.configureMonitoring() {
