@@ -78,10 +78,11 @@ class Timer {
         this.summary = summary
         this.timer = SimpleTimer()
         this.isRunning = true
+
+        summary.startTimer()
     }
 
     fun stop() {
-        summary.startTimer()
         if (isRunning) {
             summary.observe(timer.elapsedSeconds())
             isRunning = false
