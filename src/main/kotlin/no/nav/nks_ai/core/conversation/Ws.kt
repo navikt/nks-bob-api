@@ -15,7 +15,6 @@ import io.ktor.websocket.send
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -97,13 +96,7 @@ fun Route.conversationWebsocket(
                     when (messageAction) {
                         is MessageAction.NewMessageAction -> {
                             val newMessage = messageAction.getData()
-                            val timer = MetricRegister.answerFirstContentReceived()
                             sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
-                                .onEach { message ->
-                                    if (timer.isRunning && message.content.isNotEmpty()) {
-                                        timer.stop()
-                                    }
-                                }
                                 .let { messageFlow.emitAll(it) }
                         }
 
