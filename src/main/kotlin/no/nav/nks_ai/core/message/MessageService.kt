@@ -1,7 +1,7 @@
 package no.nav.nks_ai.core.message
 
 import arrow.core.Some
-import no.nav.nks_ai.app.plugins.MetricRegister
+import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.user.NavIdent
 

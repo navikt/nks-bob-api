@@ -24,8 +24,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
+import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.app.getNavIdent
-import no.nav.nks_ai.app.plugins.MetricRegister
 import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.message.Citation
 import no.nav.nks_ai.core.message.Context

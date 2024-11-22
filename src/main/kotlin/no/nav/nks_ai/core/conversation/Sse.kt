@@ -16,8 +16,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.app.getNavIdent
-import no.nav.nks_ai.app.plugins.MetricRegister
 import no.nav.nks_ai.app.sse
 import no.nav.nks_ai.core.message.Message
 import java.util.Collections
