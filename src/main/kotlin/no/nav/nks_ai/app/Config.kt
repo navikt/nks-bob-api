@@ -11,6 +11,7 @@ object Config {
     val kbs: KbsConfig
     val jwt: JwtConfig
     val db: DbConfig
+    val nais: NaisConfig
     val issuers: NonEmptyList<IssuerConfig>
 
     const val HTTP_CLIENT_TIMEOUT_MS = 60 * 1000
@@ -22,6 +23,7 @@ object Config {
             kbs = it.extract<KbsConfig>("kbs")
             jwt = it.extract<JwtConfig>("jwt")
             db = it.extract<DbConfig>("db")
+            nais = it.extract<NaisConfig>("nais")
             issuers = it.extract<List<IssuerConfig>>("no.nav.security.jwt.issuers")
                 .toNonEmptyListOrNull<IssuerConfig>()
                 ?: error("Error reading configuration: No issuers configured.")
@@ -48,6 +50,10 @@ data class DbConfig(
     val host: String,
     val port: String,
     val jdbcURL: String?,
+)
+
+data class NaisConfig(
+    val electorUrl: String,
 )
 
 data class IssuerConfig(

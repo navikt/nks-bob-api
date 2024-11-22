@@ -87,7 +87,7 @@ fun Application.module() {
     val adminService = AdminService()
     val userConfigService = UserConfigService()
 
-    ConversationDeletionJob(conversationService).start()
+    ConversationDeletionJob(conversationService, httpClient).start()
 
     routing {
         route("/api/v1") {

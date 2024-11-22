@@ -3,20 +3,20 @@ package no.nav.nks_ai.core
 import dev.starry.ktscheduler.job.Job
 import dev.starry.ktscheduler.scheduler.KtScheduler
 import dev.starry.ktscheduler.triggers.DailyTrigger
+import io.ktor.client.HttpClient
+import kotlinx.coroutines.runBlocking
+import no.nav.nks_ai.app.isLeader
 import no.nav.nks_ai.core.conversation.ConversationService
 
 class ConversationDeletionJob(
-    private val conversationService: ConversationService
+    private val conversationService: ConversationService,
+    private val httpClient: HttpClient,
 ) {
-    fun start() {
-        if (isLeader()) {
+    fun start() = runBlocking {
+        if (isLeader(httpClient)) {
             scheduleJob()
         }
     }
-
-    // TODO must be implemented before running multiple pods.
-    //      See: https://doc.nais.io/services/leader-election/how-to/enable/#__tabbed_1_1
-    private fun isLeader() = true
 
     // Deletes old conversations at 03:00 every night.
     private fun scheduleJob() {
