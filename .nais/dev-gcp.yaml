@@ -45,7 +45,7 @@ spec:
       claims:
         groups:
           - id: "dcb5ec4c-8027-428c-9dfd-15852388001c" # Administratorgruppe
-          - id: "ad604335-b339-4804-82ee-fb5e2bcb87c9" # Brukergruppe
+          - id: "1a7b1fec-44c3-40c1-bf1d-f462b5a90a26" # Brukergruppe
     sidecar:
       enabled: true
       autoLogin: true
