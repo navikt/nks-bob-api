@@ -7,6 +7,11 @@ import kotlinx.serialization.Serializable
 import java.net.Inet4Address
 
 suspend fun isLeader(httpClient: HttpClient): Boolean {
+    // Local development instance is always leader
+    if (!Config.nais.isRunningOnNais) {
+        return true
+    }
+
     val response = httpClient
         .get(Config.nais.electorUrl)
         .body<ElectorGetResponse>()
