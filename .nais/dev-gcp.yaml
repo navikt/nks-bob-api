@@ -16,10 +16,10 @@ spec:
   leaderElection: true
   resources:
     limits:
-      memory: 2048Mi
-    requests:
-      cpu: 250m
       memory: 1024Mi
+    requests:
+      cpu: 125m
+      memory: 512Mi
   accessPolicy:
     inbound:
       rules:
