@@ -12,34 +12,34 @@ import no.nav.nks_ai.core.message.MessageId
 @OptIn(ExperimentalSerializationApi::class)
 @JsonClassDiscriminator("type")
 @Serializable
-internal sealed class MessageEvent() {
+internal sealed class ConversationEvent() {
     @Serializable
     @SerialName("NewMessage")
     data class NewMessage(
         val id: MessageId,
         val message: Message
-    ) : MessageEvent()
+    ) : ConversationEvent()
 
     @Serializable
     @SerialName("ContentUpdated")
     data class ContentUpdated(
         val id: MessageId,
         val content: String,
-    ) : MessageEvent()
+    ) : ConversationEvent()
 
     @Serializable
     @SerialName("CitationsUpdated")
     data class CitationsUpdated(
         val id: MessageId,
         val citations: List<Citation>,
-    ) : MessageEvent()
+    ) : ConversationEvent()
 
     @Serializable
     @SerialName("ContextUpdated")
     data class ContextUpdated(
         val id: MessageId,
         val context: List<Context>,
-    ) : MessageEvent()
+    ) : ConversationEvent()
 
     @Serializable
     @SerialName("PendingUpdated")
@@ -47,47 +47,47 @@ internal sealed class MessageEvent() {
         val id: MessageId,
         val message: Message,
         val pending: Boolean,
-    ) : MessageEvent()
+    ) : ConversationEvent()
 
-    class NoOp : MessageEvent()
+    class NoOp : ConversationEvent()
 }
 
-internal fun Message.diff(message: Message): MessageEvent {
+internal fun Message.diff(message: Message): ConversationEvent {
     if (this.id != message.id) {
-        return MessageEvent.NewMessage(
+        return ConversationEvent.NewMessage(
             id = message.id,
             message = message
         )
     }
 
     if (this.content != message.content) {
-        return MessageEvent.ContentUpdated(
+        return ConversationEvent.ContentUpdated(
             id = message.id,
             content = message.content.removePrefix(this.content)
         )
     }
 
     if (this.citations != message.citations) {
-        return MessageEvent.CitationsUpdated(
+        return ConversationEvent.CitationsUpdated(
             id = message.id,
             citations = message.citations
         )
     }
 
     if (this.context != message.context) {
-        return MessageEvent.ContextUpdated(
+        return ConversationEvent.ContextUpdated(
             id = message.id,
             context = message.context
         )
     }
 
     if (this.pending != message.pending) {
-        return MessageEvent.PendingUpdated(
+        return ConversationEvent.PendingUpdated(
             id = message.id,
             message = message,
             pending = message.pending,
         )
     }
 
-    return MessageEvent.NoOp()
+    return ConversationEvent.NoOp()
 }

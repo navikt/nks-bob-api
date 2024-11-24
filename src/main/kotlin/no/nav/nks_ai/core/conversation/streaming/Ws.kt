@@ -48,8 +48,8 @@ fun Route.conversationWebsocket(
             val messageFlow = WebsocketFlowHandler.getFlow(conversationId)
             val job = launch {
                 existingMessages.forEach { message ->
-                    this@webSocket.sendSerialized<MessageEvent>(
-                        MessageEvent.NewMessage(
+                    this@webSocket.sendSerialized<ConversationEvent>(
+                        ConversationEvent.NewMessage(
                             id = message.id,
                             message = message
                         )
@@ -60,8 +60,8 @@ fun Route.conversationWebsocket(
                     .asSharedFlow()
                     .runningFold(none<Message>()) { prevMessage, message ->
                         prevMessage.onNone {
-                            this@webSocket.sendSerialized<MessageEvent>(
-                                MessageEvent.NewMessage(
+                            this@webSocket.sendSerialized<ConversationEvent>(
+                                ConversationEvent.NewMessage(
                                     id = message.id,
                                     message = message
                                 )
@@ -70,8 +70,8 @@ fun Route.conversationWebsocket(
 
                         prevMessage.onSome { prevMessage: Message ->
                             val diff = prevMessage.diff(message)
-                            if (diff !is MessageEvent.NoOp) {
-                                this@webSocket.sendSerialized<MessageEvent>(diff)
+                            if (diff !is ConversationEvent.NoOp) {
+                                this@webSocket.sendSerialized<ConversationEvent>(diff)
                             }
                         }
 
@@ -82,31 +82,31 @@ fun Route.conversationWebsocket(
 
             runCatching {
                 while (true) {
-                    val messageAction = this@webSocket.receiveDeserialized<MessageAction>()
+                    val conversationAction = this@webSocket.receiveDeserialized<ConversationAction>()
 
-                    when (messageAction) {
-                        is MessageAction.NewMessageAction -> {
-                            val newMessage = messageAction.getData()
+                    when (conversationAction) {
+                        is ConversationAction.NewMessageAction -> {
+                            val newMessage = conversationAction.getData()
                             sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
                                 .let { messageFlow.emitAll(it) }
                         }
 
-                        is MessageAction.UpdateMessageAction -> {
-                            val updateMessage = messageAction.getData()
+                        is ConversationAction.UpdateMessageAction -> {
+                            val updateMessage = conversationAction.getData()
                             logger.debug { "Updating message ${updateMessage.id}" }
                         }
 
-                        is MessageAction.HeartbeatAction -> {
-                            if (messageAction.isPing()) {
+                        is ConversationAction.HeartbeatAction -> {
+                            if (conversationAction.isPing()) {
                                 logger.trace { "ping pong" }
                                 this@webSocket.send("pong")
                             } else {
-                                logger.warn { "Unknown heartbeat message received ${messageAction.getData()}" }
+                                logger.warn { "Unknown heartbeat message received ${conversationAction.getData()}" }
                             }
                         }
 
                         else -> {
-                            logger.warn { "Unknown action type: ${messageAction.type}" }
+                            logger.warn { "Unknown action type: ${conversationAction.type}" }
                         }
                     }
                 }
