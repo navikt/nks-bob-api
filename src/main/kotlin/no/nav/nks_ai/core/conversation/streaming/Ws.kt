@@ -1,4 +1,4 @@
-package no.nav.nks_ai.core.conversation
+package no.nav.nks_ai.core.conversation.streaming
 
 import arrow.core.none
 import arrow.core.some
@@ -17,22 +17,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonClassDiscriminator
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.decodeFromJsonElement
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.core.SendMessageService
-import no.nav.nks_ai.core.message.Citation
-import no.nav.nks_ai.core.message.Context
+import no.nav.nks_ai.core.conversation.ConversationId
+import no.nav.nks_ai.core.conversation.ConversationService
+import no.nav.nks_ai.core.conversation.conversationId
 import no.nav.nks_ai.core.message.Message
-import no.nav.nks_ai.core.message.MessageId
-import no.nav.nks_ai.core.message.NewMessage
-import no.nav.nks_ai.core.message.UpdateMessage
 import java.util.Collections
 import kotlin.collections.set
 
@@ -131,50 +122,6 @@ fun Route.conversationWebsocket(
     }
 }
 
-@Serializable
-internal enum class MessageActionType {
-    NewMessage,
-    UpdateMessage,
-    Heartbeat,
-}
-
-@OptIn(ExperimentalSerializationApi::class)
-@JsonClassDiscriminator("type")
-@Serializable
-internal sealed class MessageAction {
-    abstract val type: MessageActionType
-    protected abstract val data: JsonElement
-
-    @Serializable
-    @SerialName("NewMessage")
-    data class NewMessageAction(
-        override val type: MessageActionType = MessageActionType.NewMessage,
-        override val data: JsonElement
-    ) : MessageAction() {
-        fun getData(): NewMessage = Json.decodeFromJsonElement(data)
-    }
-
-    @Serializable
-    @SerialName("UpdateMessage")
-    data class UpdateMessageAction(
-        override val type: MessageActionType = MessageActionType.UpdateMessage,
-        override val data: JsonElement
-    ) : MessageAction() {
-        fun getData(): UpdateMessage = Json.decodeFromJsonElement(data)
-    }
-
-    @Serializable
-    @SerialName("Heartbeat")
-    data class HeartbeatAction(
-        override val type: MessageActionType = MessageActionType.Heartbeat,
-        override val data: JsonElement
-    ) : MessageAction() {
-        fun getData(): String = Json.decodeFromJsonElement(data)
-
-        fun isPing() = getData() == "ping"
-    }
-}
-
 object WebsocketFlowHandler {
     private val messageFlows = Collections.synchronizedMap<ConversationId, MutableSharedFlow<Message>>(HashMap())
 
@@ -194,87 +141,4 @@ object WebsocketFlowHandler {
             messageFlows.remove(conversationId)
         }
     }
-}
-
-@OptIn(ExperimentalSerializationApi::class)
-@JsonClassDiscriminator("type")
-@Serializable
-internal sealed class MessageEvent() {
-    @Serializable
-    @SerialName("NewMessage")
-    data class NewMessage(
-        val id: MessageId,
-        val message: Message
-    ) : MessageEvent()
-
-    @Serializable
-    @SerialName("ContentUpdated")
-    data class ContentUpdated(
-        val id: MessageId,
-        val content: String,
-    ) : MessageEvent()
-
-    @Serializable
-    @SerialName("CitationsUpdated")
-    data class CitationsUpdated(
-        val id: MessageId,
-        val citations: List<Citation>,
-    ) : MessageEvent()
-
-    @Serializable
-    @SerialName("ContextUpdated")
-    data class ContextUpdated(
-        val id: MessageId,
-        val context: List<Context>,
-    ) : MessageEvent()
-
-    @Serializable
-    @SerialName("PendingUpdated")
-    data class PendingUpdated(
-        val id: MessageId,
-        val message: Message,
-        val pending: Boolean,
-    ) : MessageEvent()
-
-    class NoOp : MessageEvent()
-}
-
-private fun Message.diff(message: Message): MessageEvent {
-    if (this.id != message.id) {
-        return MessageEvent.NewMessage(
-            id = message.id,
-            message = message
-        )
-    }
-
-    if (this.content != message.content) {
-        return MessageEvent.ContentUpdated(
-            id = message.id,
-            content = message.content.removePrefix(this.content)
-        )
-    }
-
-    if (this.citations != message.citations) {
-        return MessageEvent.CitationsUpdated(
-            id = message.id,
-            citations = message.citations
-        )
-    }
-
-    if (this.context != message.context) {
-        return MessageEvent.ContextUpdated(
-            id = message.id,
-            context = message.context
-        )
-    }
-
-    if (this.pending != message.pending) {
-        return MessageEvent.PendingUpdated(
-            id = message.id,
-            message = message,
-            pending = message.pending,
-        )
-    }
-
-    return MessageEvent.NoOp()
 }
