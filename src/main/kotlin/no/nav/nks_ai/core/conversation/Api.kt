@@ -12,14 +12,12 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.launch
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.fromThrowable
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.core.SendMessageService
-import no.nav.nks_ai.core.conversation.streaming.WebsocketFlowHandler
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.NewMessage
 
@@ -73,13 +71,13 @@ fun Route.conversationRoutes(
 
                 if (newConversation.initialMessage != null) {
                     launch(Dispatchers.IO) {
-                        WebsocketFlowHandler.getFlow(conversationId).emitAll(
-                            sendMessageService.sendMessageStream(
-                                message = newConversation.initialMessage,
-                                conversationId = conversationId,
-                                navIdent = navIdent
-                            )
+//                        WebsocketFlowHandler.getFlow(conversationId).emitAll(
+                        sendMessageService.sendMessageStream(
+                            message = newConversation.initialMessage,
+                            conversationId = conversationId,
+                            navIdent = navIdent
                         )
+//                        )
                     }
                 }
 
@@ -225,13 +223,13 @@ fun Route.conversationRoutes(
 
             coroutineScope {
                 launch(Dispatchers.IO) {
-                    WebsocketFlowHandler.getFlow(conversationId).emitAll(
-                        sendMessageService.sendMessageStream(
-                            message = newMessage,
-                            conversationId = conversationId,
-                            navIdent = navIdent
-                        )
+//                    WebsocketFlowHandler.getFlow(conversationId).emitAll(
+                    sendMessageService.sendMessageStream(
+                        message = newMessage,
+                        conversationId = conversationId,
+                        navIdent = navIdent
                     )
+//                    )
                 }
 
                 call.respond(HttpStatusCode.Accepted)

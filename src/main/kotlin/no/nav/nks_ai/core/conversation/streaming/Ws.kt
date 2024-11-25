@@ -1,7 +1,5 @@
 package no.nav.nks_ai.core.conversation.streaming
 
-import arrow.core.none
-import arrow.core.some
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
@@ -13,18 +11,18 @@ import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.close
 import io.ktor.websocket.send
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.runningFold
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationService
-import no.nav.nks_ai.core.conversation.conversationId
-import no.nav.nks_ai.core.message.Message
 import java.util.Collections
+import java.util.UUID
 import kotlin.collections.set
 
 private val logger = KotlinLogging.logger {}
@@ -34,50 +32,19 @@ fun Route.conversationWebsocket(
     sendMessageService: SendMessageService,
 ) {
     route("/conversations") {
-        webSocket("/{id}/messages/ws") {
+        webSocket("/ws") {
             val navIdent = call.getNavIdent()
                 ?: return@webSocket call.respond(HttpStatusCode.Forbidden)
 
-            val conversationId = call.conversationId()
-                ?: return@webSocket call.respond(HttpStatusCode.BadRequest)
-
-            val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
-                ?: return@webSocket call.respond(HttpStatusCode.NotFound)
+            val sessionId = WebsocketSessionId()
 
             MetricRegister.websocketConnections.inc()
-            val messageFlow = WebsocketFlowHandler.getFlow(conversationId)
-            val job = launch {
-                existingMessages.forEach { message ->
-                    sendSerialized<ConversationEvent>(
-                        ConversationEvent.NewMessage(
-                            id = message.id,
-                            message = message
-                        )
-                    )
+            val eventFlow = WebsocketFlowHandler.getEventFlow(sessionId)
+
+            val eventsListener = launch {
+                eventFlow.asSharedFlow().collect { event ->
+                    sendSerialized<ConversationEvent>(event)
                 }
-
-                messageFlow
-                    .asSharedFlow()
-                    .runningFold(none<Message>()) { prevMessage, message ->
-                        prevMessage.onNone {
-                            sendSerialized<ConversationEvent>(
-                                ConversationEvent.NewMessage(
-                                    id = message.id,
-                                    message = message
-                                )
-                            )
-                        }
-
-                        prevMessage.onSome { prevMessage: Message ->
-                            val diff = prevMessage.diff(message)
-                            if (diff !is ConversationEvent.NoOp) {
-                                sendSerialized<ConversationEvent>(diff)
-                            }
-                        }
-
-                        message.some()
-                    }
-                    .collect { /* no-op */ }
             }
 
             runCatching {
@@ -86,9 +53,62 @@ fun Route.conversationWebsocket(
 
                     when (conversationAction) {
                         is ConversationAction.NewMessageAction -> {
-                            val newMessage = conversationAction.getData()
-                            sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
-                                .let { messageFlow.emitAll(it) }
+                            val payload = conversationAction.getData()
+                            val flows = WebsocketFlowHandler.getSubscribedSessions(payload.conversationId)
+
+                            sendMessageService.sendMessageWithEvents(
+                                message = payload.asNewMessage(),
+                                conversationId = payload.conversationId,
+                                navIdent = navIdent
+                            ).let { events ->
+                                flows.forEach { it.emitAll(events) }
+                            }
+                        }
+
+                        is ConversationAction.CreateConversationAction -> {
+                            val payload = conversationAction.getData()
+                            val conversation =
+                                conversationService.addConversation(navIdent, payload.asNewConversation())
+                            sendSerialized<ConversationEvent>(ConversationEvent.ConversationCreated(conversation))
+
+                            if (payload.subscribe) {
+                                WebsocketFlowHandler.subscribeToConversation(sessionId, conversation.id)
+                            }
+
+                            if (payload.initialMessage != null) {
+                                val flows = WebsocketFlowHandler.getSubscribedSessions(conversationId = conversation.id)
+
+                                sendMessageService.sendMessageWithEvents(
+                                    message = payload.initialMessage,
+                                    conversationId = conversation.id,
+                                    navIdent = navIdent
+                                ).let { events ->
+                                    flows.forEach { it.emitAll(events) }
+                                }
+                            }
+                        }
+
+                        is ConversationAction.SubscribeToConversationAction -> {
+                            val conversationId = conversationAction.getData().conversationId
+                            WebsocketFlowHandler.subscribeToConversation(sessionId, conversationId)
+
+                            // Send existing messages
+                            conversationService.getConversationMessages(conversationId, navIdent)
+                                ?.let { existingMessages ->
+                                    WebsocketFlowHandler.getEventFlow(sessionId)
+                                        .emitAll(existingMessages
+                                            .asFlow()
+                                            .map { message ->
+                                                ConversationEvent.NewMessage(
+                                                    id = message.id,
+                                                    message = message
+                                                )
+                                            })
+                                }
+                        }
+
+                        is ConversationAction.UnsubscribeAllConversationsAction -> {
+                            WebsocketFlowHandler.unsubscribe(sessionId)
                         }
 
                         is ConversationAction.UpdateMessageAction -> {
@@ -113,32 +133,51 @@ fun Route.conversationWebsocket(
             }.onFailure { exception ->
                 logger.error(exception) { "Error when listening for websocket actions" }
             }.also {
-                job.cancel()
+                eventsListener.cancel()
                 close()
-                WebsocketFlowHandler.removeFlow(conversationId)
+                WebsocketFlowHandler.removeEventFlow(sessionId)
                 MetricRegister.websocketConnections.dec()
             }
         }
     }
 }
 
-object WebsocketFlowHandler {
-    private val messageFlows = Collections.synchronizedMap<ConversationId, MutableSharedFlow<Message>>(HashMap())
+@JvmInline
+value class WebsocketSessionId(val value: UUID = UUID.randomUUID())
 
-    fun getFlow(conversationId: ConversationId): MutableSharedFlow<Message> {
-        if (messageFlows[conversationId] == null) {
-            logger.debug { "Creating new flow for conversation $conversationId" }
+object WebsocketFlowHandler {
+    private val eventFlows =
+        Collections.synchronizedMap<WebsocketSessionId, MutableSharedFlow<ConversationEvent>>(HashMap())
+
+    private val subscribedSessions = Collections.synchronizedMap<WebsocketSessionId, ConversationId>(HashMap())
+
+    internal fun getEventFlow(sessionId: WebsocketSessionId): MutableSharedFlow<ConversationEvent> {
+        if (eventFlows[sessionId] == null) {
+            logger.debug { "Creating new flow for session $sessionId" }
             MetricRegister.sharedMessageFlows.inc()
-            messageFlows[conversationId] = MutableSharedFlow()
+            eventFlows[sessionId] = MutableSharedFlow()
         }
-        return messageFlows[conversationId]!!
+        return eventFlows[sessionId]!!
     }
 
-    fun removeFlow(conversationId: ConversationId) {
-        if (messageFlows[conversationId] != null) {
-            logger.debug { "Removing flow for conversation $conversationId" }
+    internal fun removeEventFlow(sessionId: WebsocketSessionId) {
+        if (eventFlows[sessionId] != null) {
+            logger.debug { "Removing flow for session $sessionId" }
             MetricRegister.sharedMessageFlows.dec()
-            messageFlows.remove(conversationId)
+            eventFlows.remove(sessionId)
         }
+    }
+
+    internal fun getSubscribedSessions(conversationId: ConversationId): List<MutableSharedFlow<ConversationEvent>> {
+        return subscribedSessions.filter { it.value == conversationId }
+            .map { entry -> getEventFlow(entry.key) }
+    }
+
+    internal fun subscribeToConversation(sessionId: WebsocketSessionId, conversationId: ConversationId) {
+        subscribedSessions[sessionId] = conversationId
+    }
+
+    internal fun unsubscribe(sessionId: WebsocketSessionId) {
+        subscribedSessions.remove(sessionId)
     }
 }

@@ -4,6 +4,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import no.nav.nks_ai.core.conversation.Conversation
 import no.nav.nks_ai.core.message.Citation
 import no.nav.nks_ai.core.message.Context
 import no.nav.nks_ai.core.message.Message
@@ -47,6 +48,12 @@ internal sealed class ConversationEvent() {
         val id: MessageId,
         val message: Message,
         val pending: Boolean,
+    ) : ConversationEvent()
+
+    @Serializable
+    @SerialName("ConversationCreated")
+    data class ConversationCreated(
+        val conversation: Conversation,
     ) : ConversationEvent()
 
     class NoOp : ConversationEvent()

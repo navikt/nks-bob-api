@@ -35,7 +35,7 @@ internal sealed class ConversationAction {
         override val type: ConversationActionType = ConversationActionType.NewMessage,
         override val data: JsonElement
     ) : ConversationAction() {
-        fun getData(): NewMessage = Json.decodeFromJsonElement(data)
+        fun getData(): NewMessageActionPayload = Json.decodeFromJsonElement(data)
     }
 
     @Serializable
@@ -53,7 +53,7 @@ internal sealed class ConversationAction {
         override val type: ConversationActionType = ConversationActionType.CreateConversation,
         override val data: JsonElement
     ) : ConversationAction() {
-        fun getData(): NewConversation = Json.decodeFromJsonElement(data)
+        fun getData(): CreateConversationActionPayload = Json.decodeFromJsonElement(data)
     }
 
     @Serializable
@@ -62,7 +62,7 @@ internal sealed class ConversationAction {
         override val type: ConversationActionType = ConversationActionType.SubscribeToConversation,
         override val data: JsonElement
     ) : ConversationAction() {
-        fun getData(): SubscribeToConversation = Json.decodeFromJsonElement(data)
+        fun getData(): SubscribeToConversationActionPayload = Json.decodeFromJsonElement(data)
     }
 
     @Serializable
@@ -84,6 +84,29 @@ internal sealed class ConversationAction {
     }
 }
 
-data class SubscribeToConversation(
+@Serializable
+data class NewMessageActionPayload(
+    val conversationId: ConversationId,
+    val content: String,
+) {
+    fun asNewMessage() = NewMessage(
+        content = content,
+    )
+}
+
+@Serializable
+data class CreateConversationActionPayload(
+    val title: String,
+    val initialMessage: NewMessage?,
+    val subscribe: Boolean,
+) {
+    fun asNewConversation() = NewConversation(
+        title = title,
+        initialMessage = initialMessage,
+    )
+}
+
+@Serializable
+data class SubscribeToConversationActionPayload(
     val conversationId: ConversationId,
 )

@@ -1,5 +1,7 @@
 package no.nav.nks_ai.core
 
+import arrow.core.none
+import arrow.core.some
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -9,8 +11,11 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.runningFold
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationService
+import no.nav.nks_ai.core.conversation.streaming.ConversationEvent
+import no.nav.nks_ai.core.conversation.streaming.diff
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageService
 import no.nav.nks_ai.core.message.NewMessage
@@ -108,5 +113,33 @@ class SendMessageService(
                 )
             )
         }.filterNotNull()
+    }
+
+    internal fun sendMessageWithEvents(
+        message: NewMessage,
+        conversationId: ConversationId,
+        navIdent: NavIdent,
+    ): Flow<ConversationEvent> = flow {
+        sendMessageStream(message, conversationId, navIdent)
+            .runningFold(none<Message>()) { prevMessage, message ->
+                prevMessage.onNone {
+                    emit(
+                        ConversationEvent.NewMessage(
+                            id = message.id,
+                            message = message
+                        )
+                    )
+                }
+
+                prevMessage.onSome { prevMessage: Message ->
+                    val diff = prevMessage.diff(message)
+                    if (diff !is ConversationEvent.NoOp) {
+                        emit(diff)
+                    }
+                }
+
+                message.some()
+            }
+            .collect { /* no-op */ }
     }
 }
