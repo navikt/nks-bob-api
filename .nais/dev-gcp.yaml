@@ -11,14 +11,15 @@ spec:
   image: "{{ image }}"
   port: 8080
   replicas:
-    max: 1
-    min: 1
+    max: 2
+    min: 2
+  leaderElection: true
   resources:
     limits:
-      memory: 2048Mi
-    requests:
-      cpu: 250m
       memory: 1024Mi
+    requests:
+      cpu: 125m
+      memory: 512Mi
   accessPolicy:
     inbound:
       rules:

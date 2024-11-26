@@ -19,6 +19,7 @@ import no.nav.nks_ai.app.fromThrowable
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.core.SendMessageService
+import no.nav.nks_ai.core.conversation.streaming.WebsocketFlowHandler
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.NewMessage
 
