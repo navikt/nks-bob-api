@@ -11,15 +11,15 @@ spec:
   image: "{{ image }}"
   port: 8080
   replicas:
-    max: 1
-    min: 1
+    max: 2
+    min: 2
+  leaderElection: true
   resources:
     limits:
-      cpu: 500m
-      memory: 2048Mi
-    requests:
-      cpu: 250m
       memory: 1024Mi
+    requests:
+      cpu: 125m
+      memory: 512Mi
   accessPolicy:
     inbound:
       rules:
@@ -46,7 +46,7 @@ spec:
       claims:
         groups:
           - id: "dcb5ec4c-8027-428c-9dfd-15852388001c" # Administratorgruppe
-          - id: "ad604335-b339-4804-82ee-fb5e2bcb87c9" # Brukergruppe
+          - id: "1a7b1fec-44c3-40c1-bf1d-f462b5a90a26" # Brukergruppe
     sidecar:
       enabled: true
       autoLogin: true

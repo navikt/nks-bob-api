@@ -11,12 +11,15 @@ spec:
   image: "{{ image }}"
   port: 8080
   replicas:
-    max: 1
+    max: 2
     min: 1
+  leaderElection: true
   resources:
+    limits:
+      memory: 2048Mi
     requests:
-      cpu: 200m
-      memory: 512Mi
+      cpu: 250m
+      memory: 1024Mi
   accessPolicy:
     inbound:
       rules:
@@ -72,7 +75,7 @@ spec:
   gcp:
     sqlInstances:
       - name: nks-bob-api
-        tier: db-f1-micro
+        tier: db-g1-small
         collation: nb_NO.UTF8
         type: POSTGRES_16
         databases:

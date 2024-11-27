@@ -34,7 +34,7 @@ import no.nav.nks_ai.core.admin.adminRoutes
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.conversation.conversationRoutes
 import no.nav.nks_ai.core.conversation.conversationSse
-import no.nav.nks_ai.core.conversation.conversationWebsocket
+import no.nav.nks_ai.core.conversation.streaming.conversationWebsocket
 import no.nav.nks_ai.core.message.MessageService
 import no.nav.nks_ai.core.message.messageRoutes
 import no.nav.nks_ai.core.user.UserConfigService
@@ -87,7 +87,7 @@ fun Application.module() {
     val adminService = AdminService()
     val userConfigService = UserConfigService()
 
-    ConversationDeletionJob(conversationService).start()
+    ConversationDeletionJob(conversationService, httpClient).start()
 
     routing {
         route("/api/v1") {

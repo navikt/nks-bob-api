@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 jobs:
   build:
     name: Build
@@ -54,7 +57,7 @@ jobs:
           VAR: ingress=nks-bob-api.ansatt.dev.nav.no
       - name: Deploy production
         uses: nais/deploy/actions/deploy@v2
-        if: contains(github.ref, 'refs/tags/v')
+        if: github.ref == 'refs/heads/main'
         env:
           IMAGE: ${{ needs.build.outputs.image }}
           CLUSTER: prod-gcp
