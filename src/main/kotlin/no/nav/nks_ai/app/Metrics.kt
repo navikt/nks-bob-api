@@ -38,6 +38,16 @@ object MetricRegister {
         .help("Hvor mange svar som har fått tommel ned")
         .register(appMicrometerRegistry.prometheusRegistry)
 
+    val conversationsLiked = Counter.Builder()
+        .name("${METRICS_NS}_conversations_liked")
+        .help("Hvor mange samtaler som har fått tommel opp")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    val conversationsDisliked = Counter.Builder()
+        .name("${METRICS_NS}_conversations_disliked")
+        .help("Hvor mange samtaler som har fått tommel ned")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
     val sseConnections = Gauge.Builder()
         .name("${METRICS_NS}_sse_connections")
         .help("Hvor mange aktive SSE-tilkoblinger")
