@@ -10,6 +10,8 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.core.message.Message
+import no.nav.nks_ai.core.message.MessageRole
 import no.nav.nks_ai.core.message.NewMessage
 import java.util.UUID
 
@@ -44,6 +46,38 @@ data class Conversation(
     val title: String,
     val createdAt: LocalDateTime,
 )
+
+@Serializable
+data class ConversationSummary(
+    val id: ConversationId,
+    val title: String,
+    val createdAt: LocalDateTime,
+    val messages: List<Message>,
+) {
+    val summary: String = messages.map { message ->
+        val from = when (message.messageRole) {
+            MessageRole.AI -> "Bob"
+            MessageRole.Human -> "Bruker"
+        }
+
+        val content = when (message.content.isBlank()) {
+            true -> "<tomt svar>"
+            false -> message.content
+        }
+
+        "${from}:\n${content}\n"
+    }.joinToString("\n")
+
+    companion object {
+        fun from(conversation: Conversation, messages: List<Message>) =
+            ConversationSummary(
+                id = conversation.id,
+                title = conversation.title,
+                createdAt = conversation.createdAt,
+                messages = messages,
+            )
+    }
+}
 
 @Serializable
 data class NewConversation(

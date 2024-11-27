@@ -73,6 +73,15 @@ object ConversationRepo {
                 ?.toModel()
         }
 
+    /**
+     * Warning: Use with caution, intended for the admin API. Will potentially expose a conversation from another user.
+     */
+    suspend fun getConversation(conversationId: ConversationId): Conversation? =
+        suspendTransaction {
+            ConversationDAO.findById(conversationId.value)
+                ?.toModel()
+        }
+
     suspend fun getAllConversations(navIdent: NavIdent): List<Conversation> =
         suspendTransaction {
             ConversationDAO.findAllByNavIdent(navIdent)
