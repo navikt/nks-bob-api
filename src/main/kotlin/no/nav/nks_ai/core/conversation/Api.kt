@@ -15,12 +15,15 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.launch
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.app.fromThrowable
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.conversation.streaming.WebsocketFlowHandler
+import no.nav.nks_ai.core.message.Feedback
 import no.nav.nks_ai.core.message.Message
+import no.nav.nks_ai.core.message.NewFeedback
 import no.nav.nks_ai.core.message.NewMessage
 
 fun Route.conversationRoutes(
@@ -236,6 +239,49 @@ fun Route.conversationRoutes(
 
                 call.respond(HttpStatusCode.Accepted)
             }
+        }
+        post("/{id}/feedback", {
+            description = "Create a new feedback for a conversation"
+            request {
+                pathParameter<String>("id") {
+                    description = "ID of the conversation"
+                }
+                body<NewFeedback> {
+                    description = "The feedback to be created"
+                }
+            }
+            response {
+                HttpStatusCode.Created to {
+                    description = "The feedback was created"
+                    body<Feedback> {
+                        description = "The feedback that got created"
+                    }
+                }
+            }
+        }) {
+            val conversationId = call.conversationId()
+                ?: return@post call.respond(HttpStatusCode.BadRequest)
+
+            val navIdent = call.getNavIdent()
+                ?: return@post call.respond(HttpStatusCode.Forbidden)
+
+            val feedback = call.receiveNullable<NewFeedback>()
+                ?: return@post call.respond(HttpStatusCode.BadRequest)
+
+            fold(
+                block = { conversationService.getConversation(conversationId, navIdent) },
+                recover = { error: ConversationError -> call.respondError(error) },
+                catch = { call.respondError(ApplicationError.fromThrowable(it)) },
+                transform = {
+                    // Feedback won't be saved, just register the metrics.
+                    when (feedback.liked) {
+                        true -> MetricRegister.conversationsLiked.inc()
+                        false -> MetricRegister.conversationsDisliked.inc()
+                    }
+
+                    call.respond(HttpStatusCode.Created, Feedback(feedback.liked))
+                },
+            )
         }
     }
 }
