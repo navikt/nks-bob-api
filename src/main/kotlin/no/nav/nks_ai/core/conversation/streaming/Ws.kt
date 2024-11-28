@@ -3,10 +3,13 @@ package no.nav.nks_ai.core.conversation.streaming
 import arrow.core.none
 import arrow.core.some
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.callid.withCallId
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
@@ -29,26 +32,39 @@ import kotlin.collections.set
 
 private val logger = KotlinLogging.logger {}
 
+fun Route.webSocketWithCallId(
+    path: String,
+    protocol: String? = null,
+    handler: suspend DefaultWebSocketServerSession.() -> Unit
+) = webSocket(path, protocol) {
+    val callId = call.request.header("nav-call-id")
+        ?: return@webSocket call.respond(HttpStatusCode.BadRequest)
+
+    withCallId(callId) {
+        handler()
+    }
+}
+
 fun Route.conversationWebsocket(
     conversationService: ConversationService,
     sendMessageService: SendMessageService,
 ) {
     route("/conversations") {
-        webSocket("/{id}/messages/ws") {
+        webSocketWithCallId("/{id}/messages/ws") {
             val navIdent = call.getNavIdent()
-                ?: return@webSocket call.respond(HttpStatusCode.Forbidden)
+                ?: return@webSocketWithCallId call.respond(HttpStatusCode.Forbidden)
 
             val conversationId = call.conversationId()
-                ?: return@webSocket call.respond(HttpStatusCode.BadRequest)
+                ?: return@webSocketWithCallId call.respond(HttpStatusCode.BadRequest)
 
             val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
-                ?: return@webSocket call.respond(HttpStatusCode.NotFound)
+                ?: return@webSocketWithCallId call.respond(HttpStatusCode.NotFound)
 
             MetricRegister.websocketConnections.inc()
             val messageFlow = WebsocketFlowHandler.getFlow(conversationId)
             val job = launch {
                 existingMessages.forEach { message ->
-                    this@webSocket.sendSerialized<ConversationEvent>(
+                    sendSerialized<ConversationEvent>(
                         ConversationEvent.NewMessage(
                             id = message.id,
                             message = message
@@ -60,7 +76,7 @@ fun Route.conversationWebsocket(
                     .asSharedFlow()
                     .runningFold(none<Message>()) { prevMessage, message ->
                         prevMessage.onNone {
-                            this@webSocket.sendSerialized<ConversationEvent>(
+                            sendSerialized<ConversationEvent>(
                                 ConversationEvent.NewMessage(
                                     id = message.id,
                                     message = message
@@ -71,7 +87,7 @@ fun Route.conversationWebsocket(
                         prevMessage.onSome { prevMessage: Message ->
                             val diff = prevMessage.diff(message)
                             if (diff !is ConversationEvent.NoOp) {
-                                this@webSocket.sendSerialized<ConversationEvent>(diff)
+                                sendSerialized<ConversationEvent>(diff)
                             }
                         }
 
@@ -82,7 +98,7 @@ fun Route.conversationWebsocket(
 
             runCatching {
                 while (true) {
-                    val conversationAction = this@webSocket.receiveDeserialized<ConversationAction>()
+                    val conversationAction = receiveDeserialized<ConversationAction>()
 
                     when (conversationAction) {
                         is ConversationAction.NewMessageAction -> {
@@ -99,7 +115,7 @@ fun Route.conversationWebsocket(
                         is ConversationAction.HeartbeatAction -> {
                             if (conversationAction.isPing()) {
                                 logger.trace { "ping pong" }
-                                this@webSocket.send("pong")
+                                send("pong")
                             } else {
                                 logger.warn { "Unknown heartbeat message received ${conversationAction.getData()}" }
                             }
@@ -114,7 +130,7 @@ fun Route.conversationWebsocket(
                 logger.error(exception) { "Error when listening for websocket actions" }
             }.also {
                 job.cancel()
-                this@webSocket.close()
+                close()
                 WebsocketFlowHandler.removeFlow(conversationId)
                 MetricRegister.websocketConnections.dec()
             }
