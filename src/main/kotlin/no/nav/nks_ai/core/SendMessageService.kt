@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onCompletion
+import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.message.Message
@@ -68,6 +70,7 @@ class SendMessageService(
         val initialAnswer = messageService.addEmptyAnswer(conversationId)
             ?: return emptyFlow()
 
+        val timer = MetricRegister.answerFinishedReceived()
         return flow {
             // Start the flow with the question and the empty answer.
             emit(question)
@@ -101,12 +104,15 @@ class SendMessageService(
             )
         }.catch { error ->
             logger.error(error) { "Error when receiving answer from KBS" }
+            MetricRegister.answerFailedReceive.inc()
             emit(
                 messageService.updatePendingMessage(
                     messageId = initialAnswer.id,
                     pending = false
                 )
             )
-        }.filterNotNull()
+        }
+            .filterNotNull()
+            .onCompletion { timer.stop() }
     }
 }
