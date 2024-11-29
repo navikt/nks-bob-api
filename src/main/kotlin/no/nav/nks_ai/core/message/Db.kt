@@ -149,4 +149,12 @@ object MessageRepo {
                 it.feedback = Feedback.fromNewFeedback(newFeedback)
             }?.toModel()
         }
+
+    suspend fun getConversationId(messageId: MessageId): ConversationId? =
+        suspendTransaction {
+            MessageDAO.findById(messageId.value)?.conversation
+                ?.let { conversation ->
+                    ConversationId(conversation.id.value)
+                }
+        }
 }

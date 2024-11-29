@@ -7,7 +7,9 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.nks_ai.core.conversation.Conversation
+import no.nav.nks_ai.core.conversation.ConversationSummary
 import no.nav.nks_ai.core.conversation.conversationId
+import no.nav.nks_ai.core.message.messageId
 import no.nav.nks_ai.core.user.NavIdent
 
 fun Route.adminRoutes(adminService: AdminService) {
@@ -81,6 +83,56 @@ fun Route.adminRoutes(adminService: AdminService) {
 
                 adminService.deleteConversation(conversationId, navIdent)
                 call.respond(HttpStatusCode.NoContent)
+            }
+            get("/{id}/summary", {
+                description = "Get conversation summary for the given conversation ID"
+                request {
+                    pathParameter<String>("id") {
+                        description = "The ID of the conversation"
+                    }
+                }
+                response {
+                    HttpStatusCode.OK to {
+                        description = "The operation was successful"
+                        body<ConversationSummary>() {
+                            description = "Conversation summary"
+                        }
+                    }
+                }
+            }) {
+                val conversationId = call.conversationId()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+
+                val conversationSummary = adminService.getConversationSummary(conversationId)
+                    ?: return@get call.respond(HttpStatusCode.NotFound)
+
+                call.respond(conversationSummary)
+            }
+        }
+        route("/messages") {
+            get("/{id}/conversation", {
+                description = "Get the conversation for the given message ID"
+                request {
+                    pathParameter<String>("id") {
+                        description = "ID of the message"
+                    }
+                }
+                response {
+                    HttpStatusCode.OK to {
+                        description = "The operation was successful"
+                        body<Conversation> {
+                            description = "The conversation which the message belongs to"
+                        }
+                    }
+                }
+            }) {
+                val messageId = call.messageId()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+
+                val conversation = adminService.getConversationFromMessageId(messageId)
+                    ?: return@get call.respond(HttpStatusCode.NotFound)
+
+                call.respond(conversation)
             }
         }
     }

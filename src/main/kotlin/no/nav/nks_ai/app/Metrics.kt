@@ -38,6 +38,16 @@ object MetricRegister {
         .help("Hvor mange svar som har fått tommel ned")
         .register(appMicrometerRegistry.prometheusRegistry)
 
+    val conversationsLiked = Counter.Builder()
+        .name("${METRICS_NS}_conversations_liked")
+        .help("Hvor mange samtaler som har fått tommel opp")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    val conversationsDisliked = Counter.Builder()
+        .name("${METRICS_NS}_conversations_disliked")
+        .help("Hvor mange samtaler som har fått tommel ned")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
     val sseConnections = Gauge.Builder()
         .name("${METRICS_NS}_sse_connections")
         .help("Hvor mange aktive SSE-tilkoblinger")
@@ -59,6 +69,18 @@ object MetricRegister {
         .register(appMicrometerRegistry.prometheusRegistry)
 
     fun answerFirstContentReceived(): Timer = Timer(answerFirstContentReceivedSummary)
+
+    private val answerFinishedReceivedSummary = Summary.Builder()
+        .name("${METRICS_NS}_answer_finished_received")
+        .help("Hvor lang tid fra spørsmål er stilt til hele svaret er mottatt")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    fun answerFinishedReceived(): Timer = Timer(answerFinishedReceivedSummary)
+
+    val answerFailedReceive = Counter.Builder()
+        .name("${METRICS_NS}_answers_failed_receive")
+        .help("Hvor mange svar som har feilet underveis når de mottas fra KBS")
+        .register(appMicrometerRegistry.prometheusRegistry)
 }
 
 class Timer {
