@@ -14,16 +14,17 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.core.message.Context
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageRole
 import no.nav.nks_ai.core.message.NewCitation
+import kotlin.String
 
 @Serializable
 data class KbsChatRequest(
@@ -72,29 +73,41 @@ data class KbsChatAnswer(
 @Serializable
 data class KbsCitation(
     val text: String,
-    val article: String,
-    val title: String,
-    val section: String,
+    @SerialName("source_id") val sourceId: Int,
 )
 
 fun KbsCitation.toNewCitation() =
     NewCitation(
         text = text,
-        article = article,
-        title = title,
-        section = section,
+        sourceId = sourceId,
     )
 
 @Serializable
 data class KbsChatContext(
     val content: String,
-    val metadata: JsonObject
+    val title: String,
+    val ingress: String,
+    val source: String,
+    val url: String,
+    val anchor: String?,
+    @SerialName("article_id") val articleId: String,
+    @SerialName("article_column") val articleColumn: String?,
+    @SerialName("last_modified") val lastModified: LocalDateTime?,
+    @SerialName("semantic_similarity") val semanticSimilarity: Double,
 )
 
 fun KbsChatContext.toModel(): Context =
     Context(
         content = content,
-        metadata = metadata,
+        title = title,
+        ingress = ingress,
+        source = source,
+        url = url,
+        anchor = anchor,
+        articleId = articleId,
+        articleColumn = articleColumn,
+        lastModified = lastModified,
+        semanticSimilarity = semanticSimilarity,
     )
 
 private val logger = KotlinLogging.logger {}

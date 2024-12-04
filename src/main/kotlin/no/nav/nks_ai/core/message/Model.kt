@@ -9,7 +9,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.json.JsonObject
 import java.util.UUID
 
 object MessageIdSerializer : KSerializer<MessageId> {
@@ -58,31 +57,33 @@ enum class MessageRole {
 @Serializable
 data class Context(
     val content: String,
-    val metadata: JsonObject,
+    val title: String,
+    val ingress: String,
+    val source: String,
+    val url: String,
+    val anchor: String?,
+    val articleId: String,
+    val articleColumn: String?,
+    val lastModified: LocalDateTime?,
+    val semanticSimilarity: Double,
 )
 
 @Serializable
 data class Citation(
     val text: String,
-    val article: String,
-    val title: String,
-    val section: String,
+    val sourceId: Int,
 )
 
 fun Citation.Companion.fromNewCitation(newCitation: NewCitation) =
     Citation(
         text = newCitation.text,
-        article = newCitation.article,
-        title = newCitation.title,
-        section = newCitation.section,
+        sourceId = newCitation.sourceId,
     )
 
 @Serializable
 data class NewCitation(
     val text: String,
-    val article: String,
-    val title: String,
-    val section: String,
+    val sourceId: Int,
 )
 
 @Serializable
