@@ -79,6 +79,7 @@ dependencies {
     implementation("io.ktor:ktor-server-websockets-jvm")
     implementation("io.ktor:ktor-server-cors")
     implementation("io.micrometer:micrometer-registry-prometheus:$prometheus_version")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:2.10.0-alpha")
     implementation("net.logstash.logback:logstash-logback-encoder:8.0")
 //    implementation("no.nav.security:token-validation-ktor-v2:5.0.5") // TODO waiting for ktor 3.0.0 support
     implementation("org.flywaydb:flyway-core:$flyway_version")
