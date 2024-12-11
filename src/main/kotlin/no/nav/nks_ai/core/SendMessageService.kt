@@ -10,12 +10,15 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageService
+import no.nav.nks_ai.core.message.NewCitation
 import no.nav.nks_ai.core.message.NewMessage
+import no.nav.nks_ai.core.message.answerFrom
 import no.nav.nks_ai.core.user.NavIdent
 import no.nav.nks_ai.kbs.KbsChatMessage
 import no.nav.nks_ai.kbs.KbsClient
@@ -76,6 +79,8 @@ class SendMessageService(
             emit(question)
             emit(initialAnswer)
 
+            var latestMessage: Message? = null
+
             kbsClient.sendQuestionStream(
                 question = message.content,
                 messageHistory = history.map(KbsChatMessage::fromMessage),
@@ -86,22 +91,25 @@ class SendMessageService(
                     val citations = response.answer.citations.map { it.toNewCitation() }
                     val context = response.context.map { it.toModel() }
 
-                    messageService.updateAnswer(
+                    Message.answerFrom(
                         messageId = initialAnswer.id,
-                        messageContent = answerContent,
+                        content = answerContent,
                         citations = citations,
                         context = context,
-                        pending = true
                     )
                 }
+                .onEach { latestMessage = it }
                 .let { emitAll(it) }
 
-            emit(
-                messageService.updatePendingMessage(
-                    messageId = initialAnswer.id,
+            latestMessage?.let { message ->
+                messageService.updateAnswer(
+                    messageId = message.id,
+                    messageContent = message.content,
+                    citations = message.citations.map { NewCitation(it.text, it.sourceId) },
+                    context = message.context,
                     pending = false
                 )
-            )
+            }.let { emit(it) }
         }.catch { error ->
             logger.error(error) { "Error when receiving answer from KBS" }
             MetricRegister.answerFailedReceive.inc()
