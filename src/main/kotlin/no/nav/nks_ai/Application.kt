@@ -54,13 +54,7 @@ fun Application.module() {
     configureSecurity()
     configureSwagger()
 
-    val httpClient = defaultHttpClient {
-        engine {
-            socketTimeout = Config.HTTP_CLIENT_TIMEOUT_MS
-            connectTimeout = Config.HTTP_CLIENT_TIMEOUT_MS
-            connectionRequestTimeout = Config.HTTP_CLIENT_TIMEOUT_MS * 2
-        }
-    }
+    val httpClient = defaultHttpClient {}
 
     val sseClient = defaultHttpClient {
         install(SSE)
@@ -118,6 +112,11 @@ private fun defaultHttpClient(
     block: HttpClientConfig<ApacheEngineConfig>.() -> Unit = {}
 ): HttpClient =
     HttpClient(Apache) {
+        engine {
+            socketTimeout = Config.HTTP_CLIENT_TIMEOUT_MS
+            connectTimeout = Config.HTTP_CLIENT_TIMEOUT_MS
+            connectionRequestTimeout = Config.HTTP_CLIENT_TIMEOUT_MS * 2
+        }
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
