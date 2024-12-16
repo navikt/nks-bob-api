@@ -1,11 +1,9 @@
 package no.nav.nks_ai.core
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
@@ -75,7 +73,7 @@ class SendMessageService(
             ?: return emptyFlow()
 
         val timer = MetricRegister.answerFinishedReceived()
-        return flow {
+        return flow<Message?> {
             // Start the flow with the question and the empty answer.
             emit(question)
             emit(initialAnswer)
@@ -88,8 +86,6 @@ class SendMessageService(
             )
                 .conflate()
                 .map { response ->
-                    delay(150)
-
                     val answerContent = response.answer.text
                     val citations = response.answer.citations.map { it.toNewCitation() }
                     val context = response.context.map { it.toModel() }
@@ -102,7 +98,7 @@ class SendMessageService(
                     )
                 }
                 .onEach { latestMessage = it }
-                .let { emitAll(it) }
+                .collect { emit(it) }
 
             latestMessage?.let { message ->
                 messageService.updateAnswer(
