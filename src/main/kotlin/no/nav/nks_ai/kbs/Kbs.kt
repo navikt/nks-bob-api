@@ -69,7 +69,8 @@ data class KbsChatMessage(
 @Serializable
 data class KbsChatResponse(
     val answer: KbsChatAnswer,
-    val context: List<KbsChatContext>
+    val context: List<KbsChatContext>,
+    @SerialName("follow_up") val followUp: List<String>,
 )
 
 @Serializable
