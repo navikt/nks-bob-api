@@ -581,6 +581,40 @@
   {
     "httpRequest": {
       "method": "POST",
+      "path": "/api/v1/stream/chat",
+      "body": {
+        "type": "JSON_PATH",
+        "jsonPath": "$.[?(@.question =~ /.*stygg.*/)]"
+      }
+    },
+    "httpResponse": {
+      "headers": {
+        "Content-Type": "text/event-stream; charset=utf-8"
+      },
+      "statusCode": 200,
+      "body": "event: error\ndata: {\"type\":\"urn:nks-kbs:error:model\",\"status\":500,\"title\":\"Feil med modellen\",\"detail\":\"Språkmodellen likte ikke teksten som ble sendt inn.\"}\n\n"
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/v1/stream/chat",
+      "body": {
+        "type": "JSON_PATH",
+        "jsonPath": "$.[?(@.question =~ /.*feil.*/)]"
+      }
+    },
+    "httpResponse": {
+      "headers": {
+        "Content-Type": "text/event-stream; charset=utf-8"
+      },
+      "statusCode": 200,
+      "body": "event: error\ndata: {\"type\":\"urn:nks-kbs:error:validation\",\"status\":500,\"title\":\"Feil ved tolkning\",\"detail\":\"En feil oppstod når vi prøvde å tolke svaret fra språkmodellen. Hvis dette er første gang kan man prøve å sende igjen da modellen burde klare å svare ut.\"}\n\n"
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
       "path": "/api/v1/stream/chat"
     },
     "httpResponse": {
