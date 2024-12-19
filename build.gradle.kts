@@ -56,7 +56,7 @@ dependencies {
     implementation("com.ucasoft.ktor:ktor-simple-cache-jvm:0.4.3")
     implementation("com.ucasoft.ktor:ktor-simple-memory-cache-jvm:0.4.3")
     implementation("com.zaxxer:HikariCP:$hikari_version")
-    implementation("io.arrow-kt:arrow-core:1.2.4")
+    implementation("io.arrow-kt:arrow-core:2.0.0")
     implementation("io.github.config4k:config4k:0.7.0")
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.0")
     implementation("io.github.smiley4:ktor-swagger-ui:4.0.0")
