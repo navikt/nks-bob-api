@@ -15,9 +15,9 @@ import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.close
 import io.ktor.websocket.send
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
 import no.nav.nks_ai.app.MetricRegister
@@ -104,7 +104,7 @@ fun Route.conversationWebsocket(
                         is ConversationAction.NewMessageAction -> {
                             val newMessage = conversationAction.getData()
                             sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
-                                .let { messageFlow.emitAll(it) }
+                                .collect { messageFlow.emit(it) }
                         }
 
                         is ConversationAction.UpdateMessageAction -> {
@@ -127,7 +127,13 @@ fun Route.conversationWebsocket(
                     }
                 }
             }.onFailure { exception ->
-                logger.error(exception) { "Error when listening for websocket actions" }
+                when (exception) {
+                    is ClosedReceiveChannelException ->
+                        logger.info { "Closing websocket connection for conversation $conversationId" }
+
+                    else ->
+                        logger.error(exception) { "Error when listening for websocket actions" }
+                }
             }.also {
                 job.cancel()
                 close()

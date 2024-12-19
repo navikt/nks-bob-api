@@ -6,9 +6,12 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import no.nav.nks_ai.app.now
 import java.util.UUID
 
 object MessageIdSerializer : KSerializer<MessageId> {
@@ -17,7 +20,7 @@ object MessageIdSerializer : KSerializer<MessageId> {
     }
 
     override val descriptor: SerialDescriptor
-        get() = TODO("Not yet implemented")
+        get() = PrimitiveSerialDescriptor("MessageId", PrimitiveKind.STRING)
 
     override fun serialize(
         encoder: Encoder,
@@ -113,6 +116,25 @@ data class Message(
     val context: List<Context>,
     val pending: Boolean
 )
+
+fun Message.Companion.answerFrom(
+    messageId: MessageId,
+    content: String,
+    citations: List<NewCitation>,
+    context: List<Context>,
+    pending: Boolean = true,
+) =
+    Message(
+        id = messageId,
+        content = content,
+        citations = citations.map(Citation::fromNewCitation),
+        context = context,
+        createdAt = LocalDateTime.now(),
+        messageType = MessageType.Answer,
+        messageRole = MessageRole.AI,
+        pending = pending,
+        feedback = null
+    )
 
 @Serializable
 data class NewMessage(

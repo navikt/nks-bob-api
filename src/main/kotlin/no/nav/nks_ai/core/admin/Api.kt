@@ -134,33 +134,33 @@ fun Route.adminRoutes(adminService: AdminService) {
 
                 call.respond(conversation)
             }
-        }
-        get("/{id}/conversation/summary", {
-            description = "Get conversation summary for the given message ID"
-            request {
-                pathParameter<String>("id") {
-                    description = "The ID of the message"
-                }
-            }
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<ConversationSummary> {
-                        description = "Conversation summary"
+            get("/{id}/conversation/summary", {
+                description = "Get conversation summary for the given message ID"
+                request {
+                    pathParameter<String>("id") {
+                        description = "The ID of the message"
                     }
                 }
+                response {
+                    HttpStatusCode.OK to {
+                        description = "The operation was successful"
+                        body<ConversationSummary> {
+                            description = "Conversation summary"
+                        }
+                    }
+                }
+            }) {
+                val messageId = call.messageId()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+
+                val conversation = adminService.getConversationFromMessageId(messageId)
+                    ?: return@get call.respond(HttpStatusCode.NotFound)
+
+                val conversationSummary = adminService.getConversationSummary(conversation.id)
+                    ?: return@get call.respond(HttpStatusCode.NotFound)
+
+                call.respond(conversationSummary)
             }
-        }) {
-            val messageId = call.messageId()
-                ?: return@get call.respond(HttpStatusCode.BadRequest)
-
-            val conversation = adminService.getConversationFromMessageId(messageId)
-                ?: return@get call.respond(HttpStatusCode.NotFound)
-
-            val conversationSummary = adminService.getConversationSummary(conversation.id)
-                ?: return@get call.respond(HttpStatusCode.NotFound)
-
-            call.respond(conversationSummary)
         }
     }
 }
