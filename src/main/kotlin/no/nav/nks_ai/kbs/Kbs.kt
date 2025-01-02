@@ -70,7 +70,7 @@ data class KbsChatMessage(
 data class KbsChatResponse(
     val answer: KbsChatAnswer,
     val context: List<KbsChatContext>,
-    @SerialName("follow_up") val followUp: List<String>,
+    @SerialName("follow_up") val followUp: List<String> = emptyList(),
 )
 
 @Serializable
