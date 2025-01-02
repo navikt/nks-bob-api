@@ -292,7 +292,14 @@ class KbsClient(
                 }
             }
         }
-    }.retry(3) { throwable -> throwable.cause is KbsValidationException }
+    }.retry(2) { throwable ->
+        if (throwable.cause is KbsValidationException) {
+            logger.warn { "Error when receiving message from KBS. Retrying..." }
+            return@retry true
+        }
+
+        return@retry false
+    }
         .catch { throwable ->
             val cause = throwable.cause
             when (cause) {
