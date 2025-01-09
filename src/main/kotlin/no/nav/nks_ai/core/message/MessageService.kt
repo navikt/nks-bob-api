@@ -80,6 +80,17 @@ class MessageService() {
         )
     }
 
+    suspend fun updateMessageError(
+        messageId: MessageId,
+        errors: List<MessageError>,
+        pending: Boolean = false
+    ) =
+        MessageRepo.patchMessage(
+            messageId = messageId,
+            errors = Some(errors),
+            pending = Some(pending),
+        )
+
     suspend fun getMessage(messageId: MessageId): Message? =
         MessageRepo.getMessage(messageId)
 

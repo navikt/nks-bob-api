@@ -1,5 +1,8 @@
 package no.nav.nks_ai.kbs
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.callid.KtorCallIdContextElement
 import io.ktor.client.HttpClient
@@ -13,102 +16,14 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.datetime.LocalDateTime
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.coroutines.flow.retry
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.auth.EntraClient
-import no.nav.nks_ai.core.message.Context
-import no.nav.nks_ai.core.message.Message
-import no.nav.nks_ai.core.message.MessageRole
-import no.nav.nks_ai.core.message.NewCitation
 import kotlin.String
-
-@Serializable
-data class KbsChatRequest(
-    val question: String,
-    val history: List<KbsChatMessage>,
-)
-
-@Serializable
-enum class KbsMessageRole {
-    @SerialName("human")
-    Human,
-
-    @SerialName("ai")
-    AI,
-}
-
-fun KbsMessageRole.Companion.fromMessageRole(messageRole: MessageRole): KbsMessageRole =
-    when (messageRole) {
-        MessageRole.Human -> KbsMessageRole.Human
-        MessageRole.AI -> KbsMessageRole.AI
-    }
-
-fun KbsChatMessage.Companion.fromMessage(message: Message): KbsChatMessage = KbsChatMessage(
-    content = message.content,
-    role = KbsMessageRole.fromMessageRole(message.messageRole)
-)
-
-@Serializable
-data class KbsChatMessage(
-    val content: String,
-    val role: KbsMessageRole,
-)
-
-@Serializable
-data class KbsChatResponse(
-    val answer: KbsChatAnswer,
-    val context: List<KbsChatContext>
-)
-
-@Serializable
-data class KbsChatAnswer(
-    val text: String,
-    val citations: List<KbsCitation>
-)
-
-@Serializable
-data class KbsCitation(
-    val text: String,
-    @SerialName("source_id") val sourceId: Int,
-)
-
-fun KbsCitation.toNewCitation() =
-    NewCitation(
-        text = text,
-        sourceId = sourceId,
-    )
-
-@Serializable
-data class KbsChatContext(
-    val content: String,
-    val title: String,
-    val ingress: String,
-    val source: String,
-    val url: String,
-    val anchor: String?,
-    @SerialName("article_id") val articleId: String,
-    @SerialName("article_column") val articleColumn: String?,
-    @SerialName("last_modified") val lastModified: LocalDateTime?,
-    @SerialName("semantic_similarity") val semanticSimilarity: Double,
-)
-
-fun KbsChatContext.toModel(): Context =
-    Context(
-        content = content,
-        title = title,
-        ingress = ingress,
-        source = source,
-        url = url,
-        anchor = anchor,
-        articleId = articleId,
-        articleColumn = articleColumn,
-        lastModified = lastModified,
-        semanticSimilarity = semanticSimilarity,
-    )
 
 private val logger = KotlinLogging.logger {}
 
@@ -141,7 +56,7 @@ class KbsClient(
     fun sendQuestionStream(
         question: String,
         messageHistory: List<KbsChatMessage>,
-    ): Flow<KbsChatResponse> = channelFlow {
+    ): Flow<Either<KbsErrorResponse, KbsChatResponse>> = channelFlow {
         val token = entraClient.getMachineToken(scope)
 
         sseClient.sse("$baseUrl/api/v1/stream/chat", {
@@ -165,15 +80,65 @@ class KbsClient(
                                 timer.stop()
                             }
 
-                            send(chatResponse)
+                            send(chatResponse.right())
+                        }
+                    }
+
+                    "error" -> {
+                        response.data?.let { data ->
+                            try {
+                                val errorResponse = Json.decodeFromString<KbsErrorResponse>(data)
+                                when (errorResponse) {
+                                    is KbsErrorResponse.KbsTypedError.KbsValidationError -> {
+                                        logger.warn {
+                                            """
+                                              Validation error received from KBS:  
+                                              ${errorResponse.title}
+                                              
+                                              ${errorResponse.detail}
+                                            """.trimIndent()
+                                        }
+
+                                        // Will trigger a retry
+                                        throw KbsValidationException.fromError(errorResponse)
+                                    }
+
+                                    else -> send(errorResponse.left())
+                                }
+
+                            } catch (illegalArgumentException: IllegalArgumentException) {
+                                logger.error(illegalArgumentException) {
+                                    "Unknown error type received from KBS: $data"
+                                }
+                            } catch (serializationException: SerializationException) {
+                                logger.error(serializationException) {
+                                    "Error when decoding error from KBS: $data"
+                                }
+                            }
                         }
                     }
 
                     else -> {
-                        logger.debug { "Unknown event received ${response.event}" }
+                        logger.error { "Unknown event received ${response.event}" }
                     }
                 }
             }
+        }
+    }.retry(2) { throwable ->
+        if (throwable.cause is KbsValidationException) {
+            logger.warn { "Error when receiving message from KBS. Retrying..." }
+            return@retry true
+        }
+
+        return@retry false
+    }.catch { throwable ->
+        val cause = throwable.cause
+        when (cause) {
+            // bubble the error up
+            is KbsValidationException -> emit(cause.toError().left())
+
+            // will be handled somewhere else
+            else -> throw throwable
         }
     }
 }

@@ -105,6 +105,12 @@ data class NewFeedback(
 )
 
 @Serializable
+data class MessageError(
+    val title: String,
+    val description: String
+)
+
+@Serializable
 data class Message(
     val id: MessageId,
     val content: String,
@@ -114,7 +120,8 @@ data class Message(
     val messageRole: MessageRole,
     val citations: List<Citation>,
     val context: List<Context>,
-    val pending: Boolean
+    val pending: Boolean,
+    val errors: List<MessageError>,
 )
 
 fun Message.Companion.answerFrom(
@@ -133,7 +140,8 @@ fun Message.Companion.answerFrom(
         messageType = MessageType.Answer,
         messageRole = MessageRole.AI,
         pending = pending,
-        feedback = null
+        feedback = null,
+        errors = emptyList(),
     )
 
 @Serializable
