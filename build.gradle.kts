@@ -12,7 +12,7 @@ val opentelemetry_version: String by project
 
 plugins {
     kotlin("jvm") version "2.0.20"
-    id("io.ktor.plugin") version "3.0.1"
+    id("io.ktor.plugin") version "3.0.2"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.0.20"
     id("com.gradleup.shadow") version "8.3.2"
 }
@@ -56,7 +56,8 @@ dependencies {
     implementation("com.ucasoft.ktor:ktor-simple-cache-jvm:0.4.3")
     implementation("com.ucasoft.ktor:ktor-simple-memory-cache-jvm:0.4.3")
     implementation("com.zaxxer:HikariCP:$hikari_version")
-    implementation("io.arrow-kt:arrow-core:1.2.4")
+    implementation("io.arrow-kt:arrow-core:2.0.0")
+    implementation("io.arrow-kt:arrow-resilience:2.0.0")
     implementation("io.github.config4k:config4k:0.7.0")
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.0")
     implementation("io.github.smiley4:ktor-swagger-ui:4.0.0")

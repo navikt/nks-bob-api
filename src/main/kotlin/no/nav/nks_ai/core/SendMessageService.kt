@@ -1,5 +1,7 @@
 package no.nav.nks_ai.core
 
+import arrow.core.Either
+import arrow.core.right
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -14,6 +16,7 @@ import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.message.Message
+import no.nav.nks_ai.core.message.MessageError
 import no.nav.nks_ai.core.message.MessageService
 import no.nav.nks_ai.core.message.NewCitation
 import no.nav.nks_ai.core.message.NewMessage
@@ -78,44 +81,68 @@ class SendMessageService(
             emit(question)
             emit(initialAnswer)
 
-            var latestMessage: Message? = null
+            var latestMessage: Either<MessageError, Message> = initialAnswer.right()
 
             kbsClient.sendQuestionStream(
                 question = message.content,
                 messageHistory = history.map(KbsChatMessage::fromMessage),
             )
                 .conflate()
-                .map { response ->
-                    val answerContent = response.answer.text
-                    val citations = response.answer.citations.map { it.toNewCitation() }
-                    val context = response.context.map { it.toModel() }
+                .map {
+                    it.mapLeft { error ->
+                        MessageError(
+                            title = error.title,
+                            description = error.detail,
+                        )
+                    }.map { response ->
+                        val answerContent = response.answer.text
+                        val citations = response.answer.citations.map { it.toNewCitation() }
+                        val context = response.context.map { it.toModel() }
 
-                    Message.answerFrom(
-                        messageId = initialAnswer.id,
-                        content = answerContent,
-                        citations = citations,
-                        context = context,
-                    )
+                        Message.answerFrom(
+                            messageId = initialAnswer.id,
+                            content = answerContent,
+                            citations = citations,
+                            context = context,
+                        )
+                    }
                 }
                 .onEach { latestMessage = it }
-                .collect { emit(it) }
+                .collect { response ->
+                    response.onRight { message ->
+                        emit(message)
+                    }
+                }
 
-            latestMessage?.let { message ->
+            latestMessage.map { message ->
                 messageService.updateAnswer(
                     messageId = message.id,
                     messageContent = message.content,
                     citations = message.citations.map { NewCitation(it.text, it.sourceId) },
                     context = message.context,
                     pending = false
-                )
-            }.let { emit(it) }
+                )?.let { emit(it) }
+            }.mapLeft { error ->
+                MetricRegister.answerFailedReceive.inc()
+                messageService.updateMessageError(
+                    messageId = initialAnswer.id,
+                    errors = listOf(error),
+                    pending = false,
+                )?.let { emit(it) }
+            }
         }.catch { error ->
             logger.error(error) { "Error when receiving answer from KBS" }
             MetricRegister.answerFailedReceive.inc()
             emit(
-                messageService.updatePendingMessage(
+                messageService.updateMessageError(
                     messageId = initialAnswer.id,
-                    pending = false
+                    pending = false,
+                    errors = listOf(
+                        MessageError(
+                            title = "Ukjent feil",
+                            description = "En ukjent feil oppsto når vi mottok svar fra språkmodellen."
+                        )
+                    ),
                 )
             )
         }
