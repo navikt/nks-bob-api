@@ -104,6 +104,7 @@ class SendMessageService(
                             content = answerContent,
                             citations = citations,
                             context = context,
+                            followUp = response.followUp,
                         )
                     }
                 }
@@ -120,6 +121,7 @@ class SendMessageService(
                     messageContent = message.content,
                     citations = message.citations.map { NewCitation(it.text, it.sourceId) },
                     context = message.context,
+                    followUp = message.followUp,
                     pending = false
                 )?.let { emit(it) }
             }.mapLeft { error ->
