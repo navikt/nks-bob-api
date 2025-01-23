@@ -31,6 +31,7 @@ internal object Messages : UUIDTable() {
     val citations = jsonb<List<Citation>>("citations", jsonConfig).clientDefault { emptyList() }
     val pending = bool("pending").clientDefault { false }
     val errors = jsonb<List<MessageError>>("errors", jsonConfig).clientDefault { emptyList() }
+    val followUp = jsonb<List<String>>("follow_up", jsonConfig).clientDefault { emptyList() }
 }
 
 internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -47,6 +48,7 @@ internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var context by Messages.context
     var pending by Messages.pending
     var errors by Messages.errors
+    var followUp by Messages.followUp
 }
 
 internal fun MessageDAO.toModel() = Message(
@@ -60,6 +62,7 @@ internal fun MessageDAO.toModel() = Message(
     context = context,
     pending = pending,
     errors = errors,
+    followUp = followUp,
 )
 
 object MessageRepo {
@@ -121,6 +124,7 @@ object MessageRepo {
         createdBy: String,
         context: List<Context>,
         citations: List<Citation>,
+        followUp: List<String>,
         pending: Boolean,
     ): Message? =
         suspendTransaction {
@@ -131,6 +135,7 @@ object MessageRepo {
                 it.createdBy = createdBy
                 it.context = context
                 it.citations = citations
+                it.followUp = followUp
                 it.pending = pending
             }?.toModel()
         }

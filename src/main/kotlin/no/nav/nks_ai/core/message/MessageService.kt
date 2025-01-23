@@ -56,6 +56,7 @@ class MessageService() {
         messageContent: String,
         citations: List<NewCitation>,
         context: List<Context>,
+        followUp: List<String>,
         pending: Boolean,
     ): Message? {
         return MessageRepo.updateMessage(
@@ -66,6 +67,7 @@ class MessageService() {
             messageRole = MessageRole.AI,
             context = context,
             citations = citations.map(Citation::fromNewCitation),
+            followUp = followUp,
             pending = pending,
         )
     }
