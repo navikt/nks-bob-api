@@ -122,6 +122,7 @@ data class Message(
     val context: List<Context>,
     val pending: Boolean,
     val errors: List<MessageError>,
+    val followUp: List<String>,
 )
 
 fun Message.Companion.answerFrom(
@@ -129,6 +130,7 @@ fun Message.Companion.answerFrom(
     content: String,
     citations: List<NewCitation>,
     context: List<Context>,
+    followUp: List<String>,
     pending: Boolean = true,
 ) =
     Message(
@@ -142,6 +144,7 @@ fun Message.Companion.answerFrom(
         pending = pending,
         feedback = null,
         errors = emptyList(),
+        followUp = followUp,
     )
 
 @Serializable
