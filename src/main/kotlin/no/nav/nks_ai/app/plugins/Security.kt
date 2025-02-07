@@ -5,13 +5,15 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.response.respond
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.Config
+import no.nav.nks_ai.app.respondError
 import java.net.URI
 import java.util.concurrent.TimeUnit
 
@@ -59,7 +61,7 @@ fun Application.configureSecurity() {
 
             challenge { _, _ ->
                 logger.debug { "Jwt is invalid" }
-                call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                call.respondError(unauthorized)
             }
         }
         jwt("AdminUser") {
@@ -76,7 +78,7 @@ fun Application.configureSecurity() {
 
             challenge { _, _ ->
                 logger.debug { "Admin jwt is invalid" }
-                call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                call.respondError(unauthorized)
             }
         }
     }
@@ -93,3 +95,9 @@ fun Application.configureSecurity() {
         allowHeader(HttpHeaders.Authorization)
     }
 }
+
+private val unauthorized = ApplicationError(
+    code = HttpStatusCode.Unauthorized,
+    message = "Unauthorized",
+    description = "This user does not have access to this resource"
+)
