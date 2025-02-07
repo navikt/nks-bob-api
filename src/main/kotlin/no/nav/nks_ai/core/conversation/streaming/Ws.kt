@@ -15,6 +15,7 @@ import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.close
 import io.ktor.websocket.send
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -62,7 +63,7 @@ fun Route.conversationWebsocket(
 
             MetricRegister.websocketConnections.inc()
             val messageFlow = WebsocketFlowHandler.getFlow(conversationId)
-            val job = launch {
+            val job = launch(Dispatchers.IO) {
                 existingMessages.forEach { message ->
                     sendSerialized<ConversationEvent>(
                         ConversationEvent.NewMessage(
