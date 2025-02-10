@@ -20,9 +20,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.retry
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.auth.EntraClient
+import no.nav.nks_ai.defaultJsonConfig
 import kotlin.String
 
 private val logger = KotlinLogging.logger {}
@@ -75,7 +75,8 @@ class KbsClient(
                 when (response.event) {
                     "chat_chunk" -> {
                         response.data?.let { data ->
-                            val chatResponse = Json.decodeFromString<KbsChatResponse>(data)
+                            // TODO ignoreUnknownKeys
+                            val chatResponse = defaultJsonConfig().decodeFromString<KbsChatResponse>(data)
                             if (timer.isRunning && chatResponse.answer.text.isNotEmpty()) {
                                 timer.stop()
                             }
@@ -87,7 +88,7 @@ class KbsClient(
                     "error" -> {
                         response.data?.let { data ->
                             try {
-                                val errorResponse = Json.decodeFromString<KbsErrorResponse>(data)
+                                val errorResponse = defaultJsonConfig().decodeFromString<KbsErrorResponse>(data)
                                 when (errorResponse) {
                                     is KbsErrorResponse.KbsTypedError.KbsValidationError -> {
                                         logger.warn {
