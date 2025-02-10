@@ -108,6 +108,28 @@ fun Route.adminRoutes(adminService: AdminService) {
 
                 call.respond(conversationSummary)
             }
+            get("/{id}/messages", {
+                description = "Get all messages for the given conversation ID"
+                request {
+                    pathParameter<String>("id") {
+                        description = "The ID of the conversation"
+                    }
+                }
+                response {
+                    HttpStatusCode.OK to {
+                        description = "The operation was successful"
+                        body<ConversationSummary>() {
+                            description = "Conversation messages"
+                        }
+                    }
+                }
+            }) {
+                val conversationId = call.conversationId()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+
+                val messages = adminService.getConversationMessages(conversationId)
+                call.respond(messages)
+            }
         }
         route("/messages") {
             get("/{id}/conversation", {
