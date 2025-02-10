@@ -24,6 +24,9 @@ spec:
     inbound:
       rules:
         - application: nks-bob-frontend
+        - application: azure-token-generator
+          namespace: aura
+          cluster: dev-gcp
     outbound:
       rules:
         - application: nks-kbs
