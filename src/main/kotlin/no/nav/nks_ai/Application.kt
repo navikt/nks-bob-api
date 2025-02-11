@@ -18,6 +18,7 @@ import io.ktor.server.netty.EngineMain
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.app.Config
 import no.nav.nks_ai.app.plugins.configureCache
 import no.nav.nks_ai.app.plugins.configureDatabases
@@ -108,6 +109,13 @@ fun Application.module() {
     }
 }
 
+fun defaultJsonConfig(
+    block: JsonBuilder.() -> Unit = {}
+): Json = Json {
+    ignoreUnknownKeys = true
+    block()
+}
+
 private fun defaultHttpClient(
     block: HttpClientConfig<ApacheEngineConfig>.() -> Unit = {}
 ): HttpClient =
@@ -118,9 +126,7 @@ private fun defaultHttpClient(
             connectionRequestTimeout = Config.HTTP_CLIENT_TIMEOUT_MS * 2
         }
         install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-            })
+            json(defaultJsonConfig())
         }
         install(CallId) {
             // TODO currently not supporting sse-client.
