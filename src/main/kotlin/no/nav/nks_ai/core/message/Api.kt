@@ -72,7 +72,25 @@ fun Route.messageRoutes(
 
             call.respond(HttpStatusCode.Created, message)
         }
-        post("/{id}/highlight") {
+        post("/{id}/star", {
+            description = "Star a message"
+            request {
+                pathParameter<String>("id") {
+                    description = "ID of the message"
+                }
+                body<Unit> {
+                    description = "No body required"
+                }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    description = "The message was starred"
+                    body<Unit> {
+                        description = "No body in response"
+                    }
+                }
+            }
+        }) {
             val messageId = call.messageId()
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
 
