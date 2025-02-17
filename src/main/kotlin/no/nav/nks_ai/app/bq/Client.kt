@@ -26,7 +26,11 @@ class BigQueryClient {
             .build()
             .service
 
-    fun insert(dataset: String, table: String, row: RowToInsert) {
+    fun insert(
+        dataset: String,
+        table: String,
+        row: RowToInsert
+    ): Either<BigQueryError, RowToInsert> {
         try {
             val tableId = TableId.of(project, dataset, table)
             val response = bigQuery.insertAll(
@@ -40,8 +44,15 @@ class BigQueryClient {
                     logger.error { "Error response from BigQuery ${it.key} ${it.value}" }
                 }
             }
+
+            return row.right()
         } catch (e: BigQueryException) {
             logger.error(e) { "Error when inserting to BigQuery" }
+            return BigQueryError(
+                e.message ?: "Error when inserting to BigQuery",
+                e,
+                e.errors.map { it.message },
+            ).left()
         }
     }
 
@@ -57,11 +68,18 @@ class BigQueryClient {
 
             return block(bigQuery.query(queryConfig)).right()
         } catch (e: BigQueryException) {
-            logger.error(e) { "Error when fetching article from BigQuery" }
-            return BigQueryError(e.message ?: "Error when fetching article from BigQuery", e).left()
+            logger.error(e) { "Error when fetching from BigQuery" }
+            return BigQueryError(
+                e.message ?: "Error when fetching from BigQuery",
+                e,
+                e.errors.map { it.message },
+            ).left()
         } catch (e: InterruptedException) {
-            logger.error(e) { "InterruptedException when fetching article from BigQuery" }
-            return BigQueryError(e.message ?: "InterruptedException when fetching article from BigQuery", e).left()
+            logger.error(e) { "InterruptedException when fetching from BigQuery" }
+            return BigQueryError(
+                e.message ?: "InterruptedException when fetching from BigQuery",
+                e
+            ).left()
         }
     }
 }
@@ -69,4 +87,5 @@ class BigQueryClient {
 data class BigQueryError(
     val message: String,
     val cause: Throwable? = null,
+    val errors: List<String> = emptyList(),
 )
