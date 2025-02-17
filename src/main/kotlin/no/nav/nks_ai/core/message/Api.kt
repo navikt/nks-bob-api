@@ -7,8 +7,12 @@ import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import no.nav.nks_ai.core.HighlightMessageService
 
-fun Route.messageRoutes(messageService: MessageService) {
+fun Route.messageRoutes(
+    messageService: MessageService,
+    highlightMessageService: HighlightMessageService
+) {
     route("/messages") {
         get("/{id}", {
             description = "Get a message with the given ID"
@@ -67,6 +71,13 @@ fun Route.messageRoutes(messageService: MessageService) {
             }
 
             call.respond(HttpStatusCode.Created, message)
+        }
+        post("/{id}/highlight") {
+            val messageId = call.messageId()
+                ?: return@post call.respond(HttpStatusCode.BadRequest)
+
+            highlightMessageService.highlightMessage(messageId)
+            call.respond(HttpStatusCode.OK)
         }
     }
 }
