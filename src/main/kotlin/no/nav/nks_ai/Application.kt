@@ -99,9 +99,9 @@ fun Application.module() {
                 conversationWebsocket(conversationService, sendMessageService)
                 conversationSse(conversationService)
                 userConfigRoutes(userConfigService)
+                messageRoutes(messageService, highlightMessageService)
                 articleRoutes(articleService)
             }
-            messageRoutes(messageService, highlightMessageService)
             authenticate("AdminUser") {
                 adminRoutes(adminService)
             }
