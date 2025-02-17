@@ -59,7 +59,7 @@ data class KbsChatAnswer(
 @Serializable
 data class KbsChatQuestion(
     val user: String,
-    val contextualized: String,
+    val contextualized: String?,
 )
 
 @Serializable
