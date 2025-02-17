@@ -81,3 +81,10 @@ spec:
         databases:
           - name: nks-bob-api
             envVarPrefix: DB
+    bigQueryDatasets:
+      - description: Originale kunnskapsartikler
+        name: kunnskapsbase
+        permission: READ
+      - description: Testgrunnlag
+        name: testgrunnlag
+        permission: READWRITE
