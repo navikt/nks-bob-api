@@ -38,6 +38,8 @@ spec:
       value: api://dev-gcp.nks-aiautomatisering.nks-bob-api/.default
     - name: NKS_BOB_API_ADMIN_GROUP
       value: dcb5ec4c-8027-428c-9dfd-15852388001c
+    - name: GCP_TEAM_PROJECT_ID
+      value: nks-aiautomatisering-prod-194a
   azure:
     application:
       tenant: nav.no # Gjør at man kan logge på med vanlig konto i dev-gcp
