@@ -17,7 +17,9 @@ import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
 
-val jsonConfig = Json.Default
+val jsonConfig = Json {
+    ignoreUnknownKeys = true
+}
 
 internal object Messages : UUIDTable() {
     val content = text("content", eagerLoading = true)
@@ -32,6 +34,8 @@ internal object Messages : UUIDTable() {
     val pending = bool("pending").clientDefault { false }
     val errors = jsonb<List<MessageError>>("errors", jsonConfig).clientDefault { emptyList() }
     val followUp = jsonb<List<String>>("follow_up", jsonConfig).clientDefault { emptyList() }
+    val userQuestion = text("user_question").nullable()
+    val contextualizedQuestion = text("contextualized_question").nullable()
 }
 
 internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -49,6 +53,8 @@ internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var pending by Messages.pending
     var errors by Messages.errors
     var followUp by Messages.followUp
+    var userQuestion by Messages.userQuestion
+    var contextualizedQuestion by Messages.contextualizedQuestion
 }
 
 internal fun MessageDAO.toModel() = Message(
@@ -63,6 +69,8 @@ internal fun MessageDAO.toModel() = Message(
     pending = pending,
     errors = errors,
     followUp = followUp,
+    userQuestion = userQuestion,
+    contextualizedQuestion = contextualizedQuestion,
 )
 
 object MessageRepo {

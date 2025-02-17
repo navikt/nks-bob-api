@@ -123,6 +123,8 @@ data class Message(
     val pending: Boolean,
     val errors: List<MessageError>,
     val followUp: List<String>,
+    val userQuestion: String?,
+    val contextualizedQuestion: String?,
 )
 
 fun Message.Companion.answerFrom(
@@ -132,6 +134,8 @@ fun Message.Companion.answerFrom(
     context: List<Context>,
     followUp: List<String>,
     pending: Boolean = true,
+    userQuestion: String?,
+    contextualizedQuestion: String?,
 ) =
     Message(
         id = messageId,
@@ -145,6 +149,8 @@ fun Message.Companion.answerFrom(
         feedback = null,
         errors = emptyList(),
         followUp = followUp,
+        userQuestion = userQuestion,
+        contextualizedQuestion = contextualizedQuestion,
     )
 
 @Serializable

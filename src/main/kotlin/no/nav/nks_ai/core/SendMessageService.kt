@@ -105,6 +105,8 @@ class SendMessageService(
                             citations = citations,
                             context = context,
                             followUp = response.followUp,
+                            userQuestion = response.question.user,
+                            contextualizedQuestion = response.question.contextualized,
                         )
                     }
                 }
