@@ -7,6 +7,7 @@ import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.core.HighlightMessageService
 
 fun Route.messageRoutes(
@@ -95,7 +96,10 @@ fun Route.messageRoutes(
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
 
             highlightMessageService.highlightMessage(messageId)
-            call.respond(HttpStatusCode.OK)
+                .fold(
+                    { call.respondError(it) },
+                    { call.respond(HttpStatusCode.OK) },
+                )
         }
     }
 }

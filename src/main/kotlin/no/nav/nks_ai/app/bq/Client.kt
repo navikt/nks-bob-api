@@ -13,6 +13,8 @@ import com.google.cloud.bigquery.QueryParameterValue
 import com.google.cloud.bigquery.TableId
 import com.google.cloud.bigquery.TableResult
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.http.HttpStatusCode
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.Config
 
 private val logger = KotlinLogging.logger {}
@@ -51,7 +53,7 @@ class BigQueryClient {
             return BigQueryError(
                 e.message ?: "Error when inserting to BigQuery",
                 e,
-                e.errors.map { it.message },
+                e.errors?.map { it.message } ?: emptyList(),
             ).left()
         }
     }
@@ -64,6 +66,8 @@ class BigQueryClient {
         try {
             val queryConfig = QueryJobConfiguration.newBuilder(query)
                 .setNamedParameters(parameters)
+                .setDryRun(false)
+                .setUseQueryCache(true)
                 .build()
 
             return block(bigQuery.query(queryConfig)).right()
@@ -88,4 +92,10 @@ data class BigQueryError(
     val message: String,
     val cause: Throwable? = null,
     val errors: List<String> = emptyList(),
-)
+) {
+    fun toApplicationError() = ApplicationError(
+        code = HttpStatusCode.InternalServerError,
+        message = "BigQuery Error",
+        description = message,
+    )
+}
