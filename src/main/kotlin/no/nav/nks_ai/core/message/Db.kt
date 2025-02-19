@@ -36,6 +36,7 @@ internal object Messages : UUIDTable() {
     val followUp = jsonb<List<String>>("follow_up", jsonConfig).clientDefault { emptyList() }
     val userQuestion = text("user_question").nullable()
     val contextualizedQuestion = text("contextualized_question").nullable()
+    val starred = bool("starred").clientDefault { false }
 }
 
 internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -55,6 +56,7 @@ internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var followUp by Messages.followUp
     var userQuestion by Messages.userQuestion
     var contextualizedQuestion by Messages.contextualizedQuestion
+    var starred by Messages.starred
 }
 
 internal fun MessageDAO.toModel() = Message(
@@ -71,6 +73,7 @@ internal fun MessageDAO.toModel() = Message(
     followUp = followUp,
     userQuestion = userQuestion,
     contextualizedQuestion = contextualizedQuestion,
+    starred = starred,
 )
 
 object MessageRepo {
@@ -110,6 +113,7 @@ object MessageRepo {
         citations: Option<List<Citation>> = None,
         pending: Option<Boolean> = None,
         errors: Option<List<MessageError>> = None,
+        starred: Option<Boolean> = None,
     ): Message? =
         suspendTransaction {
             MessageDAO.findByIdAndUpdate(messageId.value) { entity ->
@@ -121,6 +125,7 @@ object MessageRepo {
                 citations.onSome { entity.citations = it }
                 pending.onSome { entity.pending = it }
                 errors.onSome { entity.errors = entity.errors.plus(it) }
+                starred.onSome { entity.starred = it }
             }?.toModel()
         }
 

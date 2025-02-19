@@ -125,6 +125,7 @@ data class Message(
     val followUp: List<String>,
     val userQuestion: String?,
     val contextualizedQuestion: String?,
+    val starred: Boolean,
 )
 
 fun Message.Companion.answerFrom(
@@ -151,6 +152,7 @@ fun Message.Companion.answerFrom(
         followUp = followUp,
         userQuestion = userQuestion,
         contextualizedQuestion = contextualizedQuestion,
+        starred = false,
     )
 
 @Serializable
