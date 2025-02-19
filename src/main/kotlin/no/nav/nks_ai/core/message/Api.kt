@@ -8,11 +8,11 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.nks_ai.app.respondError
-import no.nav.nks_ai.core.HighlightMessageService
+import no.nav.nks_ai.core.MarkMessageStarredService
 
 fun Route.messageRoutes(
     messageService: MessageService,
-    highlightMessageService: HighlightMessageService
+    markMessageStarredService: MarkMessageStarredService
 ) {
     route("/messages") {
         get("/{id}", {
@@ -95,7 +95,7 @@ fun Route.messageRoutes(
             val messageId = call.messageId()
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
 
-            highlightMessageService.highlightMessage(messageId)
+            markMessageStarredService.markStarred(messageId)
                 .fold(
                     { call.respondError(it) },
                     { call.respond(HttpStatusCode.OK) },

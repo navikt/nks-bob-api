@@ -30,7 +30,7 @@ import no.nav.nks_ai.app.plugins.configureSwagger
 import no.nav.nks_ai.app.plugins.healthRoutes
 import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.core.ConversationDeletionJob
-import no.nav.nks_ai.core.HighlightMessageService
+import no.nav.nks_ai.core.MarkMessageStarredService
 import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.admin.AdminService
 import no.nav.nks_ai.core.admin.adminRoutes
@@ -88,7 +88,7 @@ fun Application.module() {
     val adminService = AdminService()
     val userConfigService = UserConfigService()
     val articleService = ArticleService(bigQueryClient)
-    val highlightMessageService = HighlightMessageService(bigQueryClient, messageService)
+    val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
 
     ConversationDeletionJob(conversationService, httpClient).start()
 
@@ -99,7 +99,7 @@ fun Application.module() {
                 conversationWebsocket(conversationService, sendMessageService)
                 conversationSse(conversationService)
                 userConfigRoutes(userConfigService)
-                messageRoutes(messageService, highlightMessageService)
+                messageRoutes(messageService, markMessageStarredService)
                 articleRoutes(articleService)
             }
             authenticate("AdminUser") {

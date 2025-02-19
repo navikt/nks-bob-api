@@ -14,11 +14,11 @@ import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.MessageService
 
-class HighlightMessageService(
+class MarkMessageStarredService(
     private val bigQueryClient: BigQueryClient,
     private val messageService: MessageService,
 ) {
-    suspend fun highlightMessage(messageId: MessageId): Either<ApplicationError, Message> {
+    suspend fun markStarred(messageId: MessageId): Either<ApplicationError, Message> {
         val message = messageService.getMessage(messageId)
             ?: return messageNotFound.left()
 
