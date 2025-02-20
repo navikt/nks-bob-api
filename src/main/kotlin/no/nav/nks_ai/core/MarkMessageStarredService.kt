@@ -1,8 +1,7 @@
 package no.nav.nks_ai.core
 
 import arrow.core.Either
-import arrow.core.left
-import arrow.core.right
+import arrow.core.raise.either
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.encodeToString
@@ -18,28 +17,25 @@ class MarkMessageStarredService(
     private val bigQueryClient: BigQueryClient,
     private val messageService: MessageService,
 ) {
-    suspend fun markStarred(messageId: MessageId): Either<ApplicationError, Message> {
+    suspend fun markStarred(messageId: MessageId): Either<ApplicationError, Message> = either {
         val message = messageService.getMessage(messageId)
-            ?: return messageNotFound.left()
+            ?: raise(messageNotFound)
 
-        return bigQueryClient.insert(
+        bigQueryClient.insert(
             dataset = Config.bigQuery.testgrunnlagDataset,
             table = Config.bigQuery.fremhevedeSporsmalTable,
             row = RowToInsert.of(message.toRowMap())
-        ).fold(
-            { it.toApplicationError().left() },
-            {
-                messageService.starMessage(messageId)?.right()
-                    ?: messageNotFound.left()
-            }
-        )
+        ).mapLeft { it.toApplicationError() }.bind()
+
+        messageService.starMessage(messageId)
+            ?: raise(messageNotFound)
     }
 }
 
 private val messageNotFound = ApplicationError(
     code = HttpStatusCode.NotFound,
-    message = "",
-    description = "",
+    message = "Not found",
+    description = "Message not found",
 )
 
 private fun Message.toRowMap(): Map<String, Any> =

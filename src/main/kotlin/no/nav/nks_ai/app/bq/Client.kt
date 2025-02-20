@@ -2,6 +2,7 @@ package no.nav.nks_ai.app.bq
 
 import arrow.core.Either
 import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
 import com.google.cloud.bigquery.BigQuery
 import com.google.cloud.bigquery.BigQueryException
@@ -32,7 +33,7 @@ class BigQueryClient {
         dataset: String,
         table: String,
         row: RowToInsert
-    ): Either<BigQueryError, RowToInsert> {
+    ): Either<BigQueryError, RowToInsert> = either {
         try {
             val tableId = TableId.of(project, dataset, table)
             val response = bigQuery.insertAll(
@@ -45,16 +46,24 @@ class BigQueryClient {
                 response.insertErrors.entries.map {
                     logger.error { "Error response from BigQuery ${it.key} ${it.value}" }
                 }
+                raise(
+                    BigQueryError(
+                        "Error response from BigQuery",
+                        errors = response.insertErrors.entries.map { "${it.value}" },
+                    )
+                )
             }
 
-            return row.right()
+            row
         } catch (e: BigQueryException) {
             logger.error(e) { "Error when inserting to BigQuery" }
-            return BigQueryError(
-                e.message ?: "Error when inserting to BigQuery",
-                e,
-                e.errors?.map { it.message } ?: emptyList(),
-            ).left()
+            raise(
+                BigQueryError(
+                    e.message ?: "Error when inserting to BigQuery",
+                    e,
+                    e.errors?.map { it.message } ?: emptyList(),
+                )
+            )
         }
     }
 
