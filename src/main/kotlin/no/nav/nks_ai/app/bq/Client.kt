@@ -14,7 +14,6 @@ import com.google.cloud.bigquery.QueryParameterValue
 import com.google.cloud.bigquery.TableId
 import com.google.cloud.bigquery.TableResult
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.http.HttpStatusCode
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.Config
 
@@ -102,8 +101,7 @@ data class BigQueryError(
     val cause: Throwable? = null,
     val errors: List<String> = emptyList(),
 ) {
-    fun toApplicationError() = ApplicationError(
-        code = HttpStatusCode.InternalServerError,
+    fun toApplicationError() = ApplicationError.InternalServerError(
         message = "BigQuery Error",
         description = message,
     )

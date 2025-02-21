@@ -7,6 +7,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import no.nav.nks_ai.app.Config
+import no.nav.nks_ai.app.DomainError
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageRepo
@@ -24,10 +25,10 @@ class ConversationService(
     suspend fun getConversation(
         conversationId: ConversationId,
         navIdent: NavIdent,
-    ): Either<ConversationError.ConversationNotFound, Conversation> =
+    ): Either<DomainError.ConversationNotFound, Conversation> =
         either {
             ConversationRepo.getConversation(conversationId, navIdent)
-                ?: raise(ConversationError.ConversationNotFound(conversationId))
+                ?: raise(DomainError.ConversationNotFound(conversationId))
         }
 
     suspend fun getAllConversations(navIdent: NavIdent): List<Conversation> =

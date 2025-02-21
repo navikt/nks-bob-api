@@ -1,6 +1,6 @@
 package no.nav.nks_ai.core.conversation
 
-import arrow.core.raise.fold
+import arrow.core.raise.either
 import io.github.smiley4.ktorswaggerui.dsl.routing.delete
 import io.github.smiley4.ktorswaggerui.dsl.routing.get
 import io.github.smiley4.ktorswaggerui.dsl.routing.post
@@ -14,9 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.launch
-import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.MetricRegister
-import no.nav.nks_ai.app.fromThrowable
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.core.SendMessageService
@@ -111,12 +109,9 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@get call.respond(HttpStatusCode.Forbidden)
 
-            fold(
-                block = { conversationService.getConversation(conversationId, navIdent) },
-                transform = { call.respond(HttpStatusCode.OK, it) },
-                recover = { error: ConversationError -> call.respondError(error) },
-                catch = { call.respondError(ApplicationError.fromThrowable(it)) }
-            )
+            conversationService.getConversation(conversationId, navIdent)
+                .onLeft { call.respondError(it) }
+                .onRight { call.respond(HttpStatusCode.OK, it) }
         }
         delete("/{id}", {
             description = "Delete a conversation with the given ID"
@@ -268,20 +263,17 @@ fun Route.conversationRoutes(
             val feedback = call.receiveNullable<NewFeedback>()
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
 
-            fold(
-                block = { conversationService.getConversation(conversationId, navIdent) },
-                recover = { error: ConversationError -> call.respondError(error) },
-                catch = { call.respondError(ApplicationError.fromThrowable(it)) },
-                transform = {
-                    // Feedback won't be saved, just register the metrics.
-                    when (feedback.liked) {
-                        true -> MetricRegister.conversationsLiked.inc()
-                        false -> MetricRegister.conversationsDisliked.inc()
-                    }
+            either {
+                conversationService.getConversation(conversationId, navIdent).bind()
 
-                    call.respond(HttpStatusCode.Created, Feedback(feedback.liked))
-                },
-            )
+                // Feedback won't be saved, just register the metrics.
+                when (feedback.liked) {
+                    true -> MetricRegister.conversationsLiked.inc()
+                    false -> MetricRegister.conversationsDisliked.inc()
+                }
+
+                call.respond(HttpStatusCode.Created, Feedback(feedback.liked))
+            }.onLeft { call.respondError(it) }
         }
     }
 }
