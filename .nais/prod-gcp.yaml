@@ -38,6 +38,10 @@ spec:
       value: api://prod-gcp.nks-aiautomatisering.nks-bob-api/.default
     - name: NKS_BOB_API_ADMIN_GROUP
       value: dcb5ec4c-8027-428c-9dfd-15852388001c
+    - name: GCP_TEAM_PROJECT_ID
+      value: nks-aiautomatisering-prod-194a
+    - name: STJERNEMARKERTE_SVAR_TABLE
+      value: stjernemarkerte_svar_prod
   azure:
     application:
       tenant: nav.no

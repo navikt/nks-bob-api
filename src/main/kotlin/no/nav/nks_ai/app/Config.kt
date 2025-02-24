@@ -73,5 +73,5 @@ data class BigQueryConfig(
     val kunnskapsbaseDataset: String,
     val kunnskapsartiklerTable: String,
     val testgrunnlagDataset: String,
-    val fremhevedeSporsmalTable: String,
+    val stjernemarkerteSvarTable: String,
 )
