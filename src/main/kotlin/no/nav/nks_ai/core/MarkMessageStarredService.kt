@@ -11,6 +11,7 @@ import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.Config
 import no.nav.nks_ai.app.bq.BigQueryClient
 import no.nav.nks_ai.app.now
+import no.nav.nks_ai.core.message.Citation
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.MessageService
@@ -40,12 +41,15 @@ private val messageNotFound = ApplicationError(
     description = "Message not found",
 )
 
-private fun Message.toRowMap(): Map<String, Any> =
+private fun Message.toRowMap(): Map<String, Any?> =
     mapOf(
-        "user_question" to (userQuestion ?: ""),
-        "contextualized_question" to (contextualizedQuestion ?: ""),
+        "user_question" to userQuestion,
+        "contextualized_question" to contextualizedQuestion,
         "answer_content" to content,
         "context" to Json.encodeToString(context),
-        "citations" to citations,
+        "citations" to citations.map(Citation::toRowMap),
         "created_at" to LocalDateTime.now().toString()
     )
+
+private fun Citation.toRowMap(): Map<String, Any> =
+    mapOf("text" to text, "source_id" to sourceId)
