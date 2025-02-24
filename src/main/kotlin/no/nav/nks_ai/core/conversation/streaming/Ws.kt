@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
 import no.nav.nks_ai.app.MetricRegister
@@ -105,7 +106,10 @@ fun Route.conversationWebsocket(
                         is ConversationAction.NewMessageAction -> {
                             val newMessage = conversationAction.getData()
                             sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
-                                .collect { messageFlow.emit(it) }
+                                .onRight { messageFlow.emitAll(it) }
+                                .onLeft { error ->
+                                    logger.error { "An error occured when sending message: $error" }
+                                }
                         }
 
                         is ConversationAction.UpdateMessageAction -> {

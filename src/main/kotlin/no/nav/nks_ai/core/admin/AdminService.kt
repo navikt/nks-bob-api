@@ -38,8 +38,7 @@ class AdminService() {
 
     suspend fun getConversationFromMessageId(messageId: MessageId): Either<DomainError, Conversation> =
         either {
-            val conversationId = MessageRepo.getConversationId(messageId)
-                ?: raise(DomainError.MessageNotFound(messageId))
+            val conversationId = MessageRepo.getConversationId(messageId).bind()
 
             ConversationRepo.getConversation(conversationId)
                 ?: raise(DomainError.ConversationNotFound(conversationId))

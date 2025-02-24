@@ -1,7 +1,9 @@
 package no.nav.nks_ai.core.message
 
+import arrow.core.Either
 import arrow.core.Some
 import arrow.core.some
+import no.nav.nks_ai.app.DomainError
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.user.NavIdent
@@ -11,7 +13,7 @@ class MessageService() {
         conversationId: ConversationId,
         navIdent: NavIdent,
         messageContent: String,
-    ): Message? {
+    ): Either<DomainError, Message> {
         MetricRegister.questionsCreated.inc()
         return MessageRepo.addMessage(
             conversationId = conversationId,
@@ -30,7 +32,7 @@ class MessageService() {
         messageContent: String,
         citations: List<NewCitation>,
         context: List<Context>,
-    ): Message? {
+    ): Either<DomainError, Message> {
         MetricRegister.answersCreated.inc()
         return MessageRepo.addMessage(
             conversationId = conversationId,
@@ -44,7 +46,7 @@ class MessageService() {
         )
     }
 
-    suspend fun addEmptyAnswer(conversationId: ConversationId): Message? =
+    suspend fun addEmptyAnswer(conversationId: ConversationId): Either<DomainError, Message> =
         addAnswer(
             conversationId = conversationId,
             messageContent = "",
@@ -61,8 +63,8 @@ class MessageService() {
         pending: Boolean,
         userQuestion: String?,
         contextualizedQuestion: String?,
-    ): Message? {
-        return MessageRepo.updateMessage(
+    ) =
+        MessageRepo.updateMessage(
             messageId = messageId,
             messageContent = messageContent,
             createdBy = "Bob",
@@ -75,19 +77,18 @@ class MessageService() {
             userQuestion = userQuestion,
             contextualizedQuestion = contextualizedQuestion,
         )
-    }
 
     suspend fun updatePendingMessage(
         messageId: MessageId,
         pending: Boolean,
-    ): Message? {
+    ): Either<DomainError, Message> {
         return MessageRepo.patchMessage(
             messageId = messageId,
             pending = Some(pending),
         )
     }
 
-    suspend fun starMessage(messageId: MessageId): Message? =
+    suspend fun starMessage(messageId: MessageId) =
         MessageRepo.patchMessage(messageId = messageId, starred = true.some())
 
     suspend fun updateMessageError(
@@ -101,10 +102,10 @@ class MessageService() {
             pending = Some(pending),
         )
 
-    suspend fun getMessage(messageId: MessageId): Message? =
+    suspend fun getMessage(messageId: MessageId) =
         MessageRepo.getMessage(messageId)
 
-    suspend fun addFeedbackToMessage(messageId: MessageId, newFeedback: NewFeedback): Message? {
+    suspend fun addFeedbackToMessage(messageId: MessageId, newFeedback: NewFeedback): Either<DomainError, Message> {
         if (newFeedback.liked) {
             MetricRegister.answersLiked.inc()
         } else {

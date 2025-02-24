@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.conversation
 
 import arrow.core.raise.either
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktorswaggerui.dsl.routing.delete
 import io.github.smiley4.ktorswaggerui.dsl.routing.get
 import io.github.smiley4.ktorswaggerui.dsl.routing.post
@@ -23,6 +24,8 @@ import no.nav.nks_ai.core.message.Feedback
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.NewFeedback
 import no.nav.nks_ai.core.message.NewMessage
+
+val logger = KotlinLogging.logger { }
 
 fun Route.conversationRoutes(
     conversationService: ConversationService,
@@ -74,13 +77,15 @@ fun Route.conversationRoutes(
 
                 if (newConversation.initialMessage != null) {
                     launch(Dispatchers.IO) {
-                        WebsocketFlowHandler.getFlow(conversationId).emitAll(
-                            sendMessageService.sendMessageStream(
-                                message = newConversation.initialMessage,
-                                conversationId = conversationId,
-                                navIdent = navIdent
-                            )
-                        )
+                        val flow = WebsocketFlowHandler.getFlow(conversationId)
+                        sendMessageService.sendMessageStream(
+                            message = newConversation.initialMessage,
+                            conversationId = conversationId,
+                            navIdent = navIdent
+                        ).onRight { flow.emitAll(it) }
+                            .onLeft { error ->
+                                logger.error { "An error occured when sending message: $error" }
+                            }
                     }
                 }
 
@@ -223,13 +228,16 @@ fun Route.conversationRoutes(
 
             coroutineScope {
                 launch(Dispatchers.IO) {
-                    WebsocketFlowHandler.getFlow(conversationId).emitAll(
-                        sendMessageService.sendMessageStream(
-                            message = newMessage,
-                            conversationId = conversationId,
-                            navIdent = navIdent
-                        )
-                    )
+                    val flow = WebsocketFlowHandler.getFlow(conversationId)
+
+                    sendMessageService.sendMessageStream(
+                        message = newMessage,
+                        conversationId = conversationId,
+                        navIdent = navIdent
+                    ).onRight { flow.emitAll(it) }
+                        .onLeft { error ->
+                            logger.error { "An error occured when sending message: $error" }
+                        }
                 }
 
                 call.respond(HttpStatusCode.Accepted)

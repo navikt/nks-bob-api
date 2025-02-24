@@ -1,9 +1,12 @@
 package no.nav.nks_ai.core.message
 
+import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
+import arrow.core.raise.either
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.json.Json
+import no.nav.nks_ai.app.DomainError
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.core.conversation.ConversationDAO
@@ -86,21 +89,23 @@ object MessageRepo {
         context: List<Context>,
         citations: List<Citation>,
         pending: Boolean,
-    ): Message? =
+    ): Either<DomainError, Message> =
         suspendTransaction {
-            val conversation = ConversationDAO.Companion.findById(conversationId.value)
-                ?: return@suspendTransaction null // TODO error
+            either {
+                val conversation = ConversationDAO.Companion.findById(conversationId.value)
+                    ?: raise(DomainError.ConversationNotFound(conversationId))
 
-            MessageDAO.new {
-                this.content = messageContent
-                this.conversation = conversation
-                this.messageType = messageType
-                this.messageRole = messageRole
-                this.createdBy = createdBy
-                this.context = context
-                this.citations = citations
-                this.pending = pending
-            }.toModel()
+                MessageDAO.new {
+                    this.content = messageContent
+                    this.conversation = conversation
+                    this.messageType = messageType
+                    this.messageRole = messageRole
+                    this.createdBy = createdBy
+                    this.context = context
+                    this.citations = citations
+                    this.pending = pending
+                }.toModel()
+            }
         }
 
     suspend fun patchMessage(
@@ -114,19 +119,22 @@ object MessageRepo {
         pending: Option<Boolean> = None,
         errors: Option<List<MessageError>> = None,
         starred: Option<Boolean> = None,
-    ): Message? =
+    ): Either<DomainError, Message> =
         suspendTransaction {
-            MessageDAO.findByIdAndUpdate(messageId.value) { entity ->
-                messageContent.onSome { entity.content = it }
-                messageType.onSome { entity.messageType = it }
-                messageRole.onSome { entity.messageRole = it }
-                createdBy.onSome { entity.createdBy = it }
-                context.onSome { entity.context = it }
-                citations.onSome { entity.citations = it }
-                pending.onSome { entity.pending = it }
-                errors.onSome { entity.errors = entity.errors.plus(it) }
-                starred.onSome { entity.starred = it }
-            }?.toModel()
+            either {
+                MessageDAO.findByIdAndUpdate(messageId.value) { entity ->
+                    messageContent.onSome { entity.content = it }
+                    messageType.onSome { entity.messageType = it }
+                    messageRole.onSome { entity.messageRole = it }
+                    createdBy.onSome { entity.createdBy = it }
+                    context.onSome { entity.context = it }
+                    citations.onSome { entity.citations = it }
+                    pending.onSome { entity.pending = it }
+                    errors.onSome { entity.errors = entity.errors.plus(it) }
+                    starred.onSome { entity.starred = it }
+                }?.toModel()
+                    ?: raise(DomainError.MessageNotFound(messageId))
+            }
         }
 
     suspend fun updateMessage(
@@ -141,26 +149,32 @@ object MessageRepo {
         pending: Boolean,
         userQuestion: String?,
         contextualizedQuestion: String?,
-    ): Message? =
+    ): Either<DomainError, Message> =
         suspendTransaction {
-            MessageDAO.findByIdAndUpdate(messageId.value) {
-                it.content = messageContent
-                it.messageType = messageType
-                it.messageRole = messageRole
-                it.createdBy = createdBy
-                it.context = context
-                it.citations = citations
-                it.followUp = followUp
-                it.pending = pending
-                it.userQuestion = userQuestion
-                it.contextualizedQuestion = contextualizedQuestion
-            }?.toModel()
+            either {
+                MessageDAO.findByIdAndUpdate(messageId.value) {
+                    it.content = messageContent
+                    it.messageType = messageType
+                    it.messageRole = messageRole
+                    it.createdBy = createdBy
+                    it.context = context
+                    it.citations = citations
+                    it.followUp = followUp
+                    it.pending = pending
+                    it.userQuestion = userQuestion
+                    it.contextualizedQuestion = contextualizedQuestion
+                }?.toModel()
+                    ?: raise(DomainError.MessageNotFound(messageId))
+            }
         }
 
-    suspend fun getMessage(id: MessageId): Message? =
+    suspend fun getMessage(messageId: MessageId): Either<DomainError, Message> =
         suspendTransaction {
-            MessageDAO.findById(id.value)
-                ?.toModel()
+            either {
+                MessageDAO.findById(messageId.value)
+                    ?.toModel()
+                    ?: raise(DomainError.MessageNotFound(messageId))
+            }
         }
 
     suspend fun getMessagesByConversation(conversationId: ConversationId): List<Message> =
@@ -170,18 +184,23 @@ object MessageRepo {
                 .map { it.toModel() }
         }
 
-    suspend fun addFeedback(messageId: MessageId, newFeedback: NewFeedback): Message? =
+    suspend fun addFeedback(messageId: MessageId, newFeedback: NewFeedback): Either<DomainError, Message> =
         suspendTransaction {
-            MessageDAO.findByIdAndUpdate(messageId.value) {
-                it.feedback = Feedback.fromNewFeedback(newFeedback)
-            }?.toModel()
+            either {
+                MessageDAO.findByIdAndUpdate(messageId.value) {
+                    it.feedback = Feedback.fromNewFeedback(newFeedback)
+                }?.toModel()
+                    ?: raise(DomainError.MessageNotFound(messageId))
+            }
         }
 
-    suspend fun getConversationId(messageId: MessageId): ConversationId? =
+    suspend fun getConversationId(messageId: MessageId): Either<DomainError, ConversationId> =
         suspendTransaction {
-            MessageDAO.findById(messageId.value)?.conversation
-                ?.let { conversation ->
-                    ConversationId(conversation.id.value)
-                }
+            either {
+                MessageDAO.findById(messageId.value)?.conversation
+                    ?.let { conversation ->
+                        ConversationId(conversation.id.value)
+                    } ?: raise(DomainError.MessageNotFound(messageId))
+            }
         }
 }

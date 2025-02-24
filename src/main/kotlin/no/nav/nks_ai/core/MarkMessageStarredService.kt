@@ -8,7 +8,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.Config
-import no.nav.nks_ai.app.DomainError
 import no.nav.nks_ai.app.bq.BigQueryClient
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.core.message.Citation
@@ -21,8 +20,7 @@ class MarkMessageStarredService(
     private val messageService: MessageService,
 ) {
     suspend fun markStarred(messageId: MessageId): Either<ApplicationError, Message> = either {
-        val message = messageService.getMessage(messageId)
-            ?: raise(DomainError.MessageNotFound(messageId))
+        val message = messageService.getMessage(messageId).bind()
 
         bigQueryClient.insert(
             dataset = Config.bigQuery.testgrunnlagDataset,
@@ -30,8 +28,7 @@ class MarkMessageStarredService(
             row = RowToInsert.of(message.toRowMap())
         ).mapLeft { it.toApplicationError() }.bind()
 
-        messageService.starMessage(messageId)
-            ?: raise(DomainError.MessageNotFound(messageId))
+        messageService.starMessage(messageId).bind()
     }
 }
 
