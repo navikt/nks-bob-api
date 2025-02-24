@@ -139,6 +139,8 @@ object MessageRepo {
         citations: List<Citation>,
         followUp: List<String>,
         pending: Boolean,
+        userQuestion: String?,
+        contextualizedQuestion: String?,
     ): Message? =
         suspendTransaction {
             MessageDAO.findByIdAndUpdate(messageId.value) {
@@ -150,6 +152,8 @@ object MessageRepo {
                 it.citations = citations
                 it.followUp = followUp
                 it.pending = pending
+                it.userQuestion = userQuestion
+                it.contextualizedQuestion = contextualizedQuestion
             }?.toModel()
         }
 

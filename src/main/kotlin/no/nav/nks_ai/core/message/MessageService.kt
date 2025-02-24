@@ -59,6 +59,8 @@ class MessageService() {
         context: List<Context>,
         followUp: List<String>,
         pending: Boolean,
+        userQuestion: String?,
+        contextualizedQuestion: String?,
     ): Message? {
         return MessageRepo.updateMessage(
             messageId = messageId,
@@ -70,6 +72,8 @@ class MessageService() {
             citations = citations.map(Citation::fromNewCitation),
             followUp = followUp,
             pending = pending,
+            userQuestion = userQuestion,
+            contextualizedQuestion = contextualizedQuestion,
         )
     }
 
