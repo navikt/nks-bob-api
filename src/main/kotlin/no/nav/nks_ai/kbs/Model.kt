@@ -47,12 +47,19 @@ data class KbsChatResponse(
     val answer: KbsChatAnswer,
     val context: List<KbsChatContext>,
     @SerialName("follow_up") val followUp: List<String> = emptyList(),
+    val question: KbsChatQuestion,
 )
 
 @Serializable
 data class KbsChatAnswer(
     val text: String,
     val citations: List<KbsCitation>
+)
+
+@Serializable
+data class KbsChatQuestion(
+    val user: String,
+    val contextualized: String?,
 )
 
 @Serializable

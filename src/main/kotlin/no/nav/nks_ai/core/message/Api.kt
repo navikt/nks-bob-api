@@ -7,8 +7,13 @@ import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import no.nav.nks_ai.app.respondError
+import no.nav.nks_ai.core.MarkMessageStarredService
 
-fun Route.messageRoutes(messageService: MessageService) {
+fun Route.messageRoutes(
+    messageService: MessageService,
+    markMessageStarredService: MarkMessageStarredService
+) {
     route("/messages") {
         get("/{id}", {
             description = "Get a message with the given ID"
@@ -67,6 +72,34 @@ fun Route.messageRoutes(messageService: MessageService) {
             }
 
             call.respond(HttpStatusCode.Created, message)
+        }
+        post("/{id}/star", {
+            description = "Star a message"
+            request {
+                pathParameter<String>("id") {
+                    description = "ID of the message"
+                }
+                body<Unit> {
+                    description = "No body required"
+                }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    description = "The message was starred"
+                    body<Unit> {
+                        description = "No body in response"
+                    }
+                }
+            }
+        }) {
+            val messageId = call.messageId()
+                ?: return@post call.respond(HttpStatusCode.BadRequest)
+
+            markMessageStarredService.markStarred(messageId)
+                .fold(
+                    { call.respondError(it) },
+                    { call.respond(HttpStatusCode.OK) },
+                )
         }
     }
 }

@@ -51,6 +51,7 @@ repositories {
 dependencies {
     implementation("at.favre.lib:bcrypt:0.10.2")
     implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("com.google.cloud:google-cloud-bigquery:2.47.0")
     implementation("com.h2database:h2:$h2_version")
     implementation("com.sksamuel.aedile:aedile-core:1.3.1")
     implementation("com.ucasoft.ktor:ktor-simple-cache-jvm:0.4.3")

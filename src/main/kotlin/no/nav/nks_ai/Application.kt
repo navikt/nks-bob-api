@@ -20,6 +20,7 @@ import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.app.Config
+import no.nav.nks_ai.app.bq.BigQueryClient
 import no.nav.nks_ai.app.plugins.configureCache
 import no.nav.nks_ai.app.plugins.configureDatabases
 import no.nav.nks_ai.app.plugins.configureMonitoring
@@ -29,9 +30,12 @@ import no.nav.nks_ai.app.plugins.configureSwagger
 import no.nav.nks_ai.app.plugins.healthRoutes
 import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.core.ConversationDeletionJob
+import no.nav.nks_ai.core.MarkMessageStarredService
 import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.admin.AdminService
 import no.nav.nks_ai.core.admin.adminRoutes
+import no.nav.nks_ai.core.article.ArticleService
+import no.nav.nks_ai.core.article.articleRoutes
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.conversation.conversationRoutes
 import no.nav.nks_ai.core.conversation.conversationSse
@@ -76,11 +80,15 @@ fun Application.module() {
         scope = Config.kbs.scope,
     )
 
+    val bigQueryClient = BigQueryClient()
+
     val conversationService = ConversationService()
     val messageService = MessageService()
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val adminService = AdminService()
     val userConfigService = UserConfigService()
+    val articleService = ArticleService(bigQueryClient)
+    val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
 
     ConversationDeletionJob(conversationService, httpClient).start()
 
@@ -90,8 +98,9 @@ fun Application.module() {
                 conversationRoutes(conversationService, sendMessageService)
                 conversationWebsocket(conversationService, sendMessageService)
                 conversationSse(conversationService)
-                messageRoutes(messageService)
                 userConfigRoutes(userConfigService)
+                messageRoutes(messageService, markMessageStarredService)
+                articleRoutes(articleService)
             }
             authenticate("AdminUser") {
                 adminRoutes(adminService)

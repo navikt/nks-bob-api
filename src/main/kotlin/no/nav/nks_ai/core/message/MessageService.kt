@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.message
 
 import arrow.core.Some
+import arrow.core.some
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.user.NavIdent
@@ -58,6 +59,8 @@ class MessageService() {
         context: List<Context>,
         followUp: List<String>,
         pending: Boolean,
+        userQuestion: String?,
+        contextualizedQuestion: String?,
     ): Message? {
         return MessageRepo.updateMessage(
             messageId = messageId,
@@ -69,6 +72,8 @@ class MessageService() {
             citations = citations.map(Citation::fromNewCitation),
             followUp = followUp,
             pending = pending,
+            userQuestion = userQuestion,
+            contextualizedQuestion = contextualizedQuestion,
         )
     }
 
@@ -81,6 +86,9 @@ class MessageService() {
             pending = Some(pending),
         )
     }
+
+    suspend fun starMessage(messageId: MessageId): Message? =
+        MessageRepo.patchMessage(messageId = messageId, starred = true.some())
 
     suspend fun updateMessageError(
         messageId: MessageId,

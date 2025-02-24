@@ -13,6 +13,7 @@ object Config {
     val db: DbConfig
     val nais: NaisConfig
     val issuers: NonEmptyList<IssuerConfig>
+    val bigQuery: BigQueryConfig
 
     const val HTTP_CLIENT_TIMEOUT_MS = 60 * 1000
 
@@ -27,6 +28,7 @@ object Config {
             issuers = it.extract<List<IssuerConfig>>("no.nav.security.jwt.issuers")
                 .toNonEmptyListOrNull<IssuerConfig>()
                 ?: error("Error reading configuration: No issuers configured.")
+            bigQuery = it.extract<BigQueryConfig>("bigquery")
         } ?: error("Error reading configuration")
     }
 }
@@ -64,4 +66,12 @@ data class IssuerConfig(
     val discoveryurl: String,
     val jwksurl: String,
     val accepted_audience: String,
+)
+
+data class BigQueryConfig(
+    val projectId: String,
+    val kunnskapsbaseDataset: String,
+    val kunnskapsartiklerTable: String,
+    val testgrunnlagDataset: String,
+    val stjernemarkerteSvarTable: String,
 )

@@ -105,6 +105,8 @@ class SendMessageService(
                             citations = citations,
                             context = context,
                             followUp = response.followUp,
+                            userQuestion = response.question.user,
+                            contextualizedQuestion = response.question.contextualized,
                         )
                     }
                 }
@@ -122,7 +124,9 @@ class SendMessageService(
                     citations = message.citations.map { NewCitation(it.text, it.sourceId) },
                     context = message.context,
                     followUp = message.followUp,
-                    pending = false
+                    pending = false,
+                    userQuestion = message.userQuestion,
+                    contextualizedQuestion = message.contextualizedQuestion,
                 )?.let { emit(it) }
             }.mapLeft { error ->
                 MetricRegister.answerFailedReceive.inc()
