@@ -25,7 +25,7 @@ import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.NewFeedback
 import no.nav.nks_ai.core.message.NewMessage
 
-val logger = KotlinLogging.logger { }
+private val logger = KotlinLogging.logger { }
 
 fun Route.conversationRoutes(
     conversationService: ConversationService,
@@ -72,24 +72,26 @@ fun Route.conversationRoutes(
                 val navIdent = call.getNavIdent()
                     ?: return@coroutineScope call.respond(HttpStatusCode.Forbidden)
 
-                val conversation = conversationService.addConversation(navIdent, newConversation)
-                val conversationId = conversation.id
+                either {
+                    val conversation = conversationService.addConversation(navIdent, newConversation).bind()
+                    val conversationId = conversation.id
 
-                if (newConversation.initialMessage != null) {
-                    launch(Dispatchers.IO) {
-                        val flow = WebsocketFlowHandler.getFlow(conversationId)
-                        sendMessageService.sendMessageStream(
-                            message = newConversation.initialMessage,
-                            conversationId = conversationId,
-                            navIdent = navIdent
-                        ).onRight { flow.emitAll(it) }
-                            .onLeft { error ->
-                                logger.error { "An error occured when sending message: $error" }
-                            }
+                    if (newConversation.initialMessage != null) {
+                        launch(Dispatchers.IO) {
+                            val flow = WebsocketFlowHandler.getFlow(conversationId)
+                            sendMessageService.sendMessageStream(
+                                message = newConversation.initialMessage,
+                                conversationId = conversationId,
+                                navIdent = navIdent
+                            ).onRight { flow.emitAll(it) }
+                                .onLeft { error ->
+                                    logger.error { "An error occured when sending message: $error" }
+                                }
+                        }
                     }
-                }
 
-                call.respond(HttpStatusCode.Created, conversation)
+                    call.respond(HttpStatusCode.Created, conversation)
+                }.onLeft { call.respondError(it) }
             }
         }
         get("/{id}", {
@@ -168,12 +170,9 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@put call.respond(HttpStatusCode.Forbidden)
 
-            val updatedConversation = conversationService.updateConversation(conversationId, navIdent, conversation)
-            if (updatedConversation == null) {
-                return@put call.respond(HttpStatusCode.NotFound)
-            }
-
-            call.respond(updatedConversation)
+            conversationService.updateConversation(conversationId, navIdent, conversation)
+                .onLeft { error -> call.respondError(error) }
+                .onRight { updatedConversation -> call.respond(updatedConversation) }
         }
         get("/{id}/messages", {
             description = "Get all messages for a given conversation"
@@ -198,8 +197,8 @@ fun Route.conversationRoutes(
                 ?: return@get call.respond(HttpStatusCode.Forbidden)
 
             conversationService.getConversationMessages(conversationId, navIdent)
-                ?.let { call.respond(it) }
-                ?: return@get call.respond(HttpStatusCode.NotFound)
+                .onLeft { error -> call.respondError(error) }
+                .onRight { call.respond(it) }
         }
         post("/{id}/messages", {
             description = "Add a new message to the conversation"

@@ -1,13 +1,12 @@
 package no.nav.nks_ai.core.conversation
 
-import arrow.core.Either
 import arrow.core.raise.either
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import no.nav.nks_ai.app.Config
-import no.nav.nks_ai.app.DomainError
+import no.nav.nks_ai.app.DomainResult
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageRepo
@@ -17,7 +16,7 @@ private val logger = KotlinLogging.logger { }
 
 class ConversationService(
 ) {
-    suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): Conversation {
+    suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): DomainResult<Conversation> {
         MetricRegister.conversationsCreated.inc()
         return ConversationRepo.addConversation(navIdent, conversation)
     }
@@ -25,11 +24,8 @@ class ConversationService(
     suspend fun getConversation(
         conversationId: ConversationId,
         navIdent: NavIdent,
-    ): Either<DomainError.ConversationNotFound, Conversation> =
-        either {
-            ConversationRepo.getConversation(conversationId, navIdent)
-                ?: raise(DomainError.ConversationNotFound(conversationId))
-        }
+    ): DomainResult<Conversation> =
+        ConversationRepo.getConversation(conversationId, navIdent)
 
     suspend fun getAllConversations(navIdent: NavIdent): List<Conversation> =
         ConversationRepo.getAllConversations(navIdent)
@@ -37,11 +33,10 @@ class ConversationService(
     suspend fun getConversationMessages(
         conversationId: ConversationId,
         navIdent: NavIdent,
-    ): List<Message>? {
-        ConversationRepo.getConversation(conversationId, navIdent)
-            ?: return null
+    ): DomainResult<List<Message>> = either {
+        ConversationRepo.getConversation(conversationId, navIdent).bind()
 
-        return MessageRepo.getMessagesByConversation(conversationId)
+        MessageRepo.getMessagesByConversation(conversationId)
             .sortedBy { it.createdAt }
     }
 

@@ -67,13 +67,9 @@ class SendMessageService(
         conversationId: ConversationId,
         navIdent: NavIdent,
     ): Either<DomainError, Flow<Message>> = either {
-        val history = conversationService.getConversationMessages(conversationId, navIdent)
-            ?: raise(DomainError.ConversationNotFound(conversationId))
-
+        val history = conversationService.getConversationMessages(conversationId, navIdent).bind()
         val question = messageService.addQuestion(conversationId, navIdent, message.content).bind()
-
         val initialAnswer = messageService.addEmptyAnswer(conversationId).bind()
-
         val timer = MetricRegister.answerFinishedReceived()
         flow {
             // Start the flow with the question and the empty answer.

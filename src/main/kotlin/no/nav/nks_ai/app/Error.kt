@@ -1,5 +1,6 @@
 package no.nav.nks_ai.app
 
+import arrow.core.Either
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
@@ -57,6 +58,10 @@ sealed class DomainError(
         description = "User config not found",
     )
 }
+
+typealias ApplicationResult<T> = Either<ApplicationError, T>
+
+typealias DomainResult<T> = Either<DomainError, T>
 
 //fun ApplicationError.Companion.fromThrowable(throwable: Throwable) = ApplicationError(
 //    code = HttpStatusCode.InternalServerError,

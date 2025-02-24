@@ -1,5 +1,6 @@
 package no.nav.nks_ai.core.conversation
 
+import arrow.core.raise.either
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
@@ -39,29 +40,30 @@ fun Route.conversationSse(
             logger.debug { "SSE connection established for conversation $conversationId" }
 
             try {
-                val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
-                    ?: return@sse call.respond(HttpStatusCode.NotFound)
+                either {
+                    val existingMessages = conversationService.getConversationMessages(conversationId, navIdent).bind()
 
-                MetricRegister.sseConnections.inc()
-                launch {
-                    // Close the connection after a set time
-                    delay(2.hours)
-                    closeSession(conversationId)
-                }
-
-                val deferred = async(Dispatchers.IO) {
-                    logger.debug { "Sending existing messages for conversation $conversationId" }
-                    existingMessages.forEach { message ->
-                        send(messageEvent(message))
+                    MetricRegister.sseConnections.inc()
+                    launch {
+                        // Close the connection after a set time
+                        delay(2.hours)
+                        closeSession(conversationId)
                     }
 
-                    logger.debug { "Waiting for events for conversation $conversationId" }
-                    SseFlowHandler.getFlow(conversationId).asSharedFlow().collect { message ->
-                        send(messageEvent(message))
-                    }
-                }
+                    val deferred = async(Dispatchers.IO) {
+                        logger.debug { "Sending existing messages for conversation $conversationId" }
+                        existingMessages.forEach { message ->
+                            send(messageEvent(message))
+                        }
 
-                deferred.await()
+                        logger.debug { "Waiting for events for conversation $conversationId" }
+                        SseFlowHandler.getFlow(conversationId).asSharedFlow().collect { message ->
+                            send(messageEvent(message))
+                        }
+                    }
+
+                    deferred.await()
+                }
             } catch (t: Throwable) {
                 logger.error(t) { "Error in SSE session" }
             } finally {

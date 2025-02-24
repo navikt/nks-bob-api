@@ -26,8 +26,7 @@ class AdminService() {
 
     suspend fun getConversationSummary(conversationId: ConversationId): Either<DomainError, ConversationSummary> =
         either {
-            val conversation = ConversationRepo.getConversation(conversationId)
-                ?: raise(DomainError.ConversationNotFound(conversationId))
+            val conversation = ConversationRepo.getConversation(conversationId).bind()
             val messages = MessageRepo.getMessagesByConversation(conversationId).sortedBy { it.createdAt }
 
             ConversationSummary.from(conversation, messages)
@@ -40,7 +39,6 @@ class AdminService() {
         either {
             val conversationId = MessageRepo.getConversationId(messageId).bind()
 
-            ConversationRepo.getConversation(conversationId)
-                ?: raise(DomainError.ConversationNotFound(conversationId))
+            ConversationRepo.getConversation(conversationId).bind()
         }
 }
