@@ -16,6 +16,7 @@ import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.UUIDTable
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
@@ -40,6 +41,7 @@ internal object Messages : UUIDTable() {
     val userQuestion = text("user_question").nullable()
     val contextualizedQuestion = text("contextualized_question").nullable()
     val starred = bool("starred").clientDefault { false }
+    val starredUploadedAt = datetime("starred_uploaded_at").nullable()
 }
 
 internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -60,6 +62,7 @@ internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var userQuestion by Messages.userQuestion
     var contextualizedQuestion by Messages.contextualizedQuestion
     var starred by Messages.starred
+    var starredUploadedAt by Messages.starredUploadedAt
 }
 
 internal fun MessageDAO.toModel() = Message(
@@ -202,5 +205,26 @@ object MessageRepo {
                         ConversationId(conversation.id.value)
                     } ?: raise(DomainError.MessageNotFound(messageId))
             }
+        }
+
+    suspend fun markStarredMessageUploaded(messageId: MessageId): Either<DomainError, Message> =
+        suspendTransaction {
+            either {
+                MessageDAO
+                    .findByIdAndUpdate(messageId.value) {
+                        it.starredUploadedAt = LocalDateTime.now()
+                    }?.toModel()
+                    ?: raise(DomainError.MessageNotFound(messageId))
+            }
+        }
+
+    suspend fun getStarredMessagesNotUploaded(): List<Message> =
+        suspendTransaction {
+            MessageDAO
+                .find {
+                    Messages.starredUploadedAt.isNull().and {
+                        Messages.starred.eq(true)
+                    }
+                }.map(MessageDAO::toModel)
         }
 }
