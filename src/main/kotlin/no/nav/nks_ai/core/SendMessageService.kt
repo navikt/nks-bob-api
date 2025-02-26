@@ -36,32 +36,6 @@ class SendMessageService(
     private val messageService: MessageService,
     private val kbsClient: KbsClient
 ) {
-//    @Suppress("unused")
-//    suspend fun sendMessage(
-//        message: NewMessage,
-//        conversationId: ConversationId,
-//        navIdent: NavIdent,
-//    ): Message? {
-//        val history = conversationService.getConversationMessages(conversationId, navIdent) ?: return null
-//        messageService.addQuestion(conversationId, navIdent, message.content)
-//
-//        val response = kbsClient.sendQuestion(
-//            question = message.content,
-//            messageHistory = history.map(KbsChatMessage::fromMessage),
-//        ) ?: return null
-//
-//        val answerContent = response.answer.text
-//        val citations = response.answer.citations.map { it.toNewCitation() }
-//        val context = response.context.map { it.toModel() }
-//
-//        return messageService.addAnswer(
-//            conversationId = conversationId,
-//            messageContent = answerContent,
-//            citations = citations,
-//            context = context,
-//        )
-//    }
-
     suspend fun sendMessageStream(
         message: NewMessage,
         conversationId: ConversationId,
