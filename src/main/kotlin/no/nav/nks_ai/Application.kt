@@ -32,6 +32,7 @@ import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.core.ConversationDeletionJob
 import no.nav.nks_ai.core.MarkMessageStarredService
 import no.nav.nks_ai.core.SendMessageService
+import no.nav.nks_ai.core.UploadStarredMessagesJob
 import no.nav.nks_ai.core.admin.AdminService
 import no.nav.nks_ai.core.admin.adminRoutes
 import no.nav.nks_ai.core.article.ArticleService
@@ -91,6 +92,7 @@ fun Application.module() {
     val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
 
     ConversationDeletionJob(conversationService, httpClient).start()
+    UploadStarredMessagesJob(messageService, markMessageStarredService, httpClient).start()
 
     routing {
         route("/api/v1") {
@@ -99,7 +101,7 @@ fun Application.module() {
                 conversationWebsocket(conversationService, sendMessageService)
                 conversationSse(conversationService)
                 userConfigRoutes(userConfigService)
-                messageRoutes(messageService, markMessageStarredService)
+                messageRoutes(messageService)
                 articleRoutes(articleService)
             }
             authenticate("AdminUser") {

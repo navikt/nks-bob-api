@@ -163,5 +163,5 @@ data class NewMessage(
 @Serializable
 data class UpdateMessage(
     val id: MessageId,
-    val feedback: Feedback?,
+    val starred: Boolean,
 )

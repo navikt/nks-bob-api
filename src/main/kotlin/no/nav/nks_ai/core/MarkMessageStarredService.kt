@@ -28,7 +28,7 @@ class MarkMessageStarredService(
             row = RowToInsert.of(message.toRowMap())
         ).mapLeft { it.toApplicationError() }.bind()
 
-        messageService.starMessage(messageId).bind()
+        messageService.markStarredMessageUploaded(messageId).bind()
     }
 }
 

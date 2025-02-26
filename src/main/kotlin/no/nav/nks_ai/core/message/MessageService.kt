@@ -91,6 +91,12 @@ class MessageService() {
     suspend fun starMessage(messageId: MessageId) =
         MessageRepo.patchMessage(messageId = messageId, starred = true.some())
 
+    suspend fun markStarredMessageUploaded(messageId: MessageId) =
+        MessageRepo.markStarredMessageUploaded(messageId)
+
+    suspend fun getStarredMessagesNotUploaded(): List<Message> =
+        MessageRepo.getStarredMessagesNotUploaded()
+
     suspend fun updateMessageError(
         messageId: MessageId,
         errors: List<MessageError>,
@@ -114,4 +120,10 @@ class MessageService() {
 
         return MessageRepo.addFeedback(messageId, newFeedback)
     }
+
+    suspend fun updateMessage(messageId: MessageId, message: UpdateMessage): Either<DomainError, Message> =
+        MessageRepo.patchMessage(
+            messageId = messageId,
+            starred = message.starred.some(),
+        )
 }
