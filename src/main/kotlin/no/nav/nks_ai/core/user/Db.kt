@@ -18,6 +18,7 @@ internal object UserConfigs : UUIDTable("user_configs") {
     val navIdent = varchar("nav_ident", 255).uniqueIndex()
     val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
     val showStartInfo = bool("show_start_info").default(true)
+    val showTutorial = bool("show_tutorial").default(true)
 }
 
 internal class UserConfigDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -26,6 +27,7 @@ internal class UserConfigDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var navIdent by UserConfigs.navIdent
     var createdAt by UserConfigs.createdAt
     var showStartInfo by UserConfigs.showStartInfo
+    var showTutorial by UserConfigs.showTutorial
 }
 
 internal fun UserConfigDAO.Companion.findByNavIdent(navIdent: NavIdent): UserConfigDAO? =
@@ -35,6 +37,7 @@ internal fun UserConfigDAO.Companion.findByNavIdent(navIdent: NavIdent): UserCon
 
 internal fun UserConfigDAO.toModel() = UserConfig(
     showStartInfo = showStartInfo,
+    showTutorial = showTutorial,
 )
 
 object UserConfigRepo {

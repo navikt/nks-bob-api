@@ -25,11 +25,13 @@ class NavIdent(value: String) {
 
 @Serializable
 data class UserConfig(
-    val showStartInfo: Boolean
+    val showStartInfo: Boolean,
+    val showTutorial: Boolean,
 )
 
 private val defaultUserConfig = UserConfig(
-    showStartInfo = true
+    showStartInfo = true,
+    showTutorial = true,
 )
 
 private typealias NavIdentCacheKey = PlaintextValue
