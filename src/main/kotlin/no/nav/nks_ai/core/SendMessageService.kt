@@ -24,7 +24,9 @@ import no.nav.nks_ai.core.message.NewMessage
 import no.nav.nks_ai.core.message.answerFrom
 import no.nav.nks_ai.core.user.NavIdent
 import no.nav.nks_ai.kbs.KbsChatMessage
+import no.nav.nks_ai.kbs.KbsChatResponse
 import no.nav.nks_ai.kbs.KbsClient
+import no.nav.nks_ai.kbs.KbsErrorResponse
 import no.nav.nks_ai.kbs.fromMessage
 import no.nav.nks_ai.kbs.toModel
 import no.nav.nks_ai.kbs.toNewCitation
@@ -57,28 +59,7 @@ class SendMessageService(
                 messageHistory = history.map(KbsChatMessage::fromMessage),
             )
                 .conflate()
-                .map {
-                    it.mapLeft { error ->
-                        MessageError(
-                            title = error.title,
-                            description = error.detail,
-                        )
-                    }.map { response ->
-                        val answerContent = response.answer.text
-                        val citations = response.answer.citations.map { it.toNewCitation() }
-                        val context = response.context.map { it.toModel() }
-
-                        Message.answerFrom(
-                            messageId = initialAnswer.id,
-                            content = answerContent,
-                            citations = citations,
-                            context = context,
-                            followUp = response.followUp,
-                            userQuestion = response.question.user,
-                            contextualizedQuestion = response.question.contextualized,
-                        )
-                    }
-                }
+                .map { responseToMessage(it, initialAnswer) }
                 .onEach { latestMessage = it }
                 .collect { response ->
                     response.onRight { message ->
@@ -106,20 +87,53 @@ class SendMessageService(
                 ).map { emit(it) }.bind()
             }
         }.catch { error ->
-            logger.error(error) { "Error when receiving answer from KBS" }
-            MetricRegister.answerFailedReceive.inc()
-            messageService.updateMessageError(
-                messageId = initialAnswer.id,
-                pending = false,
-                errors = listOf(
-                    MessageError(
-                        title = "Ukjent feil",
-                        description = "En ukjent feil oppsto når vi mottok svar fra språkmodellen."
-                    )
-                ),
-            ).map { emit(it) }.bind()
+            handleKbsError(error, initialAnswer)
+                .map { emit(it) }.bind()
         }
             .filterNotNull()
             .onCompletion { timer.stop() }
     }
+
+    private suspend fun handleKbsError(
+        error: Throwable,
+        initialAnswer: Message,
+    ): Either<DomainError, Message> {
+        logger.error(error) { "Error when receiving answer from KBS" }
+        MetricRegister.answerFailedReceive.inc()
+        return messageService.updateMessageError(
+            messageId = initialAnswer.id,
+            pending = false,
+            errors = listOf(
+                MessageError(
+                    title = "Ukjent feil",
+                    description = "En ukjent feil oppsto når vi mottok svar fra språkmodellen."
+                )
+            ),
+        )
+    }
 }
+
+private fun responseToMessage(
+    kbsResponse: Either<KbsErrorResponse, KbsChatResponse>,
+    initialAnswer: Message
+): Either<MessageError, Message> = kbsResponse
+    .mapLeft { error ->
+        MessageError(
+            title = error.title,
+            description = error.detail,
+        )
+    }.map { response ->
+        val answerContent = response.answer.text
+        val citations = response.answer.citations.map { it.toNewCitation() }
+        val context = response.context.map { it.toModel() }
+
+        Message.answerFrom(
+            messageId = initialAnswer.id,
+            content = answerContent,
+            citations = citations,
+            context = context,
+            followUp = response.followUp,
+            userQuestion = response.question.user,
+            contextualizedQuestion = response.question.contextualized,
+        )
+    }
