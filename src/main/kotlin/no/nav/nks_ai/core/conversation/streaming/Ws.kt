@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.conversation.streaming
 
 import arrow.core.none
+import arrow.core.raise.either
 import arrow.core.some
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.callid.withCallId
@@ -19,10 +20,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.app.getNavIdent
+import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationService
@@ -52,94 +55,99 @@ fun Route.conversationWebsocket(
 ) {
     route("/conversations") {
         webSocketWithCallId("/{id}/messages/ws") {
-            val navIdent = call.getNavIdent()
-                ?: return@webSocketWithCallId call.respond(HttpStatusCode.Forbidden)
+            either {
+                val navIdent = call.getNavIdent()
+                    ?: return@webSocketWithCallId call.respond(HttpStatusCode.Forbidden)
 
-            val conversationId = call.conversationId()
-                ?: return@webSocketWithCallId call.respond(HttpStatusCode.BadRequest)
+                val conversationId = call.conversationId()
+                    ?: return@webSocketWithCallId call.respond(HttpStatusCode.BadRequest)
 
-            val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
-                ?: return@webSocketWithCallId call.respond(HttpStatusCode.NotFound)
+                val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
+                    .onLeft { call.respondError(it) }.bind()
 
-            MetricRegister.websocketConnections.inc()
-            val messageFlow = WebsocketFlowHandler.getFlow(conversationId)
-            val job = launch(Dispatchers.IO) {
-                existingMessages.forEach { message ->
-                    sendSerialized<ConversationEvent>(
-                        ConversationEvent.NewMessage(
-                            id = message.id,
-                            message = message
-                        )
-                    )
-                }
-
-                messageFlow
-                    .asSharedFlow()
-                    .runningFold(none<Message>()) { prevMessage, message ->
-                        prevMessage.onNone {
-                            sendSerialized<ConversationEvent>(
-                                ConversationEvent.NewMessage(
-                                    id = message.id,
-                                    message = message
-                                )
+                MetricRegister.websocketConnections.inc()
+                val messageFlow = WebsocketFlowHandler.getFlow(conversationId)
+                val job = launch(Dispatchers.IO) {
+                    existingMessages.forEach { message ->
+                        sendSerialized<ConversationEvent>(
+                            ConversationEvent.NewMessage(
+                                id = message.id,
+                                message = message
                             )
-                        }
+                        )
+                    }
 
-                        prevMessage.onSome { prevMessage: Message ->
-                            val diff = prevMessage.diff(message)
-                            if (diff !is ConversationEvent.NoOp) {
-                                sendSerialized<ConversationEvent>(diff)
+                    messageFlow
+                        .asSharedFlow()
+                        .runningFold(none<Message>()) { prevMessage, message ->
+                            prevMessage.onNone {
+                                sendSerialized<ConversationEvent>(
+                                    ConversationEvent.NewMessage(
+                                        id = message.id,
+                                        message = message
+                                    )
+                                )
+                            }
+
+                            prevMessage.onSome { prevMessage: Message ->
+                                val diff = prevMessage.diff(message)
+                                if (diff !is ConversationEvent.NoOp) {
+                                    sendSerialized<ConversationEvent>(diff)
+                                }
+                            }
+
+                            message.some()
+                        }
+                        .collect { /* no-op */ }
+                }
+
+                runCatching {
+                    while (true) {
+                        val conversationAction = receiveDeserialized<ConversationAction>()
+
+                        when (conversationAction) {
+                            is ConversationAction.NewMessageAction -> {
+                                val newMessage = conversationAction.getData()
+                                sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
+                                    .onRight { messageFlow.emitAll(it) }
+                                    .onLeft { error ->
+                                        logger.error { "An error occured when sending message: $error" }
+                                    }
+                            }
+
+                            is ConversationAction.UpdateMessageAction -> {
+                                val updateMessage = conversationAction.getData()
+                                logger.debug { "Updating message ${updateMessage.id}" }
+                            }
+
+                            is ConversationAction.HeartbeatAction -> {
+                                if (conversationAction.isPing()) {
+                                    logger.trace { "ping pong" }
+                                    send("pong")
+                                } else {
+                                    logger.warn { "Unknown heartbeat message received ${conversationAction.getData()}" }
+                                }
+                            }
+
+                            else -> {
+                                logger.warn { "Unknown action type: ${conversationAction.type}" }
                             }
                         }
-
-                        message.some()
                     }
-                    .collect { /* no-op */ }
-            }
+                }.onFailure { exception ->
+                    when (exception) {
+                        is ClosedReceiveChannelException ->
+                            logger.info { "Closing websocket connection for conversation $conversationId" }
 
-            runCatching {
-                while (true) {
-                    val conversationAction = receiveDeserialized<ConversationAction>()
-
-                    when (conversationAction) {
-                        is ConversationAction.NewMessageAction -> {
-                            val newMessage = conversationAction.getData()
-                            sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
-                                .collect { messageFlow.emit(it) }
-                        }
-
-                        is ConversationAction.UpdateMessageAction -> {
-                            val updateMessage = conversationAction.getData()
-                            logger.debug { "Updating message ${updateMessage.id}" }
-                        }
-
-                        is ConversationAction.HeartbeatAction -> {
-                            if (conversationAction.isPing()) {
-                                logger.trace { "ping pong" }
-                                send("pong")
-                            } else {
-                                logger.warn { "Unknown heartbeat message received ${conversationAction.getData()}" }
-                            }
-                        }
-
-                        else -> {
-                            logger.warn { "Unknown action type: ${conversationAction.type}" }
-                        }
+                        else ->
+                            logger.error(exception) { "Error when listening for websocket actions" }
                     }
+                }.also {
+                    job.cancel()
+                    close()
+                    WebsocketFlowHandler.removeFlow(conversationId)
+                    MetricRegister.websocketConnections.dec()
                 }
-            }.onFailure { exception ->
-                when (exception) {
-                    is ClosedReceiveChannelException ->
-                        logger.info { "Closing websocket connection for conversation $conversationId" }
-
-                    else ->
-                        logger.error(exception) { "Error when listening for websocket actions" }
-                }
-            }.also {
-                job.cancel()
-                close()
-                WebsocketFlowHandler.removeFlow(conversationId)
-                MetricRegister.websocketConnections.dec()
             }
         }
     }

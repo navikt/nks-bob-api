@@ -1,6 +1,9 @@
 package no.nav.nks_ai.core.user
 
+import arrow.core.Either
+import arrow.core.raise.either
 import kotlinx.datetime.LocalDateTime
+import no.nav.nks_ai.app.DomainError
 import no.nav.nks_ai.app.bcryptVerified
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
@@ -35,24 +38,32 @@ internal fun UserConfigDAO.toModel() = UserConfig(
 )
 
 object UserConfigRepo {
-    suspend fun getUserConfig(navIdent: NavIdent): UserConfig? =
+    suspend fun getUserConfig(navIdent: NavIdent): Either<DomainError, UserConfig> =
         suspendTransaction {
-            UserConfigDAO.findByNavIdent(navIdent)?.toModel()
+            either {
+                UserConfigDAO.findByNavIdent(navIdent)?.toModel()
+                    ?: raise(DomainError.UserConfigNotFound())
+            }
         }
 
-    suspend fun addConfig(config: UserConfig, navIdent: NavIdent): UserConfig =
+    suspend fun addConfig(config: UserConfig, navIdent: NavIdent): Either<DomainError, UserConfig> =
         suspendTransaction {
-            UserConfigDAO.new {
-                this.navIdent = navIdent.hash
-                this.showStartInfo = config.showStartInfo
-            }.toModel()
+            either {
+                UserConfigDAO.new {
+                    this.navIdent = navIdent.hash
+                    this.showStartInfo = config.showStartInfo
+                }.toModel()
+            }
         }
 
-    suspend fun updateUserConfig(config: UserConfig, navIdent: NavIdent): UserConfig? =
+    suspend fun updateUserConfig(config: UserConfig, navIdent: NavIdent): Either<DomainError, UserConfig> =
         suspendTransaction {
-            UserConfigDAO
-                .findByNavIdent(navIdent)
-                ?.apply { showStartInfo = config.showStartInfo }
-                ?.toModel()
+            either {
+                UserConfigDAO
+                    .findByNavIdent(navIdent)
+                    ?.apply { showStartInfo = config.showStartInfo }
+                    ?.toModel()
+                    ?: raise(DomainError.UserConfigNotFound())
+            }
         }
 }

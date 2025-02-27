@@ -4,7 +4,6 @@ import com.auth0.jwk.JwkProviderBuilder
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.authentication
@@ -61,7 +60,7 @@ fun Application.configureSecurity() {
 
             challenge { _, _ ->
                 logger.debug { "Jwt is invalid" }
-                call.respondError(unauthorized)
+                call.respondError(ApplicationError.Unauthorized())
             }
         }
         jwt("AdminUser") {
@@ -78,7 +77,7 @@ fun Application.configureSecurity() {
 
             challenge { _, _ ->
                 logger.debug { "Admin jwt is invalid" }
-                call.respondError(unauthorized)
+                call.respondError(ApplicationError.Unauthorized())
             }
         }
     }
@@ -95,9 +94,3 @@ fun Application.configureSecurity() {
         allowHeader(HttpHeaders.Authorization)
     }
 }
-
-private val unauthorized = ApplicationError(
-    code = HttpStatusCode.Unauthorized,
-    message = "Unauthorized",
-    description = "This user does not have access to this resource"
-)
