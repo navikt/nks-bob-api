@@ -1,5 +1,8 @@
 package no.nav.nks_ai.core.admin
 
+import arrow.core.Either
+import arrow.core.raise.either
+import no.nav.nks_ai.app.DomainError
 import no.nav.nks_ai.core.conversation.Conversation
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationRepo
@@ -21,19 +24,21 @@ class AdminService() {
     suspend fun getAllConversations(navIdent: NavIdent): List<Conversation> =
         ConversationRepo.getAllConversations(navIdent)
 
-    suspend fun getConversationSummary(conversationId: ConversationId): ConversationSummary? {
-        val conversation = ConversationRepo.getConversation(conversationId) ?: return null
-        val messages = MessageRepo.getMessagesByConversation(conversationId).sortedBy { it.createdAt }
+    suspend fun getConversationSummary(conversationId: ConversationId): Either<DomainError, ConversationSummary> =
+        either {
+            val conversation = ConversationRepo.getConversation(conversationId).bind()
+            val messages = MessageRepo.getMessagesByConversation(conversationId).sortedBy { it.createdAt }
 
-        return ConversationSummary.from(conversation, messages)
-    }
+            ConversationSummary.from(conversation, messages)
+        }
 
     suspend fun getConversationMessages(conversationId: ConversationId): List<Message> =
         MessageRepo.getMessagesByConversation(conversationId).sortedBy { it.createdAt }
 
-    suspend fun getConversationFromMessageId(messageId: MessageId): Conversation? =
-        MessageRepo.getConversationId(messageId)
-            ?.let { conversationId ->
-                ConversationRepo.getConversation(conversationId)
-            }
+    suspend fun getConversationFromMessageId(messageId: MessageId): Either<DomainError, Conversation> =
+        either {
+            val conversationId = MessageRepo.getConversationId(messageId).bind()
+
+            ConversationRepo.getConversation(conversationId).bind()
+        }
 }

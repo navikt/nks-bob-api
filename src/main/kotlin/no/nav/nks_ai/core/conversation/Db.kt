@@ -1,6 +1,9 @@
 package no.nav.nks_ai.core.conversation
 
+import arrow.core.raise.either
 import kotlinx.datetime.LocalDateTime
+import no.nav.nks_ai.app.DomainError
+import no.nav.nks_ai.app.DomainResult
 import no.nav.nks_ai.app.bcryptVerified
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
@@ -49,12 +52,14 @@ private fun ConversationDAO.toModel() = Conversation(
 )
 
 object ConversationRepo {
-    suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): Conversation =
+    suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): DomainResult<Conversation> =
         suspendTransaction {
-            ConversationDAO.new {
-                title = conversation.title.truncate(255)
-                owner = navIdent.hash
-            }.toModel()
+            either {
+                ConversationDAO.new {
+                    title = conversation.title.truncate(255)
+                    owner = navIdent.hash
+                }.toModel()
+            }
         }
 
     suspend fun deleteConversation(conversationId: ConversationId, navIdent: NavIdent): Unit =
@@ -67,19 +72,25 @@ object ConversationRepo {
             ConversationDAO.findAllByNavIdent(navIdent).forEach { it.delete() }
         }
 
-    suspend fun getConversation(conversationId: ConversationId, navIdent: NavIdent): Conversation? =
+    suspend fun getConversation(conversationId: ConversationId, navIdent: NavIdent): DomainResult<Conversation> =
         suspendTransaction {
-            ConversationDAO.findByIdAndNavIdent(conversationId, navIdent)
-                ?.toModel()
+            either {
+                ConversationDAO.findByIdAndNavIdent(conversationId, navIdent)
+                    ?.toModel()
+                    ?: raise(DomainError.ConversationNotFound(conversationId))
+            }
         }
 
     /**
      * Warning: Use with caution, intended for the admin API. Will potentially expose a conversation from another user.
      */
-    suspend fun getConversation(conversationId: ConversationId): Conversation? =
+    suspend fun getConversation(conversationId: ConversationId): DomainResult<Conversation> =
         suspendTransaction {
-            ConversationDAO.findById(conversationId.value)
-                ?.toModel()
+            either {
+                ConversationDAO.findById(conversationId.value)
+                    ?.toModel()
+                    ?: raise(DomainError.ConversationNotFound(conversationId))
+            }
         }
 
     suspend fun getAllConversations(navIdent: NavIdent): List<Conversation> =
@@ -92,13 +103,16 @@ object ConversationRepo {
         id: ConversationId,
         navIdent: NavIdent,
         conversation: UpdateConversation
-    ): Conversation? =
+    ): DomainResult<Conversation> =
         suspendTransaction {
-            ConversationDAO
-                .findByIdAndNavIdent(id, navIdent)
-                ?.apply {
-                    title = conversation.title
-                }?.toModel()
+            either {
+                ConversationDAO
+                    .findByIdAndNavIdent(id, navIdent)
+                    ?.apply {
+                        title = conversation.title
+                    }?.toModel()
+                    ?: raise(DomainError.ConversationNotFound(id))
+            }
         }
 
     suspend fun deleteConversations(

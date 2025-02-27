@@ -8,6 +8,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.nks_ai.app.getNavIdent
+import no.nav.nks_ai.app.respondError
 
 fun Route.userConfigRoutes(userConfigService: UserConfigService) {
     route("/user/config") {
@@ -25,8 +26,9 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
             val navIdent = call.getNavIdent()
                 ?: return@get call.respond(HttpStatusCode.Forbidden)
 
-            val config = userConfigService.getOrCreateUserConfig(navIdent)
-            call.respond(HttpStatusCode.OK, config)
+            userConfigService.getOrCreateUserConfig(navIdent)
+                .onLeft { error -> call.respondError(error) }
+                .onRight { config -> call.respond(HttpStatusCode.OK, config) }
         }
         put({
             description = "Update the current users config."
@@ -50,10 +52,9 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
             val userConfig = call.receiveNullable<UserConfig>()
                 ?: return@put call.respond(HttpStatusCode.BadRequest)
 
-            val updatedUserConfig = userConfigService.updateUserConfig(userConfig, navIdent)
-                ?: return@put call.respond(HttpStatusCode.NotFound)
-
-            call.respond(HttpStatusCode.OK, updatedUserConfig)
+            userConfigService.updateUserConfig(userConfig, navIdent)
+                .onLeft { error -> call.respondError(error) }
+                .onRight { config -> call.respond(HttpStatusCode.OK, config) }
         }
     }
 }

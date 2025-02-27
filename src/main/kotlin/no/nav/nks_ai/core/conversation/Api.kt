@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.conversation
 
-import arrow.core.raise.fold
+import arrow.core.raise.either
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktorswaggerui.dsl.routing.delete
 import io.github.smiley4.ktorswaggerui.dsl.routing.get
 import io.github.smiley4.ktorswaggerui.dsl.routing.post
@@ -14,9 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.launch
-import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.MetricRegister
-import no.nav.nks_ai.app.fromThrowable
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.core.SendMessageService
@@ -25,6 +24,8 @@ import no.nav.nks_ai.core.message.Feedback
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.NewFeedback
 import no.nav.nks_ai.core.message.NewMessage
+
+private val logger = KotlinLogging.logger { }
 
 fun Route.conversationRoutes(
     conversationService: ConversationService,
@@ -71,22 +72,26 @@ fun Route.conversationRoutes(
                 val navIdent = call.getNavIdent()
                     ?: return@coroutineScope call.respond(HttpStatusCode.Forbidden)
 
-                val conversation = conversationService.addConversation(navIdent, newConversation)
-                val conversationId = conversation.id
+                either {
+                    val conversation = conversationService.addConversation(navIdent, newConversation).bind()
+                    val conversationId = conversation.id
 
-                if (newConversation.initialMessage != null) {
-                    launch(Dispatchers.IO) {
-                        WebsocketFlowHandler.getFlow(conversationId).emitAll(
+                    if (newConversation.initialMessage != null) {
+                        launch(Dispatchers.IO) {
+                            val flow = WebsocketFlowHandler.getFlow(conversationId)
                             sendMessageService.sendMessageStream(
                                 message = newConversation.initialMessage,
                                 conversationId = conversationId,
                                 navIdent = navIdent
-                            )
-                        )
+                            ).onRight { flow.emitAll(it) }
+                                .onLeft { error ->
+                                    logger.error { "An error occured when sending message: $error" }
+                                }
+                        }
                     }
-                }
 
-                call.respond(HttpStatusCode.Created, conversation)
+                    call.respond(HttpStatusCode.Created, conversation)
+                }.onLeft { call.respondError(it) }
             }
         }
         get("/{id}", {
@@ -111,12 +116,9 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@get call.respond(HttpStatusCode.Forbidden)
 
-            fold(
-                block = { conversationService.getConversation(conversationId, navIdent) },
-                transform = { call.respond(HttpStatusCode.OK, it) },
-                recover = { error: ConversationError -> call.respondError(error) },
-                catch = { call.respondError(ApplicationError.fromThrowable(it)) }
-            )
+            conversationService.getConversation(conversationId, navIdent)
+                .onLeft { call.respondError(it) }
+                .onRight { call.respond(HttpStatusCode.OK, it) }
         }
         delete("/{id}", {
             description = "Delete a conversation with the given ID"
@@ -168,12 +170,9 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@put call.respond(HttpStatusCode.Forbidden)
 
-            val updatedConversation = conversationService.updateConversation(conversationId, navIdent, conversation)
-            if (updatedConversation == null) {
-                return@put call.respond(HttpStatusCode.NotFound)
-            }
-
-            call.respond(updatedConversation)
+            conversationService.updateConversation(conversationId, navIdent, conversation)
+                .onLeft { error -> call.respondError(error) }
+                .onRight { updatedConversation -> call.respond(updatedConversation) }
         }
         get("/{id}/messages", {
             description = "Get all messages for a given conversation"
@@ -198,8 +197,8 @@ fun Route.conversationRoutes(
                 ?: return@get call.respond(HttpStatusCode.Forbidden)
 
             conversationService.getConversationMessages(conversationId, navIdent)
-                ?.let { call.respond(it) }
-                ?: return@get call.respond(HttpStatusCode.NotFound)
+                .onLeft { error -> call.respondError(error) }
+                .onRight { call.respond(it) }
         }
         post("/{id}/messages", {
             description = "Add a new message to the conversation"
@@ -228,13 +227,16 @@ fun Route.conversationRoutes(
 
             coroutineScope {
                 launch(Dispatchers.IO) {
-                    WebsocketFlowHandler.getFlow(conversationId).emitAll(
-                        sendMessageService.sendMessageStream(
-                            message = newMessage,
-                            conversationId = conversationId,
-                            navIdent = navIdent
-                        )
-                    )
+                    val flow = WebsocketFlowHandler.getFlow(conversationId)
+
+                    sendMessageService.sendMessageStream(
+                        message = newMessage,
+                        conversationId = conversationId,
+                        navIdent = navIdent
+                    ).onRight { flow.emitAll(it) }
+                        .onLeft { error ->
+                            logger.error { "An error occured when sending message: $error" }
+                        }
                 }
 
                 call.respond(HttpStatusCode.Accepted)
@@ -268,20 +270,17 @@ fun Route.conversationRoutes(
             val feedback = call.receiveNullable<NewFeedback>()
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
 
-            fold(
-                block = { conversationService.getConversation(conversationId, navIdent) },
-                recover = { error: ConversationError -> call.respondError(error) },
-                catch = { call.respondError(ApplicationError.fromThrowable(it)) },
-                transform = {
-                    // Feedback won't be saved, just register the metrics.
-                    when (feedback.liked) {
-                        true -> MetricRegister.conversationsLiked.inc()
-                        false -> MetricRegister.conversationsDisliked.inc()
-                    }
+            either {
+                conversationService.getConversation(conversationId, navIdent).bind()
 
-                    call.respond(HttpStatusCode.Created, Feedback(feedback.liked))
-                },
-            )
+                // Feedback won't be saved, just register the metrics.
+                when (feedback.liked) {
+                    true -> MetricRegister.conversationsLiked.inc()
+                    false -> MetricRegister.conversationsDisliked.inc()
+                }
+
+                call.respond(HttpStatusCode.Created, Feedback(feedback.liked))
+            }.onLeft { call.respondError(it) }
         }
     }
 }

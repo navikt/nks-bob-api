@@ -1,11 +1,13 @@
 package no.nav.nks_ai.core.admin
 
+import arrow.core.raise.either
 import io.github.smiley4.ktorswaggerui.dsl.routing.delete
 import io.github.smiley4.ktorswaggerui.dsl.routing.get
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.core.conversation.Conversation
 import no.nav.nks_ai.core.conversation.ConversationSummary
 import no.nav.nks_ai.core.conversation.conversationId
@@ -103,10 +105,9 @@ fun Route.adminRoutes(adminService: AdminService) {
                 val conversationId = call.conversationId()
                     ?: return@get call.respond(HttpStatusCode.BadRequest)
 
-                val conversationSummary = adminService.getConversationSummary(conversationId)
-                    ?: return@get call.respond(HttpStatusCode.NotFound)
-
-                call.respond(conversationSummary)
+                adminService.getConversationSummary(conversationId)
+                    .onLeft { call.respondError(it) }
+                    .onRight { summary -> call.respond(HttpStatusCode.OK, summary) }
             }
             get("/{id}/messages", {
                 description = "Get all messages for the given conversation ID"
@@ -151,10 +152,9 @@ fun Route.adminRoutes(adminService: AdminService) {
                 val messageId = call.messageId()
                     ?: return@get call.respond(HttpStatusCode.BadRequest)
 
-                val conversation = adminService.getConversationFromMessageId(messageId)
-                    ?: return@get call.respond(HttpStatusCode.NotFound)
-
-                call.respond(conversation)
+                adminService.getConversationFromMessageId(messageId)
+                    .onLeft { call.respondError(it) }
+                    .onRight { conversation -> call.respond(HttpStatusCode.OK, conversation) }
             }
             get("/{id}/conversation/summary", {
                 description = "Get conversation summary for the given message ID"
@@ -172,16 +172,17 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }) {
-                val messageId = call.messageId()
-                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+                either {
+                    val messageId = call.messageId()
+                        ?: return@get call.respond(HttpStatusCode.BadRequest)
 
-                val conversation = adminService.getConversationFromMessageId(messageId)
-                    ?: return@get call.respond(HttpStatusCode.NotFound)
+                    val conversation = adminService.getConversationFromMessageId(messageId)
+                        .onLeft { call.respondError(it) }.bind()
 
-                val conversationSummary = adminService.getConversationSummary(conversation.id)
-                    ?: return@get call.respond(HttpStatusCode.NotFound)
-
-                call.respond(conversationSummary)
+                    adminService.getConversationSummary(conversation.id)
+                        .onLeft { call.respondError(it) }
+                        .onRight { summary -> call.respond(HttpStatusCode.OK, summary) }
+                }
             }
         }
     }

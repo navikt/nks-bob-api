@@ -1,6 +1,5 @@
 package no.nav.nks_ai.core.conversation
 
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Contextual
@@ -11,7 +10,6 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageRole
 import no.nav.nks_ai.core.message.NewMessage
@@ -91,15 +89,3 @@ data class NewConversation(
 data class UpdateConversation(
     val title: String,
 )
-
-sealed class ConversationError(
-    override val code: HttpStatusCode,
-    override val message: String,
-    override val description: String
-) : ApplicationError(code, message, description) {
-    class ConversationNotFound(id: ConversationId) : ConversationError(
-        HttpStatusCode.NotFound,
-        "Conversation not found",
-        "Conversation with id $id not found"
-    )
-}
