@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.right
+import com.google.cloud.NoCredentials
 import com.google.cloud.bigquery.BigQuery
 import com.google.cloud.bigquery.BigQueryException
 import com.google.cloud.bigquery.BigQueryOptions
@@ -22,11 +23,22 @@ private val logger = KotlinLogging.logger {}
 class BigQueryClient {
     private val project = Config.bigQuery.projectId
     private val bigQuery: BigQuery =
-        BigQueryOptions
-            .newBuilder()
-            .setProjectId(project)
-            .build()
-            .service
+        if (Config.nais.isRunningOnNais) {
+            BigQueryOptions
+                .newBuilder()
+                .setProjectId(project)
+                .build()
+                .service
+        } else {
+            // separate config for local dev.
+            BigQueryOptions
+                .newBuilder()
+                .setProjectId(project)
+                .setHost("http://localhost:9050")
+                .setCredentials(NoCredentials.getInstance())
+                .build()
+                .service
+        }
 
     fun insert(
         dataset: String,
