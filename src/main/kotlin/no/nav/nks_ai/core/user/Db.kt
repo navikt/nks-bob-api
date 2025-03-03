@@ -19,6 +19,7 @@ internal object UserConfigs : UUIDTable("user_configs") {
     val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
     val showStartInfo = bool("show_start_info").default(true)
     val showTutorial = bool("show_tutorial").default(true)
+    val showNewConceptInfo = bool("show_new_concept_info").default(false)
 }
 
 internal class UserConfigDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -28,6 +29,7 @@ internal class UserConfigDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var createdAt by UserConfigs.createdAt
     var showStartInfo by UserConfigs.showStartInfo
     var showTutorial by UserConfigs.showTutorial
+    var showNewConceptInfo by UserConfigs.showNewConceptInfo
 }
 
 internal fun UserConfigDAO.Companion.findByNavIdent(navIdent: NavIdent): UserConfigDAO? =
@@ -38,6 +40,7 @@ internal fun UserConfigDAO.Companion.findByNavIdent(navIdent: NavIdent): UserCon
 internal fun UserConfigDAO.toModel() = UserConfig(
     showStartInfo = showStartInfo,
     showTutorial = showTutorial,
+    showNewConceptInfo = showNewConceptInfo,
 )
 
 object UserConfigRepo {
@@ -55,6 +58,8 @@ object UserConfigRepo {
                 UserConfigDAO.new {
                     this.navIdent = navIdent.hash
                     this.showStartInfo = config.showStartInfo
+                    this.showTutorial = config.showTutorial
+                    this.showNewConceptInfo = config.showNewConceptInfo
                 }.toModel()
             }
         }
@@ -64,7 +69,11 @@ object UserConfigRepo {
             either {
                 UserConfigDAO
                     .findByNavIdent(navIdent)
-                    ?.apply { showStartInfo = config.showStartInfo }
+                    ?.apply {
+                        showStartInfo = config.showStartInfo
+                        showTutorial = config.showTutorial
+                        showNewConceptInfo = config.showNewConceptInfo
+                    }
                     ?.toModel()
                     ?: raise(DomainError.UserConfigNotFound())
             }

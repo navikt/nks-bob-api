@@ -27,11 +27,13 @@ class NavIdent(value: String) {
 data class UserConfig(
     val showStartInfo: Boolean,
     val showTutorial: Boolean,
+    val showNewConceptInfo: Boolean,
 )
 
 private val defaultUserConfig = UserConfig(
     showStartInfo = true,
     showTutorial = true,
+    showNewConceptInfo = false,
 )
 
 private typealias NavIdentCacheKey = PlaintextValue
