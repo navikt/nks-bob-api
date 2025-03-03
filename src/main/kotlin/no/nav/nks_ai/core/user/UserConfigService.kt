@@ -1,10 +1,12 @@
 package no.nav.nks_ai.core.user
 
 import arrow.core.Either
+import arrow.core.Option
 import arrow.core.getOrElse
 import arrow.core.raise.either
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.sksamuel.aedile.core.cacheBuilder
+import com.typesafe.config.Optional
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.app.DomainError
 import kotlin.time.Duration.Companion.hours
@@ -28,6 +30,13 @@ data class UserConfig(
     val showStartInfo: Boolean,
     val showTutorial: Boolean,
     val showNewConceptInfo: Boolean,
+)
+
+@Serializable
+data class PatchUserConfig(
+    @Optional val showStartInfo: Boolean?,
+    @Optional val showTutorial: Boolean?,
+    @Optional val showNewConceptInfo: Boolean?,
 )
 
 private val defaultUserConfig = UserConfig(
@@ -56,5 +65,15 @@ class UserConfigService {
     suspend fun updateUserConfig(userConfig: UserConfig, navIdent: NavIdent): Either<DomainError, UserConfig> {
         userConfigCache.invalidate(navIdent.plaintext)
         return UserConfigRepo.updateUserConfig(userConfig, navIdent)
+    }
+
+    suspend fun patchUserConfig(userConfig: PatchUserConfig, navIdent: NavIdent): Either<DomainError, UserConfig> {
+        userConfigCache.invalidate(navIdent.plaintext)
+        return UserConfigRepo.patchUserConfig(
+            navIdent = navIdent,
+            showStartInfo = Option.fromNullable(userConfig.showStartInfo),
+            showTutorial = Option.fromNullable(userConfig.showTutorial),
+            showNewConceptInfo = Option.fromNullable(userConfig.showNewConceptInfo),
+        )
     }
 }

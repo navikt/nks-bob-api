@@ -1,6 +1,8 @@
 package no.nav.nks_ai.core.user
 
 import arrow.core.Either
+import arrow.core.None
+import arrow.core.Option
 import arrow.core.raise.either
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.DomainError
@@ -73,6 +75,26 @@ object UserConfigRepo {
                         showStartInfo = config.showStartInfo
                         showTutorial = config.showTutorial
                         showNewConceptInfo = config.showNewConceptInfo
+                    }
+                    ?.toModel()
+                    ?: raise(DomainError.UserConfigNotFound())
+            }
+        }
+
+    suspend fun patchUserConfig(
+        navIdent: NavIdent,
+        showStartInfo: Option<Boolean> = None,
+        showTutorial: Option<Boolean> = None,
+        showNewConceptInfo: Option<Boolean> = None,
+    ) =
+        suspendTransaction {
+            either {
+                UserConfigDAO
+                    .findByNavIdent(navIdent)
+                    ?.also { entity ->
+                        showStartInfo.onSome { entity.showStartInfo = it }
+                        showTutorial.onSome { entity.showTutorial = it }
+                        showNewConceptInfo.onSome { entity.showNewConceptInfo = it }
                     }
                     ?.toModel()
                     ?: raise(DomainError.UserConfigNotFound())

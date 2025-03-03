@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.user
 
 import io.github.smiley4.ktorswaggerui.dsl.routing.get
+import io.github.smiley4.ktorswaggerui.dsl.routing.patch
 import io.github.smiley4.ktorswaggerui.dsl.routing.put
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receiveNullable
@@ -27,6 +28,32 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
                 ?: return@get call.respond(HttpStatusCode.Forbidden)
 
             userConfigService.getOrCreateUserConfig(navIdent)
+                .onLeft { error -> call.respondError(error) }
+                .onRight { config -> call.respond(HttpStatusCode.OK, config) }
+        }
+        patch({
+            description = "Patch the current users config."
+            request {
+                body<PatchUserConfig> {
+                    description = "The patched user config"
+                }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    description = "The operation was successful"
+                    body<UserConfig> {
+                        description = "The updated user config"
+                    }
+                }
+            }
+        }) {
+            val navIdent = call.getNavIdent()
+                ?: return@patch call.respond(HttpStatusCode.Forbidden)
+
+            val userConfig = call.receiveNullable<PatchUserConfig>()
+                ?: return@patch call.respond(HttpStatusCode.BadRequest)
+
+            userConfigService.patchUserConfig(userConfig, navIdent)
                 .onLeft { error -> call.respondError(error) }
                 .onRight { config -> call.respond(HttpStatusCode.OK, config) }
         }
