@@ -6,7 +6,6 @@ import arrow.core.getOrElse
 import arrow.core.raise.either
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.sksamuel.aedile.core.cacheBuilder
-import com.typesafe.config.Optional
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.app.DomainError
 import kotlin.time.Duration.Companion.hours
@@ -34,9 +33,9 @@ data class UserConfig(
 
 @Serializable
 data class PatchUserConfig(
-    @Optional val showStartInfo: Boolean?,
-    @Optional val showTutorial: Boolean?,
-    @Optional val showNewConceptInfo: Boolean?,
+    val showStartInfo: Boolean? = null,
+    val showTutorial: Boolean? = null,
+    val showNewConceptInfo: Boolean? = null,
 )
 
 private val defaultUserConfig = UserConfig(
