@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.user
 
 import arrow.core.Either
+import arrow.core.Option
 import arrow.core.getOrElse
 import arrow.core.raise.either
 import at.favre.lib.crypto.bcrypt.BCrypt
@@ -25,11 +26,22 @@ class NavIdent(value: String) {
 
 @Serializable
 data class UserConfig(
-    val showStartInfo: Boolean
+    val showStartInfo: Boolean,
+    val showTutorial: Boolean,
+    val showNewConceptInfo: Boolean,
+)
+
+@Serializable
+data class PatchUserConfig(
+    val showStartInfo: Boolean? = null,
+    val showTutorial: Boolean? = null,
+    val showNewConceptInfo: Boolean? = null,
 )
 
 private val defaultUserConfig = UserConfig(
-    showStartInfo = true
+    showStartInfo = true,
+    showTutorial = true,
+    showNewConceptInfo = false,
 )
 
 private typealias NavIdentCacheKey = PlaintextValue
@@ -52,5 +64,15 @@ class UserConfigService {
     suspend fun updateUserConfig(userConfig: UserConfig, navIdent: NavIdent): Either<DomainError, UserConfig> {
         userConfigCache.invalidate(navIdent.plaintext)
         return UserConfigRepo.updateUserConfig(userConfig, navIdent)
+    }
+
+    suspend fun patchUserConfig(userConfig: PatchUserConfig, navIdent: NavIdent): Either<DomainError, UserConfig> {
+        userConfigCache.invalidate(navIdent.plaintext)
+        return UserConfigRepo.patchUserConfig(
+            navIdent = navIdent,
+            showStartInfo = Option.fromNullable(userConfig.showStartInfo),
+            showTutorial = Option.fromNullable(userConfig.showTutorial),
+            showNewConceptInfo = Option.fromNullable(userConfig.showNewConceptInfo),
+        )
     }
 }
