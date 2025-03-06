@@ -9,6 +9,7 @@ import io.ktor.client.HttpClient
 import no.nav.nks_ai.app.isLeader
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.MessageService
+import kotlin.collections.map
 
 private val logger = KotlinLogging.logger { }
 
@@ -31,20 +32,7 @@ class UploadStarredMessagesJob(
             trigger = trigger,
             callback = {
                 if (isLeader(httpClient)) {
-                    val messages: List<MessageId> = messageService.getStarredMessagesNotUploaded().map { it.id }
-                    logger.info { "Found ${messages.size} starred messages" }
-
-                    val (errors, uploadedMessages) = messages.map { messageId ->
-                        markMessageStarredService.markStarred(messageId)
-                    }.separateEither()
-                    logger.info { "Uploaded ${uploadedMessages.size} starred messages" }
-
-                    if (errors.isNotEmpty()) {
-                        val errorDetails = errors.map { it.message }
-                            .distinct().joinToString(", ")
-
-                        logger.error { "Error when uploading ${errors.size} starred messages: $errorDetails" }
-                    }
+                    synchronizeStarredMessages()
                 } else {
                     logger.info {
                         "This instance is not leader. Scheduled job will not be performed"
@@ -55,5 +43,25 @@ class UploadStarredMessagesJob(
 
         scheduler.addJob(job)
         scheduler.start()
+    }
+
+    private suspend fun synchronizeStarredMessages() {
+        val messages: List<MessageId> = messageService.getStarredMessagesNotUploaded().map { it.id }
+        logger.info { "Found ${messages.size} starred messages" }
+
+        val (errors, uploadedMessages) = messages.map { messageId ->
+            markMessageStarredService.markStarred(messageId)
+        }.separateEither()
+
+        if (uploadedMessages.isNotEmpty()) {
+            logger.info { "Uploaded ${uploadedMessages.size} starred messages" }
+        }
+
+        if (errors.isNotEmpty()) {
+            val errorDetails = errors.map { "${it.message}: ${it.description}" }
+                .distinct().joinToString(", ")
+
+            logger.error { "Error when uploading ${errors.size} starred messages: $errorDetails" }
+        }
     }
 }

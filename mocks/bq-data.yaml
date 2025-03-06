@@ -1,0 +1,25 @@
+projects:
+  - id: local
+    datasets:
+      - id: testgrunnlag
+        tables:
+          - id: stjernemarkerte_svar_local
+            columns:
+              - name: user_question
+                type: STRING
+              - name: contextualized_question
+                type: STRING
+              - name: answer_content
+                type: STRING
+              - name: context
+                type: JSON
+              - name: citations
+                type: STRUCT
+                mode: repeated
+                fields:
+                  - name: source_id
+                    type: STRING
+                  - name: text
+                    type: STRING
+              - name: created_at
+                type: TIMESTAMP

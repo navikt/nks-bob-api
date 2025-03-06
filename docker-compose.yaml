@@ -19,3 +19,14 @@ services:
       - type: bind
         source: ./mocks
         target: /config
+  bigQuery:
+    image: ghcr.io/goccy/bigquery-emulator:latest
+    ports:
+      - "9050:9050"
+      - "9060:9060"
+    volumes:
+      - type: bind
+        source: ./mocks
+        target: /data
+    command: |
+      --project=local --data-from-yaml=/data/bq-data.yaml
