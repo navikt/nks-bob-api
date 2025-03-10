@@ -21,6 +21,7 @@ services:
         target: /config
   bigQuery:
     image: ghcr.io/goccy/bigquery-emulator:latest
+    platform: linux/x86_64
     ports:
       - "9050:9050"
       - "9060:9060"
