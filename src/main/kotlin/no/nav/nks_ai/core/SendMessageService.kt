@@ -76,7 +76,7 @@ class SendMessageService(
                 response.map {
                     when (it) {
                         is KbsStreamResponse.StatusUpdateResponse -> {
-                            send(ConversationEvent.StatusUpdate(it.text))
+                            send(ConversationEvent.StatusUpdate(messageId, it.text))
                         }
 
                         is KbsStreamResponse.KbsChatResponse -> {

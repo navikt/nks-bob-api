@@ -17,6 +17,7 @@ sealed class ConversationEvent() {
     @Serializable
     @SerialName("StatusUpdate")
     data class StatusUpdate(
+        val id: MessageId,
         val content: String,
     ) : ConversationEvent()
 
