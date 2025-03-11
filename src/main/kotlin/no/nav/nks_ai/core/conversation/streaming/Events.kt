@@ -7,12 +7,19 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 import no.nav.nks_ai.core.message.Citation
 import no.nav.nks_ai.core.message.Context
 import no.nav.nks_ai.core.message.Message
+import no.nav.nks_ai.core.message.MessageError
 import no.nav.nks_ai.core.message.MessageId
 
 @OptIn(ExperimentalSerializationApi::class)
 @JsonClassDiscriminator("type")
 @Serializable
-internal sealed class ConversationEvent() {
+sealed class ConversationEvent() {
+    @Serializable
+    @SerialName("StatusUpdate")
+    data class StatusUpdate(
+        val content: String,
+    ) : ConversationEvent()
+
     @Serializable
     @SerialName("NewMessage")
     data class NewMessage(
@@ -49,10 +56,18 @@ internal sealed class ConversationEvent() {
         val pending: Boolean,
     ) : ConversationEvent()
 
+    @Serializable
+    @SerialName("ErrorsUpdated")
+    data class ErrorsUpdated(
+        val id: MessageId,
+        val errors: List<MessageError>,
+    )
+
+    @Serializable
     class NoOp : ConversationEvent()
 }
 
-internal fun Message.diff(message: Message): ConversationEvent {
+fun Message.diff(message: Message): ConversationEvent {
     if (this.id != message.id) {
         return ConversationEvent.NewMessage(
             id = message.id,

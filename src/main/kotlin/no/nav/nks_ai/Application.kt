@@ -39,7 +39,7 @@ import no.nav.nks_ai.core.article.ArticleService
 import no.nav.nks_ai.core.article.articleRoutes
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.conversation.conversationRoutes
-import no.nav.nks_ai.core.conversation.conversationSse
+import no.nav.nks_ai.core.conversation.streaming.conversationSse
 import no.nav.nks_ai.core.conversation.streaming.conversationWebsocket
 import no.nav.nks_ai.core.message.MessageService
 import no.nav.nks_ai.core.message.messageRoutes
@@ -74,7 +74,6 @@ fun Application.module() {
     )
 
     val kbsClient = KbsClient(
-        httpClient = httpClient,
         sseClient = sseClient,
         entraClient = entraClient,
         baseUrl = Config.kbs.url,
@@ -99,7 +98,7 @@ fun Application.module() {
             authenticate {
                 conversationRoutes(conversationService, sendMessageService)
                 conversationWebsocket(conversationService, sendMessageService)
-                conversationSse(conversationService)
+                conversationSse(messageService, sendMessageService)
                 userConfigRoutes(userConfigService)
                 messageRoutes(messageService)
                 articleRoutes(articleService)
