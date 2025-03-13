@@ -119,7 +119,7 @@ class SendMessageService(
                             send(
                                 ConversationEvent.PendingUpdated(
                                     id = message.id,
-//                                    message = it,
+                                    message = it,
                                     pending = false,
                                 )
                             )

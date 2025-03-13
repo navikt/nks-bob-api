@@ -53,6 +53,7 @@ sealed class ConversationEvent() {
     @SerialName("PendingUpdated")
     data class PendingUpdated(
         val id: MessageId,
+        val message: Message,
         val pending: Boolean,
     ) : ConversationEvent()
 
@@ -99,6 +100,7 @@ fun Message.diff(message: Message): ConversationEvent {
     if (this.pending != message.pending) {
         return ConversationEvent.PendingUpdated(
             id = message.id,
+            message = message,
             pending = message.pending,
         )
     }
