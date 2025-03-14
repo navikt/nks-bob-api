@@ -43,12 +43,20 @@ data class KbsChatMessage(
 )
 
 @Serializable
-data class KbsChatResponse(
-    val answer: KbsChatAnswer,
-    val context: List<KbsChatContext>,
-    @SerialName("follow_up") val followUp: List<String> = emptyList(),
-    val question: KbsChatQuestion,
-)
+sealed class KbsStreamResponse() {
+    @Serializable
+    data class KbsChatResponse(
+        val answer: KbsChatAnswer,
+        val context: List<KbsChatContext>,
+        @SerialName("follow_up") val followUp: List<String> = emptyList(),
+        val question: KbsChatQuestion,
+    ) : KbsStreamResponse()
+
+    @Serializable
+    data class StatusUpdateResponse(
+        val text: String
+    ) : KbsStreamResponse()
+}
 
 @Serializable
 data class KbsChatAnswer(

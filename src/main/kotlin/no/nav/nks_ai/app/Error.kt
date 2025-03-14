@@ -57,6 +57,12 @@ sealed class DomainError(
         message = "User config not found",
         description = "User config not found",
     )
+
+    class InvalidInput(message: String?, description: String?) : DomainError(
+        code = HttpStatusCode.InternalServerError,
+        message = message ?: "Invalid input",
+        description = description ?: "Invalid input",
+    )
 }
 
 typealias ApplicationResult<T> = Either<ApplicationError, T>
