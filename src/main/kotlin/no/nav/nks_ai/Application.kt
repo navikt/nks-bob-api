@@ -96,8 +96,8 @@ fun Application.module() {
     routing {
         route("/api/v1") {
             authenticate {
-                conversationRoutes(conversationService, sendMessageService)
-                conversationWebsocket(conversationService, sendMessageService)
+                conversationRoutes(conversationService, messageService, sendMessageService)
+                conversationWebsocket(conversationService, messageService, sendMessageService)
                 conversationSse(messageService, sendMessageService)
                 userConfigRoutes(userConfigService)
                 messageRoutes(messageService)
