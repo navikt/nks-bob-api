@@ -66,6 +66,7 @@ class SendMessageService(
         val initialAnswer = messageService.addEmptyAnswer(conversationId).bind()
         val messageId = initialAnswer.id
 
+        val timer = MetricRegister.answerFinishedReceived()
         channelFlow {
             send(ConversationEvent.NewMessage(messageId, initialAnswer))
 
@@ -131,7 +132,7 @@ class SendMessageService(
                 }
         }.catch { throwable ->
             handleError(throwable, messageId)
-        }
+        }.onCompletion { timer.stop() }
     }
 
     private suspend fun handleError(
