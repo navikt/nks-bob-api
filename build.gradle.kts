@@ -11,10 +11,10 @@ val flyway_version: String by project
 val opentelemetry_version: String by project
 
 plugins {
-    kotlin("jvm") version "2.0.20"
-    id("io.ktor.plugin") version "3.0.2"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.20"
-    id("com.gradleup.shadow") version "8.3.2"
+    kotlin("jvm") version "2.1.20"
+    id("io.ktor.plugin") version "3.1.1"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.20"
+    id("com.gradleup.shadow") version "8.3.6"
 }
 
 group = "no.nav.nks_ai"
@@ -53,14 +53,14 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("com.google.cloud:google-cloud-bigquery:2.47.0")
     implementation("com.h2database:h2:$h2_version")
-    implementation("com.sksamuel.aedile:aedile-core:1.3.1")
+    implementation("com.sksamuel.aedile:aedile-core:2.0.3")
     implementation("com.ucasoft.ktor:ktor-simple-cache-jvm:0.4.3")
     implementation("com.ucasoft.ktor:ktor-simple-memory-cache-jvm:0.4.3")
     implementation("com.zaxxer:HikariCP:$hikari_version")
-    implementation("io.arrow-kt:arrow-core:2.0.0")
-    implementation("io.arrow-kt:arrow-resilience:2.0.0")
+    implementation("io.arrow-kt:arrow-core:2.0.1")
+    implementation("io.arrow-kt:arrow-resilience:2.0.1")
     implementation("io.github.config4k:config4k:0.7.0")
-    implementation("io.github.oshai:kotlin-logging-jvm:7.0.0")
+    implementation("io.github.oshai:kotlin-logging-jvm:7.0.5")
     implementation("io.github.smiley4:ktor-swagger-ui:4.0.0")
     implementation("io.ktor:ktor-client-apache")
     implementation("io.ktor:ktor-client-content-negotiation")
@@ -91,8 +91,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposed_version")
     implementation("org.jetbrains.exposed:exposed-json:$exposed_version")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposed_version")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
     implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:$opentelemetry_version")
     implementation("io.opentelemetry.instrumentation:opentelemetry-ktor-3.0:$opentelemetry_version")
     implementation("org.postgresql:postgresql:$postgres_version")

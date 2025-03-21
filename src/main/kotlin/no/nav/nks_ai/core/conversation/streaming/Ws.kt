@@ -1,8 +1,6 @@
 package no.nav.nks_ai.core.conversation.streaming
 
-import arrow.core.none
 import arrow.core.raise.either
-import arrow.core.some
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.callid.withCallId
 import io.ktor.http.HttpStatusCode
@@ -21,7 +19,7 @@ import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.runningFold
+import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.launch
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.app.getNavIdent
@@ -30,7 +28,7 @@ import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.conversation.conversationId
-import no.nav.nks_ai.core.message.Message
+import no.nav.nks_ai.core.message.MessageService
 import java.util.Collections
 import kotlin.collections.set
 
@@ -51,6 +49,7 @@ fun Route.webSocketWithCallId(
 
 fun Route.conversationWebsocket(
     conversationService: ConversationService,
+    messageService: MessageService,
     sendMessageService: SendMessageService,
 ) {
     route("/conversations") {
@@ -77,28 +76,7 @@ fun Route.conversationWebsocket(
                         )
                     }
 
-                    messageFlow
-                        .asSharedFlow()
-                        .runningFold(none<Message>()) { prevMessage, message ->
-                            prevMessage.onNone {
-                                sendSerialized<ConversationEvent>(
-                                    ConversationEvent.NewMessage(
-                                        id = message.id,
-                                        message = message
-                                    )
-                                )
-                            }
-
-                            prevMessage.onSome { prevMessage: Message ->
-                                val diff = prevMessage.diff(message)
-                                if (diff !is ConversationEvent.NoOp) {
-                                    sendSerialized<ConversationEvent>(diff)
-                                }
-                            }
-
-                            message.some()
-                        }
-                        .collect { /* no-op */ }
+                    messageFlow.asSharedFlow().collect(::sendSerialized)
                 }
 
                 runCatching {
@@ -108,8 +86,12 @@ fun Route.conversationWebsocket(
                         when (conversationAction) {
                             is ConversationAction.NewMessageAction -> {
                                 val newMessage = conversationAction.getData()
-                                sendMessageService.sendMessageStream(newMessage, conversationId, navIdent)
-                                    .onRight { messageFlow.emitAll(it) }
+                                val question =
+                                    messageService.addQuestion(conversationId, navIdent, newMessage.content).bind()
+                                        .also { messageFlow.emit(ConversationEvent.NewMessage(it.id, it)) }
+
+                                sendMessageService.askQuestion(question, conversationId, navIdent)
+                                    .onRight { messageFlow.emitAll(it.filterNot { it is ConversationEvent.NoOp }) }
                                     .onLeft { error ->
                                         logger.error { "An error occured when sending message: $error" }
                                     }
@@ -154,9 +136,10 @@ fun Route.conversationWebsocket(
 }
 
 object WebsocketFlowHandler {
-    private val messageFlows = Collections.synchronizedMap<ConversationId, MutableSharedFlow<Message>>(HashMap())
+    private val messageFlows =
+        Collections.synchronizedMap<ConversationId, MutableSharedFlow<ConversationEvent>>(HashMap())
 
-    fun getFlow(conversationId: ConversationId): MutableSharedFlow<Message> {
+    fun getFlow(conversationId: ConversationId): MutableSharedFlow<ConversationEvent> {
         if (messageFlows[conversationId] == null) {
             logger.debug { "Creating new flow for conversation $conversationId" }
             MetricRegister.sharedMessageFlows.inc()
