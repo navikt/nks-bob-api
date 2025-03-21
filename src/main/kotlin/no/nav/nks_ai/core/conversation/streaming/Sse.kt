@@ -46,7 +46,7 @@ fun Route.conversationSse(
 
             try {
                 MetricRegister.sseConnections.inc()
-                val deferred = async(Dispatchers.IO) {
+                async(Dispatchers.IO) {
                     either {
                         val question = messageService.addQuestion(conversationId, navIdent, newMessage.content).bind()
                         send(messageEvent(ConversationEvent.NewMessage(question.id, question)))
@@ -61,9 +61,7 @@ fun Route.conversationSse(
                     }.onLeft { error ->
                         logger.error { "Error in SSE session: $error" }
                     }
-                }
-
-                deferred.await()
+                }.await()
             } catch (t: Throwable) {
                 logger.error(t) { "Error in SSE session" }
             } finally {
