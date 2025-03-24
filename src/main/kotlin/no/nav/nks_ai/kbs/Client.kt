@@ -12,7 +12,6 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
@@ -52,7 +51,6 @@ class KbsClient(
         }) {
             val timer = MetricRegister.answerFirstContentReceived()
             incoming.collect { response ->
-                delay(10)
                 when (response.event) {
                     "chat_chunk" -> {
                         response.data?.let { data ->
