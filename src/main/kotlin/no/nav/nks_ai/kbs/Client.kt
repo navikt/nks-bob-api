@@ -6,15 +6,12 @@ import arrow.core.right
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.callid.KtorCallIdContextElement
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.plugins.sse.sse
 import io.ktor.client.request.header
-import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
-import io.ktor.http.isSuccess
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
@@ -23,40 +20,22 @@ import kotlinx.serialization.SerializationException
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.defaultJsonConfig
+import no.nav.nks_ai.kbs.KbsStreamResponse.KbsChatResponse
+import no.nav.nks_ai.kbs.KbsStreamResponse.StatusUpdateResponse
 import kotlin.String
 
 private val logger = KotlinLogging.logger {}
 
 class KbsClient(
     private val baseUrl: String,
-    private val httpClient: HttpClient,
     private val sseClient: HttpClient,
     private val entraClient: EntraClient,
     private val scope: String
 ) {
-    suspend fun sendQuestion(
-        question: String,
-        messageHistory: List<KbsChatMessage>,
-    ): KbsChatResponse? {
-        val token = entraClient.getMachineToken(scope)
-
-        val response = httpClient.post("$baseUrl/api/v1/chat") {
-            header(HttpHeaders.Authorization, "Bearer $token")
-            header(HttpHeaders.ContentType, ContentType.Application.Json)
-            setBody(KbsChatRequest(question, messageHistory))
-        }
-
-        if (!response.status.isSuccess()) {
-            logger.error { "Error sending message to KBS: ${response.status.description}" }
-            return null // TODO proper error handling
-        }
-        return response.body()
-    }
-
     fun sendQuestionStream(
         question: String,
         messageHistory: List<KbsChatMessage>,
-    ): Flow<Either<KbsErrorResponse, KbsChatResponse>> = channelFlow {
+    ): Flow<Either<KbsErrorResponse, KbsStreamResponse>> = channelFlow {
         val token = entraClient.getMachineToken(scope)
 
         sseClient.sse("$baseUrl/api/v1/stream/chat", {
@@ -75,13 +54,19 @@ class KbsClient(
                 when (response.event) {
                     "chat_chunk" -> {
                         response.data?.let { data ->
-                            // TODO ignoreUnknownKeys
                             val chatResponse = defaultJsonConfig().decodeFromString<KbsChatResponse>(data)
                             if (timer.isRunning && chatResponse.answer.text.isNotEmpty()) {
                                 timer.stop()
                             }
 
                             send(chatResponse.right())
+                        }
+                    }
+
+                    "status_update" -> {
+                        response.data?.let { data ->
+                            val statusResponse = defaultJsonConfig().decodeFromString<StatusUpdateResponse>(data)
+                            send(statusResponse.right())
                         }
                     }
 
