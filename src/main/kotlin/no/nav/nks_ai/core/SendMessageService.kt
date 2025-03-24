@@ -94,10 +94,10 @@ class SendMessageService(
                             return@runningFold message.some()
                         }
                     }
-                }.onLeft { error ->
-                    handleError(error, messageId)
+                }.onLeft { errorResponse ->
+                    handleError(errorResponse, messageId)
                         .onRight { message ->
-//                            send(ConversationEvent.ErrorsUpdated(messageId, message.errors))
+                            ConversationEvent.ErrorsUpdated(messageId, message.errors)
                         }
                 }
 
@@ -126,7 +126,9 @@ class SendMessageService(
                             )
                         }.onLeft { error ->
                             handleError(error, messageId)
-                            //                                .onRight { send(it)  }
+                                .onRight { message ->
+                                    ConversationEvent.ErrorsUpdated(messageId, message.errors)
+                                }
                         }
                     }
                 }
