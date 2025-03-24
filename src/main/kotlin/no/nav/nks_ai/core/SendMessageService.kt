@@ -105,7 +105,7 @@ class SendMessageService(
             }
                 .conflate()
                 .collectLatest { latest ->
-                    delay(1.seconds)
+                    delay(3.seconds)
                     latest.onSome { message ->
                         messageService.updateAnswer(
                             messageId = message.id,
