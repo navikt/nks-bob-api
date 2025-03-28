@@ -43,8 +43,9 @@ import no.nav.nks_ai.core.conversation.streaming.conversationSse
 import no.nav.nks_ai.core.conversation.streaming.conversationWebsocket
 import no.nav.nks_ai.core.message.MessageService
 import no.nav.nks_ai.core.message.messageRoutes
-import no.nav.nks_ai.core.notification.notificationRoutes
+import no.nav.nks_ai.core.notification.notificationAdminRoutes
 import no.nav.nks_ai.core.notification.notificationService
+import no.nav.nks_ai.core.notification.notificationUserRoutes
 import no.nav.nks_ai.core.user.UserConfigService
 import no.nav.nks_ai.core.user.userConfigRoutes
 import no.nav.nks_ai.kbs.KbsClient
@@ -105,10 +106,11 @@ fun Application.module() {
                 userConfigRoutes(userConfigService)
                 messageRoutes(messageService)
                 articleRoutes(articleService)
-                notificationRoutes(notificationService)
+                notificationUserRoutes(notificationService)
             }
             authenticate("AdminUser") {
                 adminRoutes(adminService)
+                notificationAdminRoutes(notificationService)
             }
         }
         route("/internal") {

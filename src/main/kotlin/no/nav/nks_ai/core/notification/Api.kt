@@ -12,7 +12,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.nks_ai.app.respondError
 
-fun Route.notificationRoutes(notificationService: NotificationService) {
+fun Route.notificationUserRoutes(notificationService: NotificationService) {
     route("/notifications") {
         get({
             description = "Get all notifications"
@@ -29,6 +29,67 @@ fun Route.notificationRoutes(notificationService: NotificationService) {
                 .onRight { notifications -> call.respond(notifications) }
                 .onLeft { error -> call.respondError(error) }
         }
+
+        get("/{id}", {
+            description = "Get a notification"
+            request {
+                pathParameter<String>("id") {
+                    description = "ID of the notification"
+                }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    description = "The operation was successful"
+                    body<Notification> {
+                        description = "The requested notification"
+                    }
+                }
+            }
+        }) {
+            val notificationId = call.notificationId()
+                ?: return@get call.respond(HttpStatusCode.BadRequest)
+
+            notificationService.getNotification(notificationId)
+                .onRight { notification -> call.respond(notification) }
+                .onLeft { error -> call.respondError(error) }
+        }
+    }
+
+    get("/news", {
+        description = "Get all notifications with type News"
+        response {
+            HttpStatusCode.OK to {
+                description = "The operation was successful"
+                body<NewsNotification> {
+                    description = "All news notifications"
+                }
+            }
+        }
+    }) {
+        notificationService.getNews()
+            .onRight { news -> call.respond(news) }
+            .onLeft { error -> call.respondError(error) }
+    }
+
+    get("/errors", {
+        description = "Get all notifications with type Error"
+        response {
+            HttpStatusCode.OK to {
+                description = "The operation was successful"
+                body<ErrorNotification> {
+                    description = "All error notifications"
+                }
+            }
+        }
+    }) {
+        notificationService.getErrors()
+            .onRight { errorNotifications -> call.respond(errorNotifications) }
+            .onLeft { error -> call.respondError(error) }
+    }
+}
+
+fun Route.notificationAdminRoutes(notificationService: NotificationService) {
+    route("/notifications") {
         post({
             description = "Create a notification"
             request {
@@ -54,29 +115,6 @@ fun Route.notificationRoutes(notificationService: NotificationService) {
         }
 
         route("/{id}") {
-            get({
-                description = "Get a notification"
-                request {
-                    pathParameter<String>("id") {
-                        description = "ID of the notification"
-                    }
-                }
-                response {
-                    HttpStatusCode.OK to {
-                        description = "The operation was successful"
-                        body<Notification> {
-                            description = "The requested notification"
-                        }
-                    }
-                }
-            }) {
-                val notificationId = call.notificationId()
-                    ?: return@get call.respond(HttpStatusCode.BadRequest)
-
-                notificationService.getNotification(notificationId)
-                    .onRight { notification -> call.respond(notification) }
-                    .onLeft { error -> call.respondError(error) }
-            }
             put({
                 description = "Update a notification"
                 request {
@@ -153,42 +191,6 @@ fun Route.notificationRoutes(notificationService: NotificationService) {
 
                 notificationService.deleteNotification(notificationId)
                     .onRight { call.respond(HttpStatusCode.NoContent) }
-                    .onLeft { error -> call.respondError(error) }
-            }
-        }
-
-        route("/news") {
-            get({
-                description = "Get all notifications with type News"
-                response {
-                    HttpStatusCode.OK to {
-                        description = "The operation was successful"
-                        body<NewsNotification> {
-                            description = "All news notifications"
-                        }
-                    }
-                }
-            }) {
-                notificationService.getNews()
-                    .onRight { news -> call.respond(news) }
-                    .onLeft { error -> call.respondError(error) }
-            }
-        }
-
-        route("/errors") {
-            get({
-                description = "Get all notifications with type Error"
-                response {
-                    HttpStatusCode.OK to {
-                        description = "The operation was successful"
-                        body<ErrorNotification> {
-                            description = "All error notifications"
-                        }
-                    }
-                }
-            }) {
-                notificationService.getErrors()
-                    .onRight { errorNotifications -> call.respond(errorNotifications) }
                     .onLeft { error -> call.respondError(error) }
             }
         }
