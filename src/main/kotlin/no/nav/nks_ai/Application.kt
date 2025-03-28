@@ -43,6 +43,8 @@ import no.nav.nks_ai.core.conversation.streaming.conversationSse
 import no.nav.nks_ai.core.conversation.streaming.conversationWebsocket
 import no.nav.nks_ai.core.message.MessageService
 import no.nav.nks_ai.core.message.messageRoutes
+import no.nav.nks_ai.core.notification.notificationRoutes
+import no.nav.nks_ai.core.notification.notificationService
 import no.nav.nks_ai.core.user.UserConfigService
 import no.nav.nks_ai.core.user.userConfigRoutes
 import no.nav.nks_ai.kbs.KbsClient
@@ -89,6 +91,7 @@ fun Application.module() {
     val userConfigService = UserConfigService()
     val articleService = ArticleService(bigQueryClient)
     val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
+    val notificationService = notificationService()
 
     ConversationDeletionJob(conversationService, httpClient).start()
     UploadStarredMessagesJob(messageService, markMessageStarredService, httpClient).start()
@@ -102,6 +105,7 @@ fun Application.module() {
                 userConfigRoutes(userConfigService)
                 messageRoutes(messageService)
                 articleRoutes(articleService)
+                notificationRoutes(notificationService)
             }
             authenticate("AdminUser") {
                 adminRoutes(adminService)

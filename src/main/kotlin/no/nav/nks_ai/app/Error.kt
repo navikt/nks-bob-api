@@ -7,6 +7,7 @@ import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.message.MessageId
+import no.nav.nks_ai.core.notification.NotificationId
 
 sealed class ApplicationError(
     val code: HttpStatusCode,
@@ -56,6 +57,14 @@ sealed class DomainError(
         code = HttpStatusCode.NotFound,
         message = "User config not found",
         description = "User config not found",
+    )
+
+    class NotificationNotFound(notificationId: NotificationId?) : DomainError(
+        code = HttpStatusCode.NotFound,
+        message = "Notification not found",
+        description = notificationId
+            ?.let { "Notification with id ${notificationId.value} was not found" }
+            ?: "Notification not found"
     )
 
     class InvalidInput(message: String?, description: String?) : DomainError(
