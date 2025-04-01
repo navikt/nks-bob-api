@@ -46,6 +46,7 @@ enum class NotificationType {
 @Serializable
 data class Notification(
     val id: NotificationId,
+    val createdAt: LocalDateTime,
     val expiresAt: LocalDateTime?,
     val notificationType: NotificationType,
     val title: String,
@@ -55,12 +56,14 @@ data class Notification(
 @Serializable
 data class NewsNotification(
     val id: NotificationId,
+    val createdAt: LocalDateTime,
     val title: String,
     val content: String,
 )
 
 fun NewsNotification.Companion.fromNotification(notification: Notification) = NewsNotification(
     id = notification.id,
+    createdAt = notification.createdAt,
     title = notification.title,
     content = notification.content,
 )
@@ -68,6 +71,7 @@ fun NewsNotification.Companion.fromNotification(notification: Notification) = Ne
 @Serializable
 data class ErrorNotification(
     val id: NotificationId,
+    val createdAt: LocalDateTime,
     val expiresAt: LocalDateTime?,
     val title: String,
     val content: String,
@@ -75,6 +79,7 @@ data class ErrorNotification(
 
 fun ErrorNotification.Companion.fromNotification(notification: Notification) = ErrorNotification(
     id = notification.id,
+    createdAt = notification.createdAt,
     expiresAt = notification.expiresAt,
     title = notification.title,
     content = notification.content,

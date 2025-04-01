@@ -35,6 +35,7 @@ internal class NotificationDAO(id: EntityID<UUID>) : UUIDEntity(id) {
 
 internal fun NotificationDAO.toModel() = Notification(
     id = id.value.toNotificationId(),
+    createdAt = createdAt,
     expiresAt = expiresAt,
     notificationType = notificationType,
     title = title,
