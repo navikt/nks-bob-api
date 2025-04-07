@@ -54,7 +54,12 @@ object NotificationRepo {
         getNotifications(NotificationType.News)
 
     suspend fun getErrorNotifications(): DomainResult<List<Notification>> =
-        getNotifications(NotificationType.Error)
+        either {
+            val errorNotifications = getNotifications(NotificationType.Error).bind()
+            val warningNotifications = getNotifications(NotificationType.Warning).bind()
+
+            (errorNotifications + warningNotifications).sortedByDescending { it.createdAt }
+        }
 
     private suspend fun getNotifications(type: NotificationType): DomainResult<List<Notification>> =
         suspendTransaction {

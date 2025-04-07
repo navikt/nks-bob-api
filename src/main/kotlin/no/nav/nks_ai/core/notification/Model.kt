@@ -41,6 +41,7 @@ value class NotificationId(@Contextual val value: UUID)
 enum class NotificationType {
     News,
     Error,
+    Warning,
 }
 
 @Serializable
@@ -73,6 +74,7 @@ data class ErrorNotification(
     val id: NotificationId,
     val createdAt: LocalDateTime,
     val expiresAt: LocalDateTime?,
+    val notificationType: NotificationType,
     val title: String,
     val content: String,
 )
@@ -81,6 +83,7 @@ fun ErrorNotification.Companion.fromNotification(notification: Notification) = E
     id = notification.id,
     createdAt = notification.createdAt,
     expiresAt = notification.expiresAt,
+    notificationType = notification.notificationType,
     title = notification.title,
     content = notification.content,
 )
