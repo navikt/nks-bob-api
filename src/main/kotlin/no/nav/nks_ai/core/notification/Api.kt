@@ -1,5 +1,6 @@
 package no.nav.nks_ai.core.notification
 
+import com.ucasoft.ktor.simpleCache.cacheOutput
 import io.github.smiley4.ktorswaggerui.dsl.routing.delete
 import io.github.smiley4.ktorswaggerui.dsl.routing.get
 import io.github.smiley4.ktorswaggerui.dsl.routing.patch
@@ -14,54 +15,61 @@ import no.nav.nks_ai.app.respondError
 
 fun Route.notificationUserRoutes(notificationService: NotificationService) {
     route("/notifications") {
-        get({
-            description = "Get all notifications"
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<Notification> {
-                        description = "All notifications"
+        cacheOutput {
+            get({
+                description = "Get all notifications"
+                response {
+                    HttpStatusCode.OK to {
+                        description = "The operation was successful"
+                        body<Notification> {
+                            description = "All notifications"
+                        }
                     }
                 }
+            }) {
+                notificationService.getAllNotifications()
+                    .onRight { notifications -> call.respond(notifications) }
+                    .onLeft { error -> call.respondError(error) }
             }
-        }) {
-            notificationService.getAllNotifications()
-                .onRight { notifications -> call.respond(notifications) }
-                .onLeft { error -> call.respondError(error) }
         }
 
-        get("/news", {
-            description = "Get all notifications with type News"
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<NewsNotification> {
-                        description = "All news notifications"
+        cacheOutput {
+            get("/news", {
+                description = "Get all notifications with type News"
+                response {
+                    HttpStatusCode.OK to {
+                        description = "The operation was successful"
+                        body<NewsNotification> {
+                            description = "All news notifications"
+                        }
                     }
                 }
+            }) {
+                notificationService.getNews()
+                    .onRight { news -> call.respond(news) }
+                    .onLeft { error -> call.respondError(error) }
             }
-        }) {
-            notificationService.getNews()
-                .onRight { news -> call.respond(news) }
-                .onLeft { error -> call.respondError(error) }
         }
 
-        get("/errors", {
-            description = "Get all notifications with type Error"
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<ErrorNotification> {
-                        description = "All error notifications"
+        cacheOutput {
+            get("/errors", {
+                description = "Get all notifications with type Error"
+                response {
+                    HttpStatusCode.OK to {
+                        description = "The operation was successful"
+                        body<ErrorNotification> {
+                            description = "All error notifications"
+                        }
                     }
                 }
+            }) {
+                notificationService.getErrors()
+                    .onRight { errorNotifications -> call.respond(errorNotifications) }
+                    .onLeft { error -> call.respondError(error) }
             }
-        }) {
-            notificationService.getErrors()
-                .onRight { errorNotifications -> call.respond(errorNotifications) }
-                .onLeft { error -> call.respondError(error) }
         }
 
+        // This is not cached. Always up to date.
         get("/{id}", {
             description = "Get a notification"
             request {
