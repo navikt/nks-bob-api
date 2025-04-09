@@ -4,7 +4,7 @@ import io.github.smiley4.ktorswaggerui.dsl.routing.get
 import io.github.smiley4.ktorswaggerui.dsl.routing.patch
 import io.github.smiley4.ktorswaggerui.dsl.routing.put
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.receiveNullable
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
@@ -51,8 +51,7 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
             val navIdent = call.getNavIdent()
                 ?: return@patch call.respondError(ApplicationError.MissingNavIdent())
 
-            val userConfig = call.receiveNullable<PatchUserConfig>()
-                ?: return@patch call.respondError(ApplicationError.InvalidRequestBody())
+            val userConfig = call.receive<PatchUserConfig>()
 
             userConfigService.patchUserConfig(userConfig, navIdent)
                 .onLeft { error -> call.respondError(error) }
@@ -77,8 +76,7 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
             val navIdent = call.getNavIdent()
                 ?: return@put call.respondError(ApplicationError.MissingNavIdent())
 
-            val userConfig = call.receiveNullable<UserConfig>()
-                ?: return@put call.respondError(ApplicationError.InvalidRequestBody())
+            val userConfig = call.receive<UserConfig>()
 
             userConfigService.updateUserConfig(userConfig, navIdent)
                 .onLeft { error -> call.respondError(error) }

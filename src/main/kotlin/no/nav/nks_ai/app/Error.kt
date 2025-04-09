@@ -55,9 +55,7 @@ sealed class ApplicationError(
         "This request does not contain the required notification id path parameter"
     )
 
-    class InvalidRequestBody() : BadRequest(
-        "Error while parsing body. Body might be missing fields or contain typos."
-    )
+    class SerializationError(description: String) : BadRequest(description)
 }
 
 sealed class DomainError(
@@ -106,21 +104,8 @@ typealias ApplicationResult<T> = Either<ApplicationError, T>
 
 typealias DomainResult<T> = Either<DomainError, T>
 
-//fun ApplicationError.Companion.fromThrowable(throwable: Throwable) = ApplicationError(
-//    code = HttpStatusCode.InternalServerError,
-//    message = throwable.message ?: "An unexpected error occurred",
-//    description = throwable.cause?.message ?: ""
-//)
-
 suspend fun ApplicationCall.respondError(error: ApplicationError) =
     respond(error.code, error.toErrorResponse())
-
-//suspend inline fun <reified T> ApplicationCall.receiveOrError(): ApplicationResult<T> =
-//    try {
-//        receive<T>(typeInfo<T>()).right()
-//    } catch (exception: SerializationException) {
-//        ApplicationError.InvalidRequestBody(exception.message).left()
-//    }
 
 @Serializable
 data class ErrorResponse(

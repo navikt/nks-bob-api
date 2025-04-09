@@ -3,10 +3,14 @@ package no.nav.nks_ai.app.plugins
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.sse.SSE
 import io.ktor.server.websocket.WebSockets
 import kotlinx.serialization.json.Json
+import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.respondError
 
 fun Application.configureSerialization() {
     install(ContentNegotiation) {
@@ -15,5 +19,14 @@ fun Application.configureSerialization() {
     install(SSE)
     install(WebSockets) {
         contentConverter = KotlinxWebsocketSerializationConverter(Json)
+    }
+    install(StatusPages) {
+        exception<BadRequestException> { call, exception ->
+            call.respondError(
+                ApplicationError.SerializationError(
+                    "${exception.message}: ${exception.cause?.message}"
+                )
+            )
+        }
     }
 }

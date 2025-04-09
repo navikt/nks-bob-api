@@ -7,7 +7,7 @@ import io.github.smiley4.ktorswaggerui.dsl.routing.patch
 import io.github.smiley4.ktorswaggerui.dsl.routing.post
 import io.github.smiley4.ktorswaggerui.dsl.routing.put
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.receiveNullable
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
@@ -115,8 +115,7 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
                 }
             }
         }) {
-            val createNotification = call.receiveNullable<CreateNotification>()
-                ?: return@post call.respondError(ApplicationError.InvalidRequestBody())
+            val createNotification = call.receive<CreateNotification>()
 
             notificationService.addNotification(createNotification)
                 .onRight { notification -> call.respond(HttpStatusCode.Created, notification) }
@@ -146,8 +145,7 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
                 val notificationId = call.notificationId()
                     ?: return@put call.respondError(ApplicationError.MissingNotificationId())
 
-                val createNotification = call.receiveNullable<CreateNotification>()
-                    ?: return@put call.respondError(ApplicationError.InvalidRequestBody())
+                val createNotification = call.receive<CreateNotification>()
 
                 notificationService.updateNotification(notificationId, createNotification)
                     .onRight { notification -> call.respond(notification) }
@@ -175,8 +173,7 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
                 val notificationId = call.notificationId()
                     ?: return@patch call.respondError(ApplicationError.MissingNotificationId())
 
-                val patchNotification = call.receiveNullable<PatchNotification>()
-                    ?: return@patch call.respondError(ApplicationError.InvalidRequestBody())
+                val patchNotification = call.receive<PatchNotification>()
 
                 notificationService.patchNotification(notificationId, patchNotification)
                     .onRight { notification -> call.respond(notification) }

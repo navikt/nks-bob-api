@@ -77,6 +77,7 @@ dependencies {
     implementation("io.ktor:ktor-server-metrics-micrometer-jvm")
     implementation("io.ktor:ktor-server-netty-jvm")
     implementation("io.ktor:ktor-server-sse-jvm")
+    implementation("io.ktor:ktor-server-status-pages")
     implementation("io.ktor:ktor-server-webjars-jvm")
     implementation("io.ktor:ktor-server-websockets-jvm")
     implementation("io.ktor:ktor-server-cors")

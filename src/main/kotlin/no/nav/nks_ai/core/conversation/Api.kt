@@ -7,7 +7,7 @@ import io.github.smiley4.ktorswaggerui.dsl.routing.get
 import io.github.smiley4.ktorswaggerui.dsl.routing.post
 import io.github.smiley4.ktorswaggerui.dsl.routing.put
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.receiveNullable
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
@@ -69,8 +69,7 @@ fun Route.conversationRoutes(
             }
         }) {
             coroutineScope {
-                val newConversation = call.receiveNullable<NewConversation>()
-                    ?: return@coroutineScope call.respondError(ApplicationError.InvalidRequestBody())
+                val newConversation = call.receive<NewConversation>()
 
                 val navIdent = call.getNavIdent()
                     ?: return@coroutineScope call.respondError(ApplicationError.MissingNavIdent())
@@ -171,8 +170,7 @@ fun Route.conversationRoutes(
             val conversationId = call.conversationId()
                 ?: return@put call.respondError(ApplicationError.MissingConversationId())
 
-            val conversation = call.receiveNullable<UpdateConversation>()
-                ?: return@put call.respondError(ApplicationError.InvalidRequestBody())
+            val conversation = call.receive<UpdateConversation>()
 
             val navIdent = call.getNavIdent()
                 ?: return@put call.respondError(ApplicationError.MissingNavIdent())
@@ -226,8 +224,7 @@ fun Route.conversationRoutes(
             val conversationId = call.conversationId()
                 ?: return@post call.respondError(ApplicationError.MissingConversationId())
 
-            val newMessage = call.receiveNullable<NewMessage>()
-                ?: return@post call.respondError(ApplicationError.InvalidRequestBody())
+            val newMessage = call.receive<NewMessage>()
 
             val navIdent = call.getNavIdent()
                 ?: return@post call.respondError(ApplicationError.MissingNavIdent())
@@ -277,8 +274,7 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@post call.respondError(ApplicationError.MissingNavIdent())
 
-            val feedback = call.receiveNullable<NewFeedback>()
-                ?: return@post call.respondError(ApplicationError.InvalidRequestBody())
+            val feedback = call.receive<NewFeedback>()
 
             either {
                 conversationService.getConversation(conversationId, navIdent).bind()
