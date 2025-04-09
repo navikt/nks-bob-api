@@ -8,6 +8,7 @@ import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
 
@@ -25,7 +26,7 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
             }
         }) {
             val navIdent = call.getNavIdent()
-                ?: return@get call.respond(HttpStatusCode.Forbidden)
+                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
             userConfigService.getOrCreateUserConfig(navIdent)
                 .onLeft { error -> call.respondError(error) }
@@ -48,10 +49,10 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
             }
         }) {
             val navIdent = call.getNavIdent()
-                ?: return@patch call.respond(HttpStatusCode.Forbidden)
+                ?: return@patch call.respondError(ApplicationError.MissingNavIdent())
 
             val userConfig = call.receiveNullable<PatchUserConfig>()
-                ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                ?: return@patch call.respondError(ApplicationError.InvalidRequestBody())
 
             userConfigService.patchUserConfig(userConfig, navIdent)
                 .onLeft { error -> call.respondError(error) }
@@ -74,10 +75,10 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
             }
         }) {
             val navIdent = call.getNavIdent()
-                ?: return@put call.respond(HttpStatusCode.Forbidden)
+                ?: return@put call.respondError(ApplicationError.MissingNavIdent())
 
             val userConfig = call.receiveNullable<UserConfig>()
-                ?: return@put call.respond(HttpStatusCode.BadRequest)
+                ?: return@put call.respondError(ApplicationError.InvalidRequestBody())
 
             userConfigService.updateUserConfig(userConfig, navIdent)
                 .onLeft { error -> call.respondError(error) }

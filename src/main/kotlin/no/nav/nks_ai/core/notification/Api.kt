@@ -11,6 +11,7 @@ import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.respondError
 
 fun Route.notificationUserRoutes(notificationService: NotificationService) {
@@ -87,7 +88,7 @@ fun Route.notificationUserRoutes(notificationService: NotificationService) {
             }
         }) {
             val notificationId = call.notificationId()
-                ?: return@get call.respond(HttpStatusCode.BadRequest)
+                ?: return@get call.respondError(ApplicationError.MissingNotificationId())
 
             notificationService.getNotification(notificationId)
                 .onRight { notification -> call.respond(notification) }
@@ -115,7 +116,7 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
             }
         }) {
             val createNotification = call.receiveNullable<CreateNotification>()
-                ?: return@post call.respond(HttpStatusCode.BadRequest)
+                ?: return@post call.respondError(ApplicationError.InvalidRequestBody())
 
             notificationService.addNotification(createNotification)
                 .onRight { notification -> call.respond(HttpStatusCode.Created, notification) }
@@ -143,10 +144,10 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
                 }
             }) {
                 val notificationId = call.notificationId()
-                    ?: return@put call.respond(HttpStatusCode.BadRequest)
+                    ?: return@put call.respondError(ApplicationError.MissingNotificationId())
 
                 val createNotification = call.receiveNullable<CreateNotification>()
-                    ?: return@put call.respond(HttpStatusCode.BadRequest)
+                    ?: return@put call.respondError(ApplicationError.InvalidRequestBody())
 
                 notificationService.updateNotification(notificationId, createNotification)
                     .onRight { notification -> call.respond(notification) }
@@ -172,10 +173,10 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
                 }
             }) {
                 val notificationId = call.notificationId()
-                    ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                    ?: return@patch call.respondError(ApplicationError.MissingNotificationId())
 
                 val patchNotification = call.receiveNullable<PatchNotification>()
-                    ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                    ?: return@patch call.respondError(ApplicationError.InvalidRequestBody())
 
                 notificationService.patchNotification(notificationId, patchNotification)
                     .onRight { notification -> call.respond(notification) }
@@ -195,7 +196,7 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
                 }
             }) {
                 val notificationId = call.notificationId()
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    ?: return@delete call.respondError(ApplicationError.MissingNotificationId())
 
                 notificationService.deleteNotification(notificationId)
                     .onRight { call.respond(HttpStatusCode.NoContent) }

@@ -7,6 +7,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.core.conversation.Conversation
 import no.nav.nks_ai.core.conversation.ConversationSummary
@@ -35,7 +36,7 @@ fun Route.adminRoutes(adminService: AdminService) {
             }) {
                 val navIdent = call.request.queryParameters["navIdent"]
                     ?.let { NavIdent(it) }
-                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    ?: return@get call.respondError(missingNavIdent())
 
                 adminService.getAllConversations(navIdent)
                     .let { call.respond(it) }
@@ -55,7 +56,7 @@ fun Route.adminRoutes(adminService: AdminService) {
             }) {
                 val navIdent = call.request.queryParameters["navIdent"]
                     ?.let { NavIdent(it) }
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    ?: return@delete call.respondError(missingNavIdent())
 
                 adminService.deleteAllConversations(navIdent)
                 call.respond(HttpStatusCode.NoContent)
@@ -78,10 +79,10 @@ fun Route.adminRoutes(adminService: AdminService) {
             }) {
                 val navIdent = call.request.queryParameters["navIdent"]
                     ?.let { NavIdent(it) }
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    ?: return@delete call.respondError(missingNavIdent())
 
                 val conversationId = call.conversationId()
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    ?: return@delete call.respondError(ApplicationError.MissingConversationId())
 
                 adminService.deleteConversation(conversationId, navIdent)
                 call.respond(HttpStatusCode.NoContent)
@@ -103,7 +104,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 }
             }) {
                 val conversationId = call.conversationId()
-                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    ?: return@get call.respondError(ApplicationError.MissingConversationId())
 
                 adminService.getConversationSummary(conversationId)
                     .onLeft { call.respondError(it) }
@@ -126,7 +127,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 }
             }) {
                 val conversationId = call.conversationId()
-                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    ?: return@get call.respondError(ApplicationError.MissingConversationId())
 
                 val messages = adminService.getConversationMessages(conversationId)
                 call.respond(messages)
@@ -150,7 +151,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 }
             }) {
                 val messageId = call.messageId()
-                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    ?: return@get call.respondError(ApplicationError.MissingMessageId())
 
                 adminService.getConversationFromMessageId(messageId)
                     .onLeft { call.respondError(it) }
@@ -174,7 +175,7 @@ fun Route.adminRoutes(adminService: AdminService) {
             }) {
                 either {
                     val messageId = call.messageId()
-                        ?: return@get call.respond(HttpStatusCode.BadRequest)
+                        ?: return@get call.respondError(ApplicationError.MissingMessageId())
 
                     val conversation = adminService.getConversationFromMessageId(messageId)
                         .onLeft { call.respondError(it) }.bind()
@@ -187,3 +188,7 @@ fun Route.adminRoutes(adminService: AdminService) {
         }
     }
 }
+
+private fun missingNavIdent() = ApplicationError.BadRequest(
+    "This request does not contain the required query parameter \"navIdent\""
+)

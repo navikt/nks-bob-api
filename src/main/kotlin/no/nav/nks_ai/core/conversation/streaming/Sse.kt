@@ -3,9 +3,7 @@ package no.nav.nks_ai.core.conversation.streaming
 import arrow.core.raise.either
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receiveText
-import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import io.ktor.server.sse.ServerSSESession
@@ -14,8 +12,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
@@ -34,10 +32,10 @@ fun Route.conversationSse(
     route("/conversations") {
         sse("/{id}/messages/sse", HttpMethod.Post) {
             val navIdent = call.getNavIdent()
-                ?: return@sse call.respond(HttpStatusCode.Forbidden)
+                ?: return@sse call.respondError(ApplicationError.MissingNavIdent())
 
             val conversationId = call.conversationId()
-                ?: return@sse call.respond(HttpStatusCode.BadRequest)
+                ?: return@sse call.respondError(ApplicationError.MissingConversationId())
 
             // call.receiveNullable was not able to transform from json for some reason ¯\_(ツ)_/¯
             val newMessage = Json.decodeFromString<NewMessage>(call.receiveText())

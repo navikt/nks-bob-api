@@ -30,6 +30,34 @@ sealed class ApplicationError(
         message = "Unauthorized",
         description = "This user does not have access to this resource"
     )
+
+    class MissingNavIdent() : ApplicationError(
+        code = HttpStatusCode.Forbidden,
+        message = "Forbidden",
+        description = "This request does not contain the required NAVident claim"
+    )
+
+    open class BadRequest(description: String) : ApplicationError(
+        code = HttpStatusCode.BadRequest,
+        message = "Bad request",
+        description = description,
+    )
+
+    class MissingConversationId() : BadRequest(
+        "This request does not contain the required conversation id path parameter"
+    )
+
+    class MissingMessageId() : BadRequest(
+        "This request does not contain the required message id path parameter"
+    )
+
+    class MissingNotificationId() : BadRequest(
+        "This request does not contain the required notification id path parameter"
+    )
+
+    class InvalidRequestBody() : BadRequest(
+        "Error while parsing body. Body might be missing fields or contain typos."
+    )
 }
 
 sealed class DomainError(
@@ -86,6 +114,13 @@ typealias DomainResult<T> = Either<DomainError, T>
 
 suspend fun ApplicationCall.respondError(error: ApplicationError) =
     respond(error.code, error.toErrorResponse())
+
+//suspend inline fun <reified T> ApplicationCall.receiveOrError(): ApplicationResult<T> =
+//    try {
+//        receive<T>(typeInfo<T>()).right()
+//    } catch (exception: SerializationException) {
+//        ApplicationError.InvalidRequestBody(exception.message).left()
+//    }
 
 @Serializable
 data class ErrorResponse(

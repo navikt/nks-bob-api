@@ -8,6 +8,7 @@ import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.respondError
 
 fun Route.messageRoutes(
@@ -31,7 +32,7 @@ fun Route.messageRoutes(
             }
         }) {
             val messageId = call.messageId()
-                ?: return@get call.respond(HttpStatusCode.BadRequest)
+                ?: return@get call.respondError(ApplicationError.MissingMessageId())
 
             messageService.getMessage(messageId)
                 .onLeft { error -> call.respondError(error) }
@@ -57,10 +58,10 @@ fun Route.messageRoutes(
             }
         }) {
             val messageId = call.messageId()
-                ?: return@put call.respond(HttpStatusCode.BadRequest)
+                ?: return@put call.respondError(ApplicationError.MissingMessageId())
 
             val message = call.receiveNullable<UpdateMessage>()
-                ?: return@put call.respond(HttpStatusCode.BadRequest)
+                ?: return@put call.respondError(ApplicationError.InvalidRequestBody())
 
             messageService.updateMessage(messageId, message)
                 .onLeft { error -> call.respondError(error) }
@@ -86,7 +87,7 @@ fun Route.messageRoutes(
             }
         }) {
             val messageId = call.messageId()
-                ?: return@post call.respond(HttpStatusCode.BadRequest)
+                ?: return@post call.respondError(ApplicationError.MissingMessageId())
 
             val feedback = call.receiveNullable<NewFeedback>()
                 ?: return@post call.respond(HttpStatusCode.BadRequest)
