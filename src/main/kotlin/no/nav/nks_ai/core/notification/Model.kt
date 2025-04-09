@@ -10,11 +10,12 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import no.nav.nks_ai.app.toUUID
 import java.util.UUID
 
 object NotificationIdSerializer : KSerializer<NotificationId> {
     override fun deserialize(decoder: Decoder): NotificationId {
-        return UUID.fromString(decoder.decodeString()).toNotificationId()
+        return decoder.decodeString().toUUID().toNotificationId()
     }
 
     override val descriptor: SerialDescriptor
@@ -31,7 +32,7 @@ object NotificationIdSerializer : KSerializer<NotificationId> {
 fun UUID.toNotificationId() = NotificationId(this)
 
 fun ApplicationCall.notificationId(name: String = "id"): NotificationId? =
-    NotificationId(UUID.fromString(this.parameters[name]))
+    this.parameters[name]?.let { NotificationId(it.toUUID()) }
 
 @Serializable(NotificationIdSerializer::class)
 @JvmInline

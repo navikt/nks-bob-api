@@ -10,6 +10,7 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import no.nav.nks_ai.app.toUUID
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageRole
 import no.nav.nks_ai.core.message.NewMessage
@@ -17,7 +18,7 @@ import java.util.UUID
 
 object ConversationIdSerializer : KSerializer<ConversationId> {
     override fun deserialize(decoder: Decoder): ConversationId {
-        return UUID.fromString(decoder.decodeString()).toConversationId()
+        return decoder.decodeString().toUUID().toConversationId()
     }
 
     override val descriptor: SerialDescriptor
@@ -38,7 +39,7 @@ value class ConversationId(@Contextual val value: UUID)
 fun UUID.toConversationId() = ConversationId(this)
 
 fun ApplicationCall.conversationId(name: String = "id"): ConversationId? =
-    ConversationId(UUID.fromString(this.parameters[name]))
+    this.parameters[name]?.let { ConversationId(it.toUUID()) }
 
 @Serializable
 data class Conversation(

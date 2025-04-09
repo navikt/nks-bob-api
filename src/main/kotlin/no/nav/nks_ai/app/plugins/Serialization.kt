@@ -10,7 +10,9 @@ import io.ktor.server.sse.SSE
 import io.ktor.server.websocket.WebSockets
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.InvalidUuidException
 import no.nav.nks_ai.app.respondError
+import no.nav.nks_ai.app.toError
 
 fun Application.configureSerialization() {
     install(ContentNegotiation) {
@@ -27,6 +29,9 @@ fun Application.configureSerialization() {
                     "${exception.message}: ${exception.cause?.message}"
                 )
             )
+        }
+        exception<InvalidUuidException> { call, exception ->
+            call.respondError(exception.toError())
         }
     }
 }

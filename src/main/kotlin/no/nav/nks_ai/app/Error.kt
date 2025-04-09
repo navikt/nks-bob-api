@@ -114,3 +114,8 @@ data class ErrorResponse(
     val description: String
 )
 
+class InvalidUuidException() : Throwable(message = "Invalid UUID")
+
+fun InvalidUuidException.toError() = ApplicationError.BadRequest(
+    "Invalid UUID"
+)

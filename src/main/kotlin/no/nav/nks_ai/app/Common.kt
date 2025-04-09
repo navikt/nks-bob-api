@@ -53,6 +53,13 @@ fun String.truncate(limit: Int): String =
         this
     }
 
+fun String.toUUID(): UUID =
+    try {
+        UUID.fromString(this)
+    } catch (_: IllegalArgumentException) {
+        throw InvalidUuidException()
+    }
+
 fun ApplicationCall.getClaim(issuer: String, name: String) =
     authentication.principal<JWTPrincipal>()
         ?.payload
