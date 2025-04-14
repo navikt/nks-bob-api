@@ -1,7 +1,7 @@
 package no.nav.nks_ai
 
-import io.github.smiley4.ktorswaggerui.routing.openApiSpec
-import io.github.smiley4.ktorswaggerui.routing.swaggerUI
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.apache.Apache
@@ -24,9 +24,9 @@ import no.nav.nks_ai.app.bq.BigQueryClient
 import no.nav.nks_ai.app.plugins.configureCache
 import no.nav.nks_ai.app.plugins.configureDatabases
 import no.nav.nks_ai.app.plugins.configureMonitoring
+import no.nav.nks_ai.app.plugins.configureOpenApi
 import no.nav.nks_ai.app.plugins.configureSecurity
 import no.nav.nks_ai.app.plugins.configureSerialization
-import no.nav.nks_ai.app.plugins.configureSwagger
 import no.nav.nks_ai.app.plugins.healthRoutes
 import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.core.ConversationDeletionJob
@@ -61,7 +61,7 @@ fun Application.module() {
     configureMonitoring()
     configureCache()
     configureSecurity()
-    configureSwagger()
+    configureOpenApi()
 
     val httpClient = defaultHttpClient {}
 
@@ -119,7 +119,7 @@ fun Application.module() {
         route("/swagger-ui") {
             swaggerUI("/swagger-ui/api.json")
             route("/api.json") {
-                openApiSpec()
+                openApi()
             }
         }
     }
