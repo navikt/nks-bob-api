@@ -97,7 +97,9 @@ class SendMessageService(
                 }.onLeft { errorResponse ->
                     handleError(errorResponse, messageId)
                         .onRight { message ->
-                            ConversationEvent.ErrorsUpdated(messageId, message.errors)
+                            send(
+                                ConversationEvent.ErrorsUpdated(messageId, message.errors)
+                            )
                         }
                 }
 
@@ -127,13 +129,20 @@ class SendMessageService(
                         }.onLeft { error ->
                             handleError(error, messageId)
                                 .onRight { message ->
-                                    ConversationEvent.ErrorsUpdated(messageId, message.errors)
+                                    send(
+                                        ConversationEvent.ErrorsUpdated(messageId, message.errors)
+                                    )
                                 }
                         }
                     }
                 }
         }.catch { throwable ->
             handleError(throwable, messageId)
+                .onRight { message ->
+                    emit(
+                        ConversationEvent.ErrorsUpdated(messageId, message.errors)
+                    )
+                }
         }.onCompletion { timer.stop() }
     }
 
@@ -168,20 +177,26 @@ class SendMessageService(
         errorResponse: KbsErrorResponse,
         messageId: MessageId
     ): Either<DomainError, Message> {
+        val failedReceive = !errorResponse.title.lowercase().contains("flagget")
         return handleError(
             MessageError(
                 title = errorResponse.title,
                 description = errorResponse.detail,
             ),
-            messageId
+            messageId,
+            failedReceive,
         )
     }
 
     private suspend fun handleError(
         messageError: MessageError,
-        messageId: MessageId
+        messageId: MessageId,
+        failedReceive: Boolean = true,
     ): Either<DomainError, Message> {
-        MetricRegister.answerFailedReceive.inc()
+        if (failedReceive) {
+            MetricRegister.answerFailedReceive.inc()
+        }
+
         return messageService.updateMessageError(
             messageId = messageId,
             pending = false,
