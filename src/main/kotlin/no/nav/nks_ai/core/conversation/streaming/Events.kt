@@ -62,7 +62,7 @@ sealed class ConversationEvent() {
     data class ErrorsUpdated(
         val id: MessageId,
         val errors: List<MessageError>,
-    )
+    ) : ConversationEvent()
 
     @Serializable
     class NoOp : ConversationEvent()

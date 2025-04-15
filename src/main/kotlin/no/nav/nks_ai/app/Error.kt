@@ -7,6 +7,7 @@ import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.message.MessageId
+import no.nav.nks_ai.core.notification.NotificationId
 
 sealed class ApplicationError(
     val code: HttpStatusCode,
@@ -29,6 +30,32 @@ sealed class ApplicationError(
         message = "Unauthorized",
         description = "This user does not have access to this resource"
     )
+
+    class MissingNavIdent() : ApplicationError(
+        code = HttpStatusCode.Forbidden,
+        message = "Forbidden",
+        description = "This request does not contain the required NAVident claim"
+    )
+
+    open class BadRequest(description: String) : ApplicationError(
+        code = HttpStatusCode.BadRequest,
+        message = "Bad request",
+        description = description,
+    )
+
+    class MissingConversationId() : BadRequest(
+        "This request does not contain the required conversation id path parameter"
+    )
+
+    class MissingMessageId() : BadRequest(
+        "This request does not contain the required message id path parameter"
+    )
+
+    class MissingNotificationId() : BadRequest(
+        "This request does not contain the required notification id path parameter"
+    )
+
+    class SerializationError(description: String) : BadRequest(description)
 }
 
 sealed class DomainError(
@@ -58,6 +85,14 @@ sealed class DomainError(
         description = "User config not found",
     )
 
+    class NotificationNotFound(notificationId: NotificationId?) : DomainError(
+        code = HttpStatusCode.NotFound,
+        message = "Notification not found",
+        description = notificationId
+            ?.let { "Notification with id ${notificationId.value} was not found" }
+            ?: "Notification not found"
+    )
+
     class InvalidInput(message: String?, description: String?) : DomainError(
         code = HttpStatusCode.InternalServerError,
         message = message ?: "Invalid input",
@@ -69,12 +104,6 @@ typealias ApplicationResult<T> = Either<ApplicationError, T>
 
 typealias DomainResult<T> = Either<DomainError, T>
 
-//fun ApplicationError.Companion.fromThrowable(throwable: Throwable) = ApplicationError(
-//    code = HttpStatusCode.InternalServerError,
-//    message = throwable.message ?: "An unexpected error occurred",
-//    description = throwable.cause?.message ?: ""
-//)
-
 suspend fun ApplicationCall.respondError(error: ApplicationError) =
     respond(error.code, error.toErrorResponse())
 
@@ -85,3 +114,8 @@ data class ErrorResponse(
     val description: String
 )
 
+class InvalidUuidException() : Throwable(message = "Invalid UUID")
+
+fun InvalidUuidException.toError() = ApplicationError.BadRequest(
+    "Invalid UUID"
+)

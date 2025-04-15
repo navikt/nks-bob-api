@@ -2,12 +2,12 @@ package no.nav.nks_ai.core.conversation
 
 import arrow.core.raise.either
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.github.smiley4.ktorswaggerui.dsl.routing.delete
-import io.github.smiley4.ktorswaggerui.dsl.routing.get
-import io.github.smiley4.ktorswaggerui.dsl.routing.post
-import io.github.smiley4.ktorswaggerui.dsl.routing.put
+import io.github.smiley4.ktoropenapi.delete
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
+import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.receiveNullable
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.launch
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
@@ -46,7 +47,7 @@ fun Route.conversationRoutes(
             }
         }) {
             val navIdent = call.getNavIdent()
-                ?: return@get call.respond(HttpStatusCode.Forbidden)
+                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
             conversationService.getAllConversations(navIdent)
                 .let { call.respond(it) }
@@ -68,11 +69,10 @@ fun Route.conversationRoutes(
             }
         }) {
             coroutineScope {
-                val newConversation = call.receiveNullable<NewConversation>()
-                    ?: return@coroutineScope call.respond(HttpStatusCode.BadRequest)
+                val newConversation = call.receive<NewConversation>()
 
                 val navIdent = call.getNavIdent()
-                    ?: return@coroutineScope call.respond(HttpStatusCode.Forbidden)
+                    ?: return@coroutineScope call.respondError(ApplicationError.MissingNavIdent())
 
                 either {
                     val conversation = conversationService.addConversation(navIdent, newConversation).bind()
@@ -117,10 +117,10 @@ fun Route.conversationRoutes(
             }
         }) {
             val conversationId = call.conversationId()
-                ?: return@get call.respond(HttpStatusCode.BadRequest)
+                ?: return@get call.respondError(ApplicationError.MissingConversationId())
 
             val navIdent = call.getNavIdent()
-                ?: return@get call.respond(HttpStatusCode.Forbidden)
+                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
             conversationService.getConversation(conversationId, navIdent)
                 .onLeft { call.respondError(it) }
@@ -140,10 +140,10 @@ fun Route.conversationRoutes(
             }
         }) {
             val conversationId = call.conversationId()
-                ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                ?: return@delete call.respondError(ApplicationError.MissingConversationId())
 
             val navIdent = call.getNavIdent()
-                ?: return@delete call.respond(HttpStatusCode.Forbidden)
+                ?: return@delete call.respondError(ApplicationError.MissingNavIdent())
 
             conversationService.deleteConversation(conversationId, navIdent)
             call.respond(HttpStatusCode.NoContent)
@@ -168,13 +168,12 @@ fun Route.conversationRoutes(
             }
         }) {
             val conversationId = call.conversationId()
-                ?: return@put call.respond(HttpStatusCode.BadRequest)
+                ?: return@put call.respondError(ApplicationError.MissingConversationId())
 
-            val conversation = call.receiveNullable<UpdateConversation>()
-                ?: return@put call.respond(HttpStatusCode.BadRequest)
+            val conversation = call.receive<UpdateConversation>()
 
             val navIdent = call.getNavIdent()
-                ?: return@put call.respond(HttpStatusCode.Forbidden)
+                ?: return@put call.respondError(ApplicationError.MissingNavIdent())
 
             conversationService.updateConversation(conversationId, navIdent, conversation)
                 .onLeft { error -> call.respondError(error) }
@@ -197,10 +196,10 @@ fun Route.conversationRoutes(
             }
         }) {
             val conversationId = call.conversationId()
-                ?: return@get call.respond(HttpStatusCode.BadRequest)
+                ?: return@get call.respondError(ApplicationError.MissingConversationId())
 
             val navIdent = call.getNavIdent()
-                ?: return@get call.respond(HttpStatusCode.Forbidden)
+                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
             conversationService.getConversationMessages(conversationId, navIdent)
                 .onLeft { error -> call.respondError(error) }
@@ -223,13 +222,12 @@ fun Route.conversationRoutes(
             }
         }) {
             val conversationId = call.conversationId()
-                ?: return@post call.respond(HttpStatusCode.BadRequest)
+                ?: return@post call.respondError(ApplicationError.MissingConversationId())
 
-            val newMessage = call.receiveNullable<NewMessage>()
-                ?: return@post call.respond(HttpStatusCode.BadRequest)
+            val newMessage = call.receive<NewMessage>()
 
             val navIdent = call.getNavIdent()
-                ?: return@post call.respond(HttpStatusCode.Forbidden)
+                ?: return@post call.respondError(ApplicationError.MissingNavIdent())
 
             coroutineScope {
                 launch(Dispatchers.IO) {
@@ -271,13 +269,12 @@ fun Route.conversationRoutes(
             }
         }) {
             val conversationId = call.conversationId()
-                ?: return@post call.respond(HttpStatusCode.BadRequest)
+                ?: return@post call.respondError(ApplicationError.MissingConversationId())
 
             val navIdent = call.getNavIdent()
-                ?: return@post call.respond(HttpStatusCode.Forbidden)
+                ?: return@post call.respondError(ApplicationError.MissingNavIdent())
 
-            val feedback = call.receiveNullable<NewFeedback>()
-                ?: return@post call.respond(HttpStatusCode.BadRequest)
+            val feedback = call.receive<NewFeedback>()
 
             either {
                 conversationService.getConversation(conversationId, navIdent).bind()
