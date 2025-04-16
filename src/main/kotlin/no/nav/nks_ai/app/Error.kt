@@ -56,14 +56,8 @@ sealed class ApplicationError(
     )
 
     class SerializationError(description: String) : BadRequest(description)
-}
 
-sealed class DomainError(
-    code: HttpStatusCode,
-    message: String,
-    description: String,
-) : ApplicationError(code, message, description) {
-    class MessageNotFound(messageId: MessageId?) : DomainError(
+    class MessageNotFound(messageId: MessageId?) : ApplicationError(
         code = HttpStatusCode.NotFound,
         message = "Message not found",
         description = messageId
@@ -71,7 +65,7 @@ sealed class DomainError(
             ?: "Message not found",
     )
 
-    class ConversationNotFound(conversationId: ConversationId?) : DomainError(
+    class ConversationNotFound(conversationId: ConversationId?) : ApplicationError(
         code = HttpStatusCode.NotFound,
         message = "Conversation not found",
         description = conversationId
@@ -79,13 +73,13 @@ sealed class DomainError(
             ?: "Conversation not found",
     )
 
-    class UserConfigNotFound() : DomainError(
+    class UserConfigNotFound() : ApplicationError(
         code = HttpStatusCode.NotFound,
         message = "User config not found",
         description = "User config not found",
     )
 
-    class NotificationNotFound(notificationId: NotificationId?) : DomainError(
+    class NotificationNotFound(notificationId: NotificationId?) : ApplicationError(
         code = HttpStatusCode.NotFound,
         message = "Notification not found",
         description = notificationId
@@ -93,7 +87,7 @@ sealed class DomainError(
             ?: "Notification not found"
     )
 
-    class InvalidInput(message: String?, description: String?) : DomainError(
+    class InvalidInput(message: String?, description: String?) : ApplicationError(
         code = HttpStatusCode.InternalServerError,
         message = message ?: "Invalid input",
         description = description ?: "Invalid input",
@@ -101,8 +95,6 @@ sealed class DomainError(
 }
 
 typealias ApplicationResult<T> = Either<ApplicationError, T>
-
-typealias DomainResult<T> = Either<DomainError, T>
 
 suspend fun ApplicationCall.respondError(error: ApplicationError) =
     respond(error.code, error.toErrorResponse())
@@ -116,6 +108,4 @@ data class ErrorResponse(
 
 class InvalidUuidException() : Throwable(message = "Invalid UUID")
 
-fun InvalidUuidException.toError() = ApplicationError.BadRequest(
-    "Invalid UUID"
-)
+fun InvalidUuidException.toError() = ApplicationError.BadRequest(message!!)

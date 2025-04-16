@@ -2,8 +2,8 @@ package no.nav.nks_ai.core.conversation
 
 import arrow.core.raise.either
 import kotlinx.datetime.LocalDateTime
-import no.nav.nks_ai.app.DomainError
-import no.nav.nks_ai.app.DomainResult
+import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.bcryptVerified
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
@@ -52,7 +52,7 @@ private fun ConversationDAO.toModel() = Conversation(
 )
 
 object ConversationRepo {
-    suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): DomainResult<Conversation> =
+    suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): ApplicationResult<Conversation> =
         suspendTransaction {
             either {
                 ConversationDAO.new {
@@ -72,24 +72,24 @@ object ConversationRepo {
             ConversationDAO.findAllByNavIdent(navIdent).forEach { it.delete() }
         }
 
-    suspend fun getConversation(conversationId: ConversationId, navIdent: NavIdent): DomainResult<Conversation> =
+    suspend fun getConversation(conversationId: ConversationId, navIdent: NavIdent): ApplicationResult<Conversation> =
         suspendTransaction {
             either {
                 ConversationDAO.findByIdAndNavIdent(conversationId, navIdent)
                     ?.toModel()
-                    ?: raise(DomainError.ConversationNotFound(conversationId))
+                    ?: raise(ApplicationError.ConversationNotFound(conversationId))
             }
         }
 
     /**
      * Warning: Use with caution, intended for the admin API. Will potentially expose a conversation from another user.
      */
-    suspend fun getConversation(conversationId: ConversationId): DomainResult<Conversation> =
+    suspend fun getConversation(conversationId: ConversationId): ApplicationResult<Conversation> =
         suspendTransaction {
             either {
                 ConversationDAO.findById(conversationId.value)
                     ?.toModel()
-                    ?: raise(DomainError.ConversationNotFound(conversationId))
+                    ?: raise(ApplicationError.ConversationNotFound(conversationId))
             }
         }
 
@@ -103,7 +103,7 @@ object ConversationRepo {
         id: ConversationId,
         navIdent: NavIdent,
         conversation: UpdateConversation
-    ): DomainResult<Conversation> =
+    ): ApplicationResult<Conversation> =
         suspendTransaction {
             either {
                 ConversationDAO
@@ -111,7 +111,7 @@ object ConversationRepo {
                     ?.apply {
                         title = conversation.title
                     }?.toModel()
-                    ?: raise(DomainError.ConversationNotFound(id))
+                    ?: raise(ApplicationError.ConversationNotFound(id))
             }
         }
 

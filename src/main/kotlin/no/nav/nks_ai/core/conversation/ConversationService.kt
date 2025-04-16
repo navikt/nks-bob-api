@@ -5,8 +5,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.Config
-import no.nav.nks_ai.app.DomainResult
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageRepo
@@ -16,7 +16,7 @@ private val logger = KotlinLogging.logger { }
 
 class ConversationService(
 ) {
-    suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): DomainResult<Conversation> {
+    suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): ApplicationResult<Conversation> {
         MetricRegister.conversationsCreated.inc()
         return ConversationRepo.addConversation(navIdent, conversation)
     }
@@ -24,7 +24,7 @@ class ConversationService(
     suspend fun getConversation(
         conversationId: ConversationId,
         navIdent: NavIdent,
-    ): DomainResult<Conversation> =
+    ): ApplicationResult<Conversation> =
         ConversationRepo.getConversation(conversationId, navIdent)
 
     suspend fun getAllConversations(navIdent: NavIdent): List<Conversation> =
@@ -33,7 +33,7 @@ class ConversationService(
     suspend fun getConversationMessages(
         conversationId: ConversationId,
         navIdent: NavIdent,
-    ): DomainResult<List<Message>> = either {
+    ): ApplicationResult<List<Message>> = either {
         ConversationRepo.getConversation(conversationId, navIdent).bind()
 
         MessageRepo.getMessagesByConversation(conversationId)
