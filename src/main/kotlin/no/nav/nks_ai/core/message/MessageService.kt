@@ -3,7 +3,7 @@ package no.nav.nks_ai.core.message
 import arrow.core.Either
 import arrow.core.Some
 import arrow.core.some
-import no.nav.nks_ai.app.DomainError
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.user.NavIdent
@@ -13,7 +13,7 @@ class MessageService() {
         conversationId: ConversationId,
         navIdent: NavIdent,
         messageContent: String,
-    ): Either<DomainError, Message> {
+    ): Either<ApplicationError, Message> {
         MetricRegister.questionsCreated.inc()
         return MessageRepo.addMessage(
             conversationId = conversationId,
@@ -32,7 +32,7 @@ class MessageService() {
         messageContent: String,
         citations: List<NewCitation>,
         context: List<Context>,
-    ): Either<DomainError, Message> {
+    ): Either<ApplicationError, Message> {
         MetricRegister.answersCreated.inc()
         return MessageRepo.addMessage(
             conversationId = conversationId,
@@ -46,7 +46,7 @@ class MessageService() {
         )
     }
 
-    suspend fun addEmptyAnswer(conversationId: ConversationId): Either<DomainError, Message> =
+    suspend fun addEmptyAnswer(conversationId: ConversationId): Either<ApplicationError, Message> =
         addAnswer(
             conversationId = conversationId,
             messageContent = "",
@@ -81,7 +81,7 @@ class MessageService() {
     suspend fun updatePendingMessage(
         messageId: MessageId,
         pending: Boolean,
-    ): Either<DomainError, Message> {
+    ): Either<ApplicationError, Message> {
         return MessageRepo.patchMessage(
             messageId = messageId,
             pending = Some(pending),
@@ -111,7 +111,10 @@ class MessageService() {
     suspend fun getMessage(messageId: MessageId) =
         MessageRepo.getMessage(messageId)
 
-    suspend fun addFeedbackToMessage(messageId: MessageId, newFeedback: NewFeedback): Either<DomainError, Message> {
+    suspend fun addFeedbackToMessage(
+        messageId: MessageId,
+        newFeedback: NewFeedback
+    ): Either<ApplicationError, Message> {
         if (newFeedback.liked) {
             MetricRegister.answersLiked.inc()
         } else {
@@ -121,7 +124,7 @@ class MessageService() {
         return MessageRepo.addFeedback(messageId, newFeedback)
     }
 
-    suspend fun updateMessage(messageId: MessageId, message: UpdateMessage): Either<DomainError, Message> =
+    suspend fun updateMessage(messageId: MessageId, message: UpdateMessage): Either<ApplicationError, Message> =
         MessageRepo.patchMessage(
             messageId = messageId,
             starred = message.starred.some(),

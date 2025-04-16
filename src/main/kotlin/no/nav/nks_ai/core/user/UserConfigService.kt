@@ -7,7 +7,7 @@ import arrow.core.raise.either
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.sksamuel.aedile.core.cacheBuilder
 import kotlinx.serialization.Serializable
-import no.nav.nks_ai.app.DomainError
+import no.nav.nks_ai.app.ApplicationError
 import kotlin.time.Duration.Companion.hours
 
 @JvmInline
@@ -52,7 +52,7 @@ class UserConfigService {
             expireAfterWrite = 12.hours
         }.build()
 
-    suspend fun getOrCreateUserConfig(navIdent: NavIdent): Either<DomainError, UserConfig> =
+    suspend fun getOrCreateUserConfig(navIdent: NavIdent): Either<ApplicationError, UserConfig> =
         either {
             userConfigCache.get(navIdent.plaintext) {
                 UserConfigRepo.getUserConfig(navIdent).getOrElse {
@@ -61,12 +61,12 @@ class UserConfigService {
             }
         }
 
-    suspend fun updateUserConfig(userConfig: UserConfig, navIdent: NavIdent): Either<DomainError, UserConfig> {
+    suspend fun updateUserConfig(userConfig: UserConfig, navIdent: NavIdent): Either<ApplicationError, UserConfig> {
         userConfigCache.invalidate(navIdent.plaintext)
         return UserConfigRepo.updateUserConfig(userConfig, navIdent)
     }
 
-    suspend fun patchUserConfig(userConfig: PatchUserConfig, navIdent: NavIdent): Either<DomainError, UserConfig> {
+    suspend fun patchUserConfig(userConfig: PatchUserConfig, navIdent: NavIdent): Either<ApplicationError, UserConfig> {
         userConfigCache.invalidate(navIdent.plaintext)
         return UserConfigRepo.patchUserConfig(
             navIdent = navIdent,

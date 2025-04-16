@@ -4,8 +4,8 @@ import arrow.core.None
 import arrow.core.Option
 import arrow.core.raise.either
 import kotlinx.datetime.LocalDateTime
-import no.nav.nks_ai.app.DomainError
-import no.nav.nks_ai.app.DomainResult
+import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import org.jetbrains.exposed.dao.UUIDEntity
@@ -43,17 +43,17 @@ internal fun NotificationDAO.toModel() = Notification(
 )
 
 object NotificationRepo {
-    suspend fun getNotifications(): DomainResult<List<Notification>> =
+    suspend fun getNotifications(): ApplicationResult<List<Notification>> =
         suspendTransaction {
             either {
                 NotificationDAO.all().map { it.toModel() }
             }
         }
 
-    suspend fun getNewsNotifications(): DomainResult<List<Notification>> =
+    suspend fun getNewsNotifications(): ApplicationResult<List<Notification>> =
         getNotifications(NotificationType.News)
 
-    suspend fun getErrorNotifications(): DomainResult<List<Notification>> =
+    suspend fun getErrorNotifications(): ApplicationResult<List<Notification>> =
         either {
             val errorNotifications = getNotifications(NotificationType.Error).bind()
             val warningNotifications = getNotifications(NotificationType.Warning).bind()
@@ -61,7 +61,7 @@ object NotificationRepo {
             (errorNotifications + warningNotifications).sortedByDescending { it.createdAt }
         }
 
-    private suspend fun getNotifications(type: NotificationType): DomainResult<List<Notification>> =
+    private suspend fun getNotifications(type: NotificationType): ApplicationResult<List<Notification>> =
         suspendTransaction {
             either {
                 NotificationDAO.find {
@@ -70,11 +70,11 @@ object NotificationRepo {
             }
         }
 
-    suspend fun getNotification(notificationId: NotificationId): DomainResult<Notification> =
+    suspend fun getNotification(notificationId: NotificationId): ApplicationResult<Notification> =
         suspendTransaction {
             either {
                 NotificationDAO.findById(notificationId.value)?.toModel()
-                    ?: raise(DomainError.NotificationNotFound(notificationId))
+                    ?: raise(ApplicationError.NotificationNotFound(notificationId))
             }
         }
 
@@ -83,7 +83,7 @@ object NotificationRepo {
         notificationType: NotificationType,
         title: String,
         content: String,
-    ): DomainResult<Notification> =
+    ): ApplicationResult<Notification> =
         suspendTransaction {
             either {
                 NotificationDAO.new {
@@ -101,7 +101,7 @@ object NotificationRepo {
         notificationType: NotificationType,
         title: String,
         content: String,
-    ): DomainResult<Notification> =
+    ): ApplicationResult<Notification> =
         suspendTransaction {
             either {
                 NotificationDAO.findByIdAndUpdate(notificationId.value) {
@@ -111,7 +111,7 @@ object NotificationRepo {
                     it.content = content
                 }
                     ?.toModel()
-                    ?: raise(DomainError.NotificationNotFound(notificationId))
+                    ?: raise(ApplicationError.NotificationNotFound(notificationId))
             }
         }
 
@@ -121,7 +121,7 @@ object NotificationRepo {
         notificationType: Option<NotificationType> = None,
         title: Option<String> = None,
         content: Option<String> = None,
-    ): DomainResult<Notification> =
+    ): ApplicationResult<Notification> =
         suspendTransaction {
             either {
                 NotificationDAO.findByIdAndUpdate(notificationId.value) { entity ->
@@ -131,11 +131,11 @@ object NotificationRepo {
                     content.onSome { entity.content = it }
                 }
                     ?.toModel()
-                    ?: raise(DomainError.NotificationNotFound(notificationId))
+                    ?: raise(ApplicationError.NotificationNotFound(notificationId))
             }
         }
 
-    suspend fun deleteNotification(notificationId: NotificationId): DomainResult<Unit> =
+    suspend fun deleteNotification(notificationId: NotificationId): ApplicationResult<Unit> =
         suspendTransaction {
             either {
                 NotificationDAO.findById(notificationId.value)?.delete()
