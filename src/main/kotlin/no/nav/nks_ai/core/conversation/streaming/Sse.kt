@@ -8,6 +8,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import io.ktor.server.sse.ServerSSESession
 import io.ktor.sse.ServerSentEvent
+import io.ktor.utils.io.ClosedWriteChannelException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.filter
@@ -55,7 +56,9 @@ fun Route.conversationSse(
                         messageFlow
                             .filter { it !is ConversationEvent.NoOp }
                             .map(::messageEvent)
-                            .collect(::send)
+                            // since the flow is cold, we must collect everything even if the SSE-session is closed,
+                            // otherwise the message won't be saved when it completes.
+                            .collect(::trySend)
                     }.onLeft { error ->
                         logger.error { "Error in SSE session: $error" }
                     }
@@ -66,6 +69,15 @@ fun Route.conversationSse(
                 closeSession()
             }
         }
+    }
+}
+
+// ignores ClosedWriteChannelException
+private suspend fun ServerSSESession.trySend(event: ServerSentEvent) {
+    try {
+        send(event)
+    } catch (ex: ClosedWriteChannelException) {
+        logger.debug { "${ex.message}" }
     }
 }
 
