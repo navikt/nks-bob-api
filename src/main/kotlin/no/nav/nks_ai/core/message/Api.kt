@@ -1,13 +1,14 @@
 package no.nav.nks_ai.core.message
 
-import io.github.smiley4.ktorswaggerui.dsl.routing.get
-import io.github.smiley4.ktorswaggerui.dsl.routing.post
-import io.github.smiley4.ktorswaggerui.dsl.routing.put
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
+import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.receiveNullable
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.respondError
 
 fun Route.messageRoutes(
@@ -31,7 +32,7 @@ fun Route.messageRoutes(
             }
         }) {
             val messageId = call.messageId()
-                ?: return@get call.respond(HttpStatusCode.BadRequest)
+                ?: return@get call.respondError(ApplicationError.MissingMessageId())
 
             messageService.getMessage(messageId)
                 .onLeft { error -> call.respondError(error) }
@@ -57,10 +58,9 @@ fun Route.messageRoutes(
             }
         }) {
             val messageId = call.messageId()
-                ?: return@put call.respond(HttpStatusCode.BadRequest)
+                ?: return@put call.respondError(ApplicationError.MissingMessageId())
 
-            val message = call.receiveNullable<UpdateMessage>()
-                ?: return@put call.respond(HttpStatusCode.BadRequest)
+            val message = call.receive<UpdateMessage>()
 
             messageService.updateMessage(messageId, message)
                 .onLeft { error -> call.respondError(error) }
@@ -86,10 +86,9 @@ fun Route.messageRoutes(
             }
         }) {
             val messageId = call.messageId()
-                ?: return@post call.respond(HttpStatusCode.BadRequest)
+                ?: return@post call.respondError(ApplicationError.MissingMessageId())
 
-            val feedback = call.receiveNullable<NewFeedback>()
-                ?: return@post call.respond(HttpStatusCode.BadRequest)
+            val feedback = call.receive<NewFeedback>()
 
             messageService.addFeedbackToMessage(messageId, feedback)
                 .onLeft { error -> call.respondError(error) }

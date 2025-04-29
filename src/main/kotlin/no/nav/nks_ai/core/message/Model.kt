@@ -12,11 +12,12 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import no.nav.nks_ai.app.now
+import no.nav.nks_ai.app.toUUID
 import java.util.UUID
 
 object MessageIdSerializer : KSerializer<MessageId> {
     override fun deserialize(decoder: Decoder): MessageId {
-        return UUID.fromString(decoder.decodeString()).toMessageId()
+        return decoder.decodeString().toUUID().toMessageId()
     }
 
     override val descriptor: SerialDescriptor
@@ -37,7 +38,7 @@ value class MessageId(@Contextual val value: UUID)
 fun UUID.toMessageId() = MessageId(this)
 
 fun ApplicationCall.messageId(name: String = "id"): MessageId? =
-    MessageId(UUID.fromString(this.parameters[name]))
+    this.parameters[name]?.let { MessageId(it.toUUID()) }
 
 @Serializable
 enum class MessageType {

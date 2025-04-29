@@ -8,19 +8,7 @@ import kotlin.time.Duration.Companion.minutes
 fun Application.configureCache() {
     install(SimpleCache) {
         memoryCache {
-            invalidateAt = 30.minutes
+            invalidateAt = 15.minutes
         }
     }
-//    routing {
-//        cacheOutput(2.seconds) {
-//            get("/short") {
-//                call.respond(Random.nextInt().toString())
-//            }
-//        }
-//        cacheOutput {
-//            get("/default") {
-//                call.respond(Random.nextInt().toString())
-//            }
-//        }
-//    }
 }

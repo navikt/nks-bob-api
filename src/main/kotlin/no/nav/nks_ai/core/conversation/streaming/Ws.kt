@@ -3,9 +3,7 @@ package no.nav.nks_ai.core.conversation.streaming
 import arrow.core.raise.either
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.callid.withCallId
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.header
-import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import io.ktor.server.websocket.DefaultWebSocketServerSession
@@ -21,6 +19,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.launch
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
@@ -30,6 +29,7 @@ import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.conversation.conversationId
 import no.nav.nks_ai.core.message.MessageService
 import java.util.Collections
+import java.util.UUID
 import kotlin.collections.set
 
 private val logger = KotlinLogging.logger {}
@@ -40,7 +40,7 @@ fun Route.webSocketWithCallId(
     handler: suspend DefaultWebSocketServerSession.() -> Unit
 ) = webSocket(path, protocol) {
     val callId = call.request.header("nav-call-id")
-        ?: return@webSocket call.respond(HttpStatusCode.BadRequest)
+        ?: UUID.randomUUID().toString()
 
     withCallId(callId) {
         handler()
@@ -56,10 +56,10 @@ fun Route.conversationWebsocket(
         webSocketWithCallId("/{id}/messages/ws") {
             either {
                 val navIdent = call.getNavIdent()
-                    ?: return@webSocketWithCallId call.respond(HttpStatusCode.Forbidden)
+                    ?: return@webSocketWithCallId call.respondError(ApplicationError.MissingNavIdent())
 
                 val conversationId = call.conversationId()
-                    ?: return@webSocketWithCallId call.respond(HttpStatusCode.BadRequest)
+                    ?: return@webSocketWithCallId call.respondError(ApplicationError.MissingConversationId())
 
                 val existingMessages = conversationService.getConversationMessages(conversationId, navIdent)
                     .onLeft { call.respondError(it) }.bind()

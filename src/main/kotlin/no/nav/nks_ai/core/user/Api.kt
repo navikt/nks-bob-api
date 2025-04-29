@@ -1,13 +1,14 @@
 package no.nav.nks_ai.core.user
 
-import io.github.smiley4.ktorswaggerui.dsl.routing.get
-import io.github.smiley4.ktorswaggerui.dsl.routing.patch
-import io.github.smiley4.ktorswaggerui.dsl.routing.put
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.patch
+import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.receiveNullable
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
 
@@ -25,7 +26,7 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
             }
         }) {
             val navIdent = call.getNavIdent()
-                ?: return@get call.respond(HttpStatusCode.Forbidden)
+                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
             userConfigService.getOrCreateUserConfig(navIdent)
                 .onLeft { error -> call.respondError(error) }
@@ -48,10 +49,9 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
             }
         }) {
             val navIdent = call.getNavIdent()
-                ?: return@patch call.respond(HttpStatusCode.Forbidden)
+                ?: return@patch call.respondError(ApplicationError.MissingNavIdent())
 
-            val userConfig = call.receiveNullable<PatchUserConfig>()
-                ?: return@patch call.respond(HttpStatusCode.BadRequest)
+            val userConfig = call.receive<PatchUserConfig>()
 
             userConfigService.patchUserConfig(userConfig, navIdent)
                 .onLeft { error -> call.respondError(error) }
@@ -74,10 +74,9 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
             }
         }) {
             val navIdent = call.getNavIdent()
-                ?: return@put call.respond(HttpStatusCode.Forbidden)
+                ?: return@put call.respondError(ApplicationError.MissingNavIdent())
 
-            val userConfig = call.receiveNullable<UserConfig>()
-                ?: return@put call.respond(HttpStatusCode.BadRequest)
+            val userConfig = call.receive<UserConfig>()
 
             userConfigService.updateUserConfig(userConfig, navIdent)
                 .onLeft { error -> call.respondError(error) }

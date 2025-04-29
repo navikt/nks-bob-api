@@ -1,9 +1,11 @@
 package no.nav.nks_ai.app
 
+import io.ktor.callid.withCallId
 import io.ktor.http.HttpMethod
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.request.header
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import io.ktor.server.sse.SSE
@@ -23,6 +25,7 @@ import org.jetbrains.exposed.sql.QueryBuilder
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.append
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import java.util.UUID
 
 suspend fun <T> suspendTransaction(block: Transaction.() -> T): T =
     newSuspendedTransaction(Dispatchers.IO, statement = block)
@@ -50,6 +53,13 @@ fun String.truncate(limit: Int): String =
         this
     }
 
+fun String.toUUID(): UUID =
+    try {
+        UUID.fromString(this)
+    } catch (_: IllegalArgumentException) {
+        throw InvalidUuidException()
+    }
+
 fun ApplicationCall.getClaim(issuer: String, name: String) =
     authentication.principal<JWTPrincipal>()
         ?.payload
@@ -70,6 +80,13 @@ fun Route.sse(
     plugin(SSE)
 
     route(path, method) {
-        sse(handler)
+        sse {
+            val callId = call.request.header("nav-call-id")
+                ?: UUID.randomUUID().toString()
+
+            withCallId(callId) {
+                handler()
+            }
+        }
     }
 }

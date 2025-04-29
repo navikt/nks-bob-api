@@ -6,6 +6,7 @@ import arrow.core.right
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.callid.KtorCallIdContextElement
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.sse.SSEClientException
 import io.ktor.client.plugins.sse.sse
 import io.ktor.client.request.header
 import io.ktor.client.request.setBody
@@ -113,6 +114,16 @@ class KbsClient(
     }.retry(2) { throwable ->
         if (throwable.cause is KbsValidationException) {
             logger.warn { "Error when receiving message from KBS. Retrying..." }
+            return@retry true
+        }
+
+        if (throwable.cause is SSEClientException) {
+            logger.warn { "Error when receiving message from KBS (throwable.cause) (${throwable.message}). Retrying..." }
+            return@retry true
+        }
+
+        if (throwable is SSEClientException) {
+            logger.warn { "Error when receiving message from KBS (${throwable.message}). Retrying..." }
             return@retry true
         }
 
