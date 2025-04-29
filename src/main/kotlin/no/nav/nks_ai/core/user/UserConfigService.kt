@@ -5,9 +5,12 @@ import arrow.core.Option
 import arrow.core.getOrElse
 import arrow.core.raise.either
 import at.favre.lib.crypto.bcrypt.BCrypt
-import com.sksamuel.aedile.core.cacheBuilder
+import com.github.benmanes.caffeine.cache.Caffeine
+import com.sksamuel.aedile.core.asCache
+import com.sksamuel.aedile.core.expireAfterWrite
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.eitherGet
 import kotlin.time.Duration.Companion.hours
 
 @JvmInline
@@ -48,13 +51,13 @@ private typealias NavIdentCacheKey = PlaintextValue
 
 class UserConfigService {
     private val userConfigCache =
-        cacheBuilder<NavIdentCacheKey, UserConfig> { // look into replacing with cache4k + arrow.
-            expireAfterWrite = 12.hours
-        }.build()
+        Caffeine.newBuilder()
+            .expireAfterWrite(12.hours)
+            .asCache<NavIdentCacheKey, UserConfig>()
 
     suspend fun getOrCreateUserConfig(navIdent: NavIdent): Either<ApplicationError, UserConfig> =
-        either {
-            userConfigCache.get(navIdent.plaintext) {
+        userConfigCache.eitherGet(navIdent.plaintext) {
+            either {
                 UserConfigRepo.getUserConfig(navIdent).getOrElse {
                     UserConfigRepo.addConfig(defaultUserConfig, navIdent).bind()
                 }
