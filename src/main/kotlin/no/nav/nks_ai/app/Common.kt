@@ -1,5 +1,8 @@
 package no.nav.nks_ai.app
 
+import arrow.core.Either
+import arrow.core.right
+import com.sksamuel.aedile.core.Cache
 import io.ktor.callid.withCallId
 import io.ktor.http.HttpMethod
 import io.ktor.server.application.ApplicationCall
@@ -90,3 +93,13 @@ fun Route.sse(
         }
     }
 }
+
+suspend fun <K, V, Err> Cache<K, V>.eitherGet(
+    key: K,
+    compute: suspend (K) -> Either<Err, V>
+): Either<Err, V> = getOrNull(key)?.right()
+    ?: compute(key)
+        .map {
+            put(key, it)
+            it
+        }
