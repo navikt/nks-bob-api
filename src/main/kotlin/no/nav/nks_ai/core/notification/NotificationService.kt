@@ -2,7 +2,6 @@ package no.nav.nks_ai.core.notification
 
 import arrow.core.Option
 import com.github.benmanes.caffeine.cache.Caffeine
-import com.sksamuel.aedile.core.Cache
 import com.sksamuel.aedile.core.asCache
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.eitherGet
@@ -32,8 +31,7 @@ interface NotificationService {
 }
 
 fun notificationService() = object : NotificationService {
-    private val notificationsCache: Cache<String, List<Notification>> =
-        Caffeine.newBuilder().asCache<String, List<Notification>>()
+    private val notificationsCache = Caffeine.newBuilder().asCache<String, List<Notification>>()
     private val newsCache = Caffeine.newBuilder().asCache<String, List<NewsNotification>>()
     private val errorCache = Caffeine.newBuilder().asCache<String, List<ErrorNotification>>()
 
