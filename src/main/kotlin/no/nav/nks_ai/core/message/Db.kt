@@ -7,6 +7,7 @@ import arrow.core.raise.either
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.core.conversation.ConversationDAO
@@ -28,7 +29,6 @@ val jsonConfig = Json {
 internal object Messages : UUIDTable() {
     val content = text("content", eagerLoading = true)
     val conversation = reference("conversation", Conversations)
-    val feedback = jsonb<Feedback>("feedback", jsonConfig).nullable()
     val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
     val messageType = enumeration<MessageType>("message_type")
     val messageRole = enumeration<MessageRole>("message_role")
@@ -49,7 +49,6 @@ internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
 
     var content by Messages.content
     var conversation by ConversationDAO.Companion referencedOn Messages.conversation
-    var feedback by Messages.feedback
     var citations by Messages.citations
     var createdAt by Messages.createdAt
     var messageType by Messages.messageType
@@ -69,7 +68,6 @@ internal fun MessageDAO.toModel() = Message(
     id = id.value.toMessageId(),
     content = content,
     createdAt = createdAt,
-    feedback = feedback,
     messageType = messageType,
     messageRole = messageRole,
     citations = citations,
@@ -187,16 +185,6 @@ object MessageRepo {
                 .map { it.toModel() }
         }
 
-    suspend fun addFeedback(messageId: MessageId, newFeedback: NewFeedback): Either<ApplicationError, Message> =
-        suspendTransaction {
-            either {
-                MessageDAO.findByIdAndUpdate(messageId.value) {
-                    it.feedback = Feedback.fromNewFeedback(newFeedback)
-                }?.toModel()
-                    ?: raise(ApplicationError.MessageNotFound(messageId))
-            }
-        }
-
     suspend fun getConversationId(messageId: MessageId): Either<ApplicationError, ConversationId> =
         suspendTransaction {
             either {
@@ -226,5 +214,13 @@ object MessageRepo {
                         Messages.starred.eq(true)
                     }
                 }.map(MessageDAO::toModel)
+        }
+
+    suspend fun getOwner(messageId: MessageId): ApplicationResult<String> =
+        suspendTransaction {
+            either {
+                MessageDAO.findById(messageId.value)?.conversation?.owner
+                    ?: raise(ApplicationError.MessageNotFound(messageId))
+            }
         }
 }

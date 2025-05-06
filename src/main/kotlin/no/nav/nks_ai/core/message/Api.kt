@@ -9,10 +9,15 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
+import no.nav.nks_ai.app.respondResult
+import no.nav.nks_ai.core.feedback.CreateFeedback
+import no.nav.nks_ai.core.feedback.FeedbackService
 
 fun Route.messageRoutes(
     messageService: MessageService,
+    feedbackService: FeedbackService,
 ) {
     route("/messages") {
         get("/{id}", {
@@ -31,12 +36,13 @@ fun Route.messageRoutes(
                 }
             }
         }) {
+            val navIdent = call.getNavIdent()
+                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
+
             val messageId = call.messageId()
                 ?: return@get call.respondError(ApplicationError.MissingMessageId())
 
-            messageService.getMessage(messageId)
-                .onLeft { error -> call.respondError(error) }
-                .onRight { message -> call.respond(message) }
+            call.respondResult(messageService.getMessage(messageId, navIdent))
         }
         put("/{id}", {
             description = "Update a message"
@@ -72,27 +78,30 @@ fun Route.messageRoutes(
                 pathParameter<String>("id") {
                     description = "ID of the message"
                 }
-                body<NewFeedback> {
+                body<CreateFeedback> {
                     description = "The feedback to be created"
                 }
             }
             response {
                 HttpStatusCode.Created to {
                     description = "The feedback was created"
-                    body<Feedback> {
+                    body<no.nav.nks_ai.core.feedback.Feedback> {
                         description = "The feedback that got created"
                     }
                 }
             }
         }) {
+            val navIdent = call.getNavIdent()
+                ?: return@post call.respondError(ApplicationError.MissingNavIdent())
+
             val messageId = call.messageId()
                 ?: return@post call.respondError(ApplicationError.MissingMessageId())
 
-            val feedback = call.receive<NewFeedback>()
-
-            messageService.addFeedbackToMessage(messageId, feedback)
-                .onLeft { error -> call.respondError(error) }
-                .onRight { message -> call.respond(message) }
+            val feedback = call.receive<CreateFeedback>()
+            call.respondResult(
+                HttpStatusCode.Created,
+                feedbackService.addFeedback(messageId, navIdent, feedback)
+            )
         }
     }
 }

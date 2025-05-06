@@ -6,6 +6,7 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.core.conversation.ConversationId
+import no.nav.nks_ai.core.feedback.FeedbackId
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.notification.NotificationId
 
@@ -37,6 +38,12 @@ sealed class ApplicationError(
         description = "This request does not contain the required NAVident claim"
     )
 
+    class MissingAccess() : ApplicationError(
+        code = HttpStatusCode.Forbidden,
+        message = "Forbidden",
+        description = "This user does not have access to this resource"
+    )
+
     open class BadRequest(description: String) : ApplicationError(
         code = HttpStatusCode.BadRequest,
         message = "Bad request",
@@ -53,6 +60,10 @@ sealed class ApplicationError(
 
     class MissingNotificationId() : BadRequest(
         "This request does not contain the required notification id path parameter"
+    )
+
+    class MissingFeedbackId() : BadRequest(
+        "This request does not contain the required feedback id path parameter"
     )
 
     class SerializationError(description: String) : BadRequest(description)
@@ -87,6 +98,14 @@ sealed class ApplicationError(
             ?: "Notification not found"
     )
 
+    class FeedbackNotFound(feedbackId: FeedbackId?) : ApplicationError(
+        code = HttpStatusCode.NotFound,
+        message = "Feedback not found",
+        description = feedbackId
+            ?.let { "Feedback with id ${feedbackId.value} was not found" }
+            ?: "Feedback not found"
+    )
+
     class InvalidInput(message: String?, description: String?) : ApplicationError(
         code = HttpStatusCode.InternalServerError,
         message = message ?: "Invalid input",
@@ -98,6 +117,16 @@ typealias ApplicationResult<T> = Either<ApplicationError, T>
 
 suspend fun ApplicationCall.respondError(error: ApplicationError) =
     respond(error.code, error.toErrorResponse())
+
+suspend inline fun <reified T : Any> ApplicationCall.respondResult(result: ApplicationResult<T>): ApplicationResult<T> =
+    respondResult(HttpStatusCode.OK, result)
+
+suspend inline fun <reified T : Any> ApplicationCall.respondResult(
+    statusCode: HttpStatusCode,
+    result: ApplicationResult<T>
+): ApplicationResult<T> = result
+    .onLeft { error -> respondError(error) }
+    .onRight { value -> respond(status = statusCode, message = value) }
 
 @Serializable
 data class ErrorResponse(

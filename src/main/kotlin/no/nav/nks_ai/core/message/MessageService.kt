@@ -2,8 +2,12 @@ package no.nav.nks_ai.core.message
 
 import arrow.core.Either
 import arrow.core.Some
+import arrow.core.raise.either
+import arrow.core.raise.ensure
 import arrow.core.some
+import at.favre.lib.crypto.bcrypt.BCrypt
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.user.NavIdent
@@ -78,19 +82,6 @@ class MessageService() {
             contextualizedQuestion = contextualizedQuestion,
         )
 
-    suspend fun updatePendingMessage(
-        messageId: MessageId,
-        pending: Boolean,
-    ): Either<ApplicationError, Message> {
-        return MessageRepo.patchMessage(
-            messageId = messageId,
-            pending = Some(pending),
-        )
-    }
-
-    suspend fun starMessage(messageId: MessageId) =
-        MessageRepo.patchMessage(messageId = messageId, starred = true.some())
-
     suspend fun markStarredMessageUploaded(messageId: MessageId) =
         MessageRepo.markStarredMessageUploaded(messageId)
 
@@ -111,17 +102,17 @@ class MessageService() {
     suspend fun getMessage(messageId: MessageId) =
         MessageRepo.getMessage(messageId)
 
-    suspend fun addFeedbackToMessage(
-        messageId: MessageId,
-        newFeedback: NewFeedback
-    ): Either<ApplicationError, Message> {
-        if (newFeedback.liked) {
-            MetricRegister.answersLiked.inc()
-        } else {
-            MetricRegister.answersDisliked.inc()
+    suspend fun getMessage(messageId: MessageId, navIdent: NavIdent): ApplicationResult<Message> =
+        either {
+            ensure(isOwnedBy(messageId, navIdent).bind()) { ApplicationError.MissingAccess() }
+            getMessage(messageId).bind()
         }
 
-        return MessageRepo.addFeedback(messageId, newFeedback)
+    suspend fun isOwnedBy(messageId: MessageId, navIdent: NavIdent): ApplicationResult<Boolean> = either {
+        val ownedBy = MessageRepo.getOwner(messageId).bind()
+        BCrypt.verifyer()
+            .verify(navIdent.plaintext.value.toCharArray(), ownedBy.toCharArray())
+            .verified
     }
 
     suspend fun updateMessage(messageId: MessageId, message: UpdateMessage): Either<ApplicationError, Message> =
