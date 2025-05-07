@@ -5,10 +5,12 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
 import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
+import io.ktor.server.auth.principal
 import io.ktor.server.plugins.cors.routing.CORS
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.Config
@@ -93,4 +95,11 @@ fun Application.configureSecurity() {
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.Authorization)
     }
+}
+
+fun isAdmin(call: ApplicationCall): Boolean {
+    val principal = call.principal<JWTPrincipal>()
+    val groups = principal?.payload?.claims["groups"]
+    return groups?.asList<String>(String::class.java)
+        ?.any { it == Config.jwt.adminGroup } == true
 }
