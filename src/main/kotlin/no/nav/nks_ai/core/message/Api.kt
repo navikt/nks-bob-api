@@ -9,10 +9,12 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.ErrorResponse
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.app.respondResult
 import no.nav.nks_ai.core.feedback.CreateFeedback
+import no.nav.nks_ai.core.feedback.Feedback
 import no.nav.nks_ai.core.feedback.FeedbackService
 
 fun Route.messageRoutes(
@@ -72,6 +74,34 @@ fun Route.messageRoutes(
                 .onLeft { error -> call.respondError(error) }
                 .onRight { call.respond(it) }
         }
+        get("/{id}/feedback", {
+            description = "Get the feedback for a message"
+            request {
+                pathParameter<String>("id") {
+                    description = "ID of the message"
+                }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    description = "The feedback for the message"
+                    body<Feedback> {
+                        description = "The feedback for the message"
+                    }
+                }
+                HttpStatusCode.NotFound to {
+                    description = "Message or feedback does not exist"
+                    body<ErrorResponse>()
+                }
+            }
+        }) {
+            val navIdent = call.getNavIdent()
+                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
+
+            val messageId = call.messageId()
+                ?: return@get call.respondError(ApplicationError.MissingMessageId())
+
+            call.respondResult(feedbackService.getFeedbacksForMessage(messageId, navIdent))
+        }
         post("/{id}/feedback", {
             description = "Create a new feedback for a message"
             request {
@@ -85,7 +115,7 @@ fun Route.messageRoutes(
             response {
                 HttpStatusCode.Created to {
                     description = "The feedback was created"
-                    body<no.nav.nks_ai.core.feedback.Feedback> {
+                    body<Feedback> {
                         description = "The feedback that got created"
                     }
                 }

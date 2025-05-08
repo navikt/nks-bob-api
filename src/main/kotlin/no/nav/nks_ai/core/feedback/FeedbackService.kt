@@ -17,7 +17,7 @@ interface FeedbackService {
 
     suspend fun getUnresolvedFeedbacks(): ApplicationResult<List<Feedback>>
 
-    suspend fun getFeedbacksForMessage(messageId: MessageId): ApplicationResult<List<Feedback>>
+    suspend fun getFeedbacksForMessage(messageId: MessageId, navIdent: NavIdent): ApplicationResult<List<Feedback>>
 
     suspend fun addFeedback(
         messageId: MessageId,
@@ -40,8 +40,13 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
     override suspend fun getUnresolvedFeedbacks(): ApplicationResult<List<Feedback>> =
         FeedbackRepo.getUnresolvedFeedbacks()
 
-    override suspend fun getFeedbacksForMessage(messageId: MessageId): ApplicationResult<List<Feedback>> =
-        FeedbackRepo.getFeedbacksByMessageId(messageId)
+    override suspend fun getFeedbacksForMessage(
+        messageId: MessageId,
+        navIdent: NavIdent
+    ): ApplicationResult<List<Feedback>> = either {
+        messageService.getMessage(messageId, navIdent).bind() // ensures owner
+        FeedbackRepo.getFeedbacksByMessageId(messageId).bind()
+    }
 
     override suspend fun addFeedback(
         messageId: MessageId,
@@ -78,6 +83,5 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
 
     override suspend fun deleteFeedback(feedbackId: FeedbackId): ApplicationResult<Unit> =
         FeedbackRepo.deleteFeedback(feedbackId)
-
 }
 
