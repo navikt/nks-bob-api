@@ -1,6 +1,5 @@
 package no.nav.nks_ai.core.message
 
-import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.raise.either
@@ -90,7 +89,7 @@ object MessageRepo {
         context: List<Context>,
         citations: List<Citation>,
         pending: Boolean,
-    ): Either<ApplicationError, Message> =
+    ): ApplicationResult<Message> =
         suspendTransaction {
             either {
                 val conversation = ConversationDAO.Companion.findById(conversationId.value)
@@ -120,7 +119,7 @@ object MessageRepo {
         pending: Option<Boolean> = None,
         errors: Option<List<MessageError>> = None,
         starred: Option<Boolean> = None,
-    ): Either<ApplicationError, Message> =
+    ): ApplicationResult<Message> =
         suspendTransaction {
             either {
                 MessageDAO.findByIdAndUpdate(messageId.value) { entity ->
@@ -150,7 +149,7 @@ object MessageRepo {
         pending: Boolean,
         userQuestion: String?,
         contextualizedQuestion: String?,
-    ): Either<ApplicationError, Message> =
+    ): ApplicationResult<Message> =
         suspendTransaction {
             either {
                 MessageDAO.findByIdAndUpdate(messageId.value) {
@@ -169,7 +168,7 @@ object MessageRepo {
             }
         }
 
-    suspend fun getMessage(messageId: MessageId): Either<ApplicationError, Message> =
+    suspend fun getMessage(messageId: MessageId): ApplicationResult<Message> =
         suspendTransaction {
             either {
                 MessageDAO.findById(messageId.value)
@@ -185,7 +184,7 @@ object MessageRepo {
                 .map { it.toModel() }
         }
 
-    suspend fun getConversationId(messageId: MessageId): Either<ApplicationError, ConversationId> =
+    suspend fun getConversationId(messageId: MessageId): ApplicationResult<ConversationId> =
         suspendTransaction {
             either {
                 MessageDAO.findById(messageId.value)?.conversation
@@ -195,7 +194,7 @@ object MessageRepo {
             }
         }
 
-    suspend fun markStarredMessageUploaded(messageId: MessageId): Either<ApplicationError, Message> =
+    suspend fun markStarredMessageUploaded(messageId: MessageId): ApplicationResult<Message> =
         suspendTransaction {
             either {
                 MessageDAO

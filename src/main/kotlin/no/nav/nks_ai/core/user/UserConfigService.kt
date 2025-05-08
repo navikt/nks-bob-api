@@ -1,6 +1,5 @@
 package no.nav.nks_ai.core.user
 
-import arrow.core.Either
 import arrow.core.Option
 import arrow.core.getOrElse
 import arrow.core.raise.either
@@ -9,7 +8,7 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
 import com.sksamuel.aedile.core.expireAfterWrite
 import kotlinx.serialization.Serializable
-import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.eitherGet
 import kotlin.time.Duration.Companion.hours
 
@@ -23,6 +22,11 @@ class NavIdent(value: String) {
     val hash: String by lazy {
         BCrypt.withDefaults().hashToString(6, value.toCharArray())
     }
+
+    private val verifyer = BCrypt.verifyer()
+    fun isVerified(hash: String): Boolean = verifyer
+        .verify(plaintext.value.toCharArray(), hash.toCharArray())
+        .verified
 
     override fun toString(): String = "NavIdent($hash)"
 }
@@ -55,7 +59,7 @@ class UserConfigService {
             .expireAfterWrite(12.hours)
             .asCache<NavIdentCacheKey, UserConfig>()
 
-    suspend fun getOrCreateUserConfig(navIdent: NavIdent): Either<ApplicationError, UserConfig> =
+    suspend fun getOrCreateUserConfig(navIdent: NavIdent): ApplicationResult<UserConfig> =
         userConfigCache.eitherGet(navIdent.plaintext) {
             either {
                 UserConfigRepo.getUserConfig(navIdent).getOrElse {
@@ -64,12 +68,12 @@ class UserConfigService {
             }
         }
 
-    suspend fun updateUserConfig(userConfig: UserConfig, navIdent: NavIdent): Either<ApplicationError, UserConfig> {
+    suspend fun updateUserConfig(userConfig: UserConfig, navIdent: NavIdent): ApplicationResult<UserConfig> {
         userConfigCache.invalidate(navIdent.plaintext)
         return UserConfigRepo.updateUserConfig(userConfig, navIdent)
     }
 
-    suspend fun patchUserConfig(userConfig: PatchUserConfig, navIdent: NavIdent): Either<ApplicationError, UserConfig> {
+    suspend fun patchUserConfig(userConfig: PatchUserConfig, navIdent: NavIdent): ApplicationResult<UserConfig> {
         userConfigCache.invalidate(navIdent.plaintext)
         return UserConfigRepo.patchUserConfig(
             navIdent = navIdent,

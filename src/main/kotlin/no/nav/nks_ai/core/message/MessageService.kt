@@ -1,11 +1,9 @@
 package no.nav.nks_ai.core.message
 
-import arrow.core.Either
 import arrow.core.Some
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.some
-import at.favre.lib.crypto.bcrypt.BCrypt
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.MetricRegister
@@ -17,7 +15,7 @@ class MessageService() {
         conversationId: ConversationId,
         navIdent: NavIdent,
         messageContent: String,
-    ): Either<ApplicationError, Message> {
+    ): ApplicationResult<Message> {
         MetricRegister.questionsCreated.inc()
         return MessageRepo.addMessage(
             conversationId = conversationId,
@@ -36,7 +34,7 @@ class MessageService() {
         messageContent: String,
         citations: List<NewCitation>,
         context: List<Context>,
-    ): Either<ApplicationError, Message> {
+    ): ApplicationResult<Message> {
         MetricRegister.answersCreated.inc()
         return MessageRepo.addMessage(
             conversationId = conversationId,
@@ -50,7 +48,7 @@ class MessageService() {
         )
     }
 
-    suspend fun addEmptyAnswer(conversationId: ConversationId): Either<ApplicationError, Message> =
+    suspend fun addEmptyAnswer(conversationId: ConversationId): ApplicationResult<Message> =
         addAnswer(
             conversationId = conversationId,
             messageContent = "",
@@ -110,12 +108,10 @@ class MessageService() {
 
     suspend fun isOwnedBy(messageId: MessageId, navIdent: NavIdent): ApplicationResult<Boolean> = either {
         val ownedBy = MessageRepo.getOwner(messageId).bind()
-        BCrypt.verifyer()
-            .verify(navIdent.plaintext.value.toCharArray(), ownedBy.toCharArray())
-            .verified
+        navIdent.isVerified(ownedBy)
     }
 
-    suspend fun updateMessage(messageId: MessageId, message: UpdateMessage): Either<ApplicationError, Message> =
+    suspend fun updateMessage(messageId: MessageId, message: UpdateMessage): ApplicationResult<Message> =
         MessageRepo.patchMessage(
             messageId = messageId,
             starred = message.starred.some(),
