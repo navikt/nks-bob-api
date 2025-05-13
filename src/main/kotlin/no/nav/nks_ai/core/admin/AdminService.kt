@@ -23,6 +23,9 @@ class AdminService() {
     suspend fun getAllConversations(navIdent: NavIdent): List<Conversation> =
         ConversationRepo.getAllConversations(navIdent)
 
+    suspend fun getConversation(conversationId: ConversationId): ApplicationResult<Conversation> =
+        ConversationRepo.getConversation(conversationId)
+
     suspend fun getConversationSummary(conversationId: ConversationId): ApplicationResult<ConversationSummary> =
         either {
             val conversation = ConversationRepo.getConversation(conversationId).bind()
