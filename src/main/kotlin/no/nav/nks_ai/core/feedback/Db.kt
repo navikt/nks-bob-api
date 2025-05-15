@@ -48,7 +48,9 @@ object FeedbackRepo {
     suspend fun getFeedbacks(): ApplicationResult<List<Feedback>> =
         suspendTransaction {
             either {
-                FeedbackDAO.all().map(FeedbackDAO::toModel)
+                FeedbackDAO.all()
+                    .map(FeedbackDAO::toModel)
+                    .sortedByDescending(Feedback::createdAt)
             }
         }
 
@@ -57,7 +59,9 @@ object FeedbackRepo {
             either {
                 FeedbackDAO.find {
                     Feedbacks.resolved eq false
-                }.map(FeedbackDAO::toModel)
+                }
+                    .map(FeedbackDAO::toModel)
+                    .sortedByDescending(Feedback::createdAt)
             }
         }
 
@@ -75,7 +79,9 @@ object FeedbackRepo {
             either {
                 FeedbackDAO.find {
                     Feedbacks.message eq messageId.value
-                }.map(FeedbackDAO::toModel)
+                }
+                    .map(FeedbackDAO::toModel)
+                    .sortedByDescending(Feedback::createdAt)
             }
         }
 

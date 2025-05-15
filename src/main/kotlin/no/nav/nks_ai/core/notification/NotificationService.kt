@@ -31,26 +31,25 @@ interface NotificationService {
 }
 
 fun notificationService() = object : NotificationService {
-    private val notificationsCache = Caffeine.newBuilder().asCache<String, List<Notification>>()
-    private val newsCache = Caffeine.newBuilder().asCache<String, List<NewsNotification>>()
-    private val errorCache = Caffeine.newBuilder().asCache<String, List<ErrorNotification>>()
+    private val cache = Caffeine.newBuilder().asCache<String, List<Notification>>()
+    private val ALL = "all"
+    private val NEWS = "news"
+    private val ERRORS = "errors"
 
     override suspend fun getAllNotifications(): ApplicationResult<List<Notification>> =
-        notificationsCache.eitherGet("") {
+        cache.eitherGet(ALL) {
             NotificationRepo.getNotifications()
         }
 
     override suspend fun getNews(): ApplicationResult<List<NewsNotification>> =
-        newsCache.eitherGet("") {
+        cache.eitherGet(NEWS) {
             NotificationRepo.getNewsNotifications()
-                .map { it.map(NewsNotification::fromNotification) }
-        }
+        }.map { it.map(NewsNotification::fromNotification) }
 
     override suspend fun getErrors(): ApplicationResult<List<ErrorNotification>> =
-        errorCache.eitherGet("") {
+        cache.eitherGet(ERRORS) {
             NotificationRepo.getErrorNotifications()
-                .map { it.map(ErrorNotification::fromNotification) }
-        }
+        }.map { it.map(ErrorNotification::fromNotification) }
 
     override suspend fun addNotification(notification: CreateNotification): ApplicationResult<Notification> {
         invalidateCaches(notification.notificationType)
@@ -85,7 +84,7 @@ fun notificationService() = object : NotificationService {
     ): ApplicationResult<Notification> {
         notification.notificationType
             ?.let(::invalidateCaches)
-            ?: invalidateAll()
+            ?: cache.invalidateAll()
 
         return NotificationRepo.patchNotification(
             notificationId = notificationId,
@@ -97,21 +96,15 @@ fun notificationService() = object : NotificationService {
     }
 
     override suspend fun deleteNotification(notificationId: NotificationId): ApplicationResult<Unit> {
-        invalidateAll()
+        cache.invalidateAll()
         return NotificationRepo.deleteNotification(notificationId)
     }
 
     private fun invalidateCaches(type: NotificationType) {
-        notificationsCache.invalidate("")
+        cache.invalidate(ALL)
         when (type) {
-            NotificationType.News -> newsCache.invalidate("")
-            else -> errorCache.invalidate("")
+            NotificationType.News -> cache.invalidate(NEWS)
+            else -> cache.invalidate(ERRORS)
         }
-    }
-
-    private fun invalidateAll() {
-        notificationsCache.invalidate("")
-        newsCache.invalidate("")
-        errorCache.invalidate("")
     }
 }

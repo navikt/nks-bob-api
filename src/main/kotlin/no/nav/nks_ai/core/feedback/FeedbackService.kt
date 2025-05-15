@@ -2,9 +2,12 @@ package no.nav.nks_ai.core.feedback
 
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.github.benmanes.caffeine.cache.Caffeine
+import com.sksamuel.aedile.core.asCache
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.MetricRegister
+import no.nav.nks_ai.app.eitherGet
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.MessageService
 import no.nav.nks_ai.core.message.MessageType
@@ -31,14 +34,22 @@ interface FeedbackService {
 }
 
 fun feedbackService(messageService: MessageService) = object : FeedbackService {
+    private val cache = Caffeine.newBuilder().asCache<String, List<Feedback>>()
+    private val ALL = "all"
+    private val UNRESOLVED = "unresolved"
+
     override suspend fun getFeedback(feedbackId: FeedbackId): ApplicationResult<Feedback> =
         FeedbackRepo.getFeedbackById(feedbackId)
 
     override suspend fun getAllFeedbacks(): ApplicationResult<List<Feedback>> =
-        FeedbackRepo.getFeedbacks()
+        cache.eitherGet(ALL) {
+            FeedbackRepo.getFeedbacks()
+        }
 
     override suspend fun getUnresolvedFeedbacks(): ApplicationResult<List<Feedback>> =
-        FeedbackRepo.getUnresolvedFeedbacks()
+        cache.eitherGet(UNRESOLVED) {
+            FeedbackRepo.getUnresolvedFeedbacks()
+        }
 
     override suspend fun getFeedbacksForMessage(
         messageId: MessageId,
@@ -58,6 +69,7 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
             ApplicationError.BadRequest("Cannot add feedback to a message which is not an answer")
         }
 
+        cache.invalidateAll()
         MetricRegister.trackFeedback(
             options = feedback.options,
             hasComment = feedback.comment != null
@@ -73,13 +85,15 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
     override suspend fun updateFeedback(
         feedbackId: FeedbackId,
         feedback: UpdateFeedback,
-    ): ApplicationResult<Feedback> =
-        FeedbackRepo.updateFeedback(
+    ): ApplicationResult<Feedback> {
+        cache.invalidateAll()
+        return FeedbackRepo.updateFeedback(
             feedbackId = feedbackId,
             options = feedback.options,
             comment = feedback.comment,
             resolved = feedback.resolved
         )
+    }
 
     override suspend fun deleteFeedback(feedbackId: FeedbackId): ApplicationResult<Unit> =
         FeedbackRepo.deleteFeedback(feedbackId)
