@@ -21,10 +21,8 @@ import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.conversation.streaming.WebsocketFlowHandler
-import no.nav.nks_ai.core.message.Feedback
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageService
-import no.nav.nks_ai.core.message.NewFeedback
 import no.nav.nks_ai.core.message.NewMessage
 
 private val logger = KotlinLogging.logger { }
@@ -255,14 +253,14 @@ fun Route.conversationRoutes(
                 pathParameter<String>("id") {
                     description = "ID of the conversation"
                 }
-                body<NewFeedback> {
+                body<ConversationFeedback> {
                     description = "The feedback to be created"
                 }
             }
             response {
                 HttpStatusCode.Created to {
                     description = "The feedback was created"
-                    body<Feedback> {
+                    body<ConversationFeedback> {
                         description = "The feedback that got created"
                     }
                 }
@@ -274,7 +272,7 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@post call.respondError(ApplicationError.MissingNavIdent())
 
-            val feedback = call.receive<NewFeedback>()
+            val feedback = call.receive<ConversationFeedback>()
 
             either {
                 conversationService.getConversation(conversationId, navIdent).bind()
@@ -285,7 +283,7 @@ fun Route.conversationRoutes(
                     false -> MetricRegister.conversationsDisliked.inc()
                 }
 
-                call.respond(HttpStatusCode.Created, Feedback(feedback.liked))
+                call.respond(HttpStatusCode.Created, ConversationFeedback(feedback.liked))
             }.onLeft { call.respondError(it) }
         }
     }

@@ -32,7 +32,7 @@ object NotificationIdSerializer : KSerializer<NotificationId> {
 fun UUID.toNotificationId() = NotificationId(this)
 
 fun ApplicationCall.notificationId(name: String = "id"): NotificationId? =
-    this.parameters[name]?.let { NotificationId(it.toUUID()) }
+    this.parameters[name]?.toUUID()?.toNotificationId()
 
 @Serializable(NotificationIdSerializer::class)
 @JvmInline

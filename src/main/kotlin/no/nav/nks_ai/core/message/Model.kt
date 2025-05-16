@@ -38,7 +38,7 @@ value class MessageId(@Contextual val value: UUID)
 fun UUID.toMessageId() = MessageId(this)
 
 fun ApplicationCall.messageId(name: String = "id"): MessageId? =
-    this.parameters[name]?.let { MessageId(it.toUUID()) }
+    this.parameters[name]?.toUUID()?.toMessageId()
 
 @Serializable
 enum class MessageType {
@@ -91,21 +91,6 @@ data class NewCitation(
 )
 
 @Serializable
-data class Feedback(
-    val liked: Boolean,
-)
-
-fun Feedback.Companion.fromNewFeedback(newFeedback: NewFeedback) =
-    Feedback(
-        liked = newFeedback.liked
-    )
-
-@Serializable
-data class NewFeedback(
-    val liked: Boolean,
-)
-
-@Serializable
 data class MessageError(
     val title: String,
     val description: String
@@ -116,7 +101,6 @@ data class Message(
     val id: MessageId,
     val content: String,
     val createdAt: LocalDateTime,
-    val feedback: Feedback?,
     val messageType: MessageType,
     val messageRole: MessageRole,
     val citations: List<Citation>,
@@ -148,7 +132,6 @@ fun Message.Companion.answerFrom(
         messageType = MessageType.Answer,
         messageRole = MessageRole.AI,
         pending = pending,
-        feedback = null,
         errors = emptyList(),
         followUp = followUp,
         userQuestion = userQuestion,

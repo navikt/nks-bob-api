@@ -39,7 +39,7 @@ value class ConversationId(@Contextual val value: UUID)
 fun UUID.toConversationId() = ConversationId(this)
 
 fun ApplicationCall.conversationId(name: String = "id"): ConversationId? =
-    this.parameters[name]?.let { ConversationId(it.toUUID()) }
+    this.parameters[name]?.toUUID()?.toConversationId()
 
 @Serializable
 data class Conversation(
@@ -89,4 +89,9 @@ data class NewConversation(
 @Serializable
 data class UpdateConversation(
     val title: String,
+)
+
+@Serializable
+data class ConversationFeedback(
+    val liked: Boolean,
 )

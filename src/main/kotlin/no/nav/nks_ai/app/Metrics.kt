@@ -81,6 +81,32 @@ object MetricRegister {
         .name("${METRICS_NS}_answers_failed_receive")
         .help("Hvor mange svar som har feilet underveis når de mottas fra KBS")
         .register(appMicrometerRegistry.prometheusRegistry)
+
+    private val answerFeedbacks = Counter.Builder()
+        .name("${METRICS_NS}_answer_feedbacks")
+        .help("Hvor mange tilbakemeldinger som har kommet på svar")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    private val answerFeedbackOptions = Counter.Builder()
+        .name("${METRICS_NS}_answer_feedback_options")
+        .help("Totalt antall valg på tilbakemeldinger")
+        .labelNames("valg")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    private val answerFeedbackComments = Counter.Builder()
+        .name("${METRICS_NS}_answer_feedback_comments")
+        .help("Totalt antall kommentarer på tilbakemeldinger")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    fun trackFeedback(options: List<String>, hasComment: Boolean) {
+        answerFeedbacks.inc()
+        options.forEach { option ->
+            answerFeedbackOptions.labels(option).inc()
+        }
+        if (hasComment) {
+            answerFeedbackComments.inc()
+        }
+    }
 }
 
 class Timer {

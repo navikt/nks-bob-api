@@ -33,5 +33,13 @@ fun Application.configureSerialization() {
         exception<InvalidUuidException> { call, exception ->
             call.respondError(exception.toError())
         }
+        exception<Throwable> { call, exception ->
+            call.respondError(
+                ApplicationError.InternalServerError(
+                    "Internal Server Error",
+                    exception.message ?: "An unknown error occurred"
+                )
+            )
+        }
     }
 }

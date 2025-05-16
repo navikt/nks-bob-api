@@ -9,10 +9,17 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.ErrorResponse
+import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
+import no.nav.nks_ai.app.respondResult
+import no.nav.nks_ai.core.feedback.CreateFeedback
+import no.nav.nks_ai.core.feedback.Feedback
+import no.nav.nks_ai.core.feedback.FeedbackService
 
 fun Route.messageRoutes(
     messageService: MessageService,
+    feedbackService: FeedbackService,
 ) {
     route("/messages") {
         get("/{id}", {
@@ -31,12 +38,13 @@ fun Route.messageRoutes(
                 }
             }
         }) {
+            val navIdent = call.getNavIdent()
+                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
+
             val messageId = call.messageId()
                 ?: return@get call.respondError(ApplicationError.MissingMessageId())
 
-            messageService.getMessage(messageId)
-                .onLeft { error -> call.respondError(error) }
-                .onRight { message -> call.respond(message) }
+            call.respondResult(messageService.getMessage(messageId, navIdent))
         }
         put("/{id}", {
             description = "Update a message"
@@ -66,13 +74,41 @@ fun Route.messageRoutes(
                 .onLeft { error -> call.respondError(error) }
                 .onRight { call.respond(it) }
         }
+        get("/{id}/feedback", {
+            description = "Get the feedback for a message"
+            request {
+                pathParameter<String>("id") {
+                    description = "ID of the message"
+                }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    description = "The feedback for the message"
+                    body<Feedback> {
+                        description = "The feedback for the message"
+                    }
+                }
+                HttpStatusCode.NotFound to {
+                    description = "Message or feedback does not exist"
+                    body<ErrorResponse>()
+                }
+            }
+        }) {
+            val navIdent = call.getNavIdent()
+                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
+
+            val messageId = call.messageId()
+                ?: return@get call.respondError(ApplicationError.MissingMessageId())
+
+            call.respondResult(feedbackService.getFeedbacksForMessage(messageId, navIdent))
+        }
         post("/{id}/feedback", {
             description = "Create a new feedback for a message"
             request {
                 pathParameter<String>("id") {
                     description = "ID of the message"
                 }
-                body<NewFeedback> {
+                body<CreateFeedback> {
                     description = "The feedback to be created"
                 }
             }
@@ -85,14 +121,17 @@ fun Route.messageRoutes(
                 }
             }
         }) {
+            val navIdent = call.getNavIdent()
+                ?: return@post call.respondError(ApplicationError.MissingNavIdent())
+
             val messageId = call.messageId()
                 ?: return@post call.respondError(ApplicationError.MissingMessageId())
 
-            val feedback = call.receive<NewFeedback>()
-
-            messageService.addFeedbackToMessage(messageId, feedback)
-                .onLeft { error -> call.respondError(error) }
-                .onRight { message -> call.respond(message) }
+            val feedback = call.receive<CreateFeedback>()
+            call.respondResult(
+                HttpStatusCode.Created,
+                feedbackService.addFeedback(messageId, navIdent, feedback)
+            )
         }
     }
 }

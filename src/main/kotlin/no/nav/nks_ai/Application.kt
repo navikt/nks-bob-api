@@ -41,6 +41,8 @@ import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.conversation.conversationRoutes
 import no.nav.nks_ai.core.conversation.streaming.conversationSse
 import no.nav.nks_ai.core.conversation.streaming.conversationWebsocket
+import no.nav.nks_ai.core.feedback.feedbackAdminRoutes
+import no.nav.nks_ai.core.feedback.feedbackService
 import no.nav.nks_ai.core.message.MessageService
 import no.nav.nks_ai.core.message.messageRoutes
 import no.nav.nks_ai.core.notification.notificationAdminRoutes
@@ -93,6 +95,7 @@ fun Application.module() {
     val articleService = ArticleService(bigQueryClient)
     val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
     val notificationService = notificationService()
+    val feedbackService = feedbackService(messageService)
 
     ConversationDeletionJob(conversationService, httpClient).start()
     UploadStarredMessagesJob(messageService, markMessageStarredService, httpClient).start()
@@ -104,13 +107,14 @@ fun Application.module() {
                 conversationWebsocket(conversationService, messageService, sendMessageService)
                 conversationSse(messageService, sendMessageService)
                 userConfigRoutes(userConfigService)
-                messageRoutes(messageService)
+                messageRoutes(messageService, feedbackService)
                 articleRoutes(articleService)
                 notificationUserRoutes(notificationService)
             }
             authenticate("AdminUser") {
                 adminRoutes(adminService)
                 notificationAdminRoutes(notificationService)
+                feedbackAdminRoutes(feedbackService)
             }
         }
         route("/internal") {

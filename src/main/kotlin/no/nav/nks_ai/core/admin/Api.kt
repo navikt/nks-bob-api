@@ -61,6 +61,29 @@ fun Route.adminRoutes(adminService: AdminService) {
                 adminService.deleteAllConversations(navIdent)
                 call.respond(HttpStatusCode.NoContent)
             }
+            get("/{id}", {
+                description = "Get conversation by id"
+                request {
+                    pathParameter<String>("id") {
+                        description = "The ID of the conversation"
+                    }
+                }
+                response {
+                    HttpStatusCode.OK to {
+                        description = "The requested conversation"
+                        body<Conversation> {
+                            description = "The requested conversation"
+                        }
+                    }
+                }
+            }) {
+                val conversationId = call.conversationId()
+                    ?: return@get call.respondError(ApplicationError.MissingConversationId())
+
+                adminService.getConversation(conversationId)
+                    .onLeft { call.respondError(it) }
+                    .onRight { summary -> call.respond(HttpStatusCode.OK, summary) }
+            }
             delete("/{id}", {
                 description = "Delete a conversation with the given ID for the given user"
                 request {
