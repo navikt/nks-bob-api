@@ -18,7 +18,7 @@ interface FeedbackService {
 
     suspend fun getAllFeedbacks(): ApplicationResult<List<Feedback>>
 
-    suspend fun getUnresolvedFeedbacks(): ApplicationResult<List<Feedback>>
+    suspend fun getFilteredFeedbacks(filter: FeedbackFilter): ApplicationResult<List<Feedback>>
 
     suspend fun getFeedbacksForMessage(messageId: MessageId, navIdent: NavIdent): ApplicationResult<List<Feedback>>
 
@@ -36,7 +36,6 @@ interface FeedbackService {
 fun feedbackService(messageService: MessageService) = object : FeedbackService {
     private val cache = Caffeine.newBuilder().asCache<String, List<Feedback>>()
     private val ALL = "all"
-    private val UNRESOLVED = "unresolved"
 
     override suspend fun getFeedback(feedbackId: FeedbackId): ApplicationResult<Feedback> =
         FeedbackRepo.getFeedbackById(feedbackId)
@@ -46,9 +45,14 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
             FeedbackRepo.getFeedbacks()
         }
 
-    override suspend fun getUnresolvedFeedbacks(): ApplicationResult<List<Feedback>> =
-        cache.eitherGet(UNRESOLVED) {
-            FeedbackRepo.getUnresolvedFeedbacks()
+    override suspend fun getFilteredFeedbacks(filter: FeedbackFilter): ApplicationResult<List<Feedback>> =
+        cache.eitherGet(filter.toString()) {
+            when (filter) {
+                FeedbackFilter.Unresolved -> FeedbackRepo.getUnresolvedFeedbacks()
+                FeedbackFilter.Resolved -> FeedbackRepo.getResolvedFeedbacks()
+                FeedbackFilter.Important -> FeedbackRepo.getFeedbacks() // TODO
+                FeedbackFilter.VeryImportant -> FeedbackRepo.getFeedbacks() // TODO
+            }
         }
 
     override suspend fun getFeedbacksForMessage(

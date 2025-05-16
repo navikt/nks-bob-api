@@ -16,8 +16,10 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
         get({
             description = "Get all feedbacks"
             request {
-                queryParameter<Boolean>("unresolvedOnly") {
-                    description = "Only unresolved feedbacks will be returned if true"
+                queryParameter<String>("filter") {
+                    description =
+                        "Filter which feedbacks will be returned (nye, ferdigstilte, viktige, særskilt-viktige)"
+                    required = false
                 }
             }
             response {
@@ -29,14 +31,14 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                 }
             }
         }) {
-            val feedbacks = call.queryParameters["unresolvedOnly"].toBoolean()
-                .let { unresolvedOnly ->
-                    if (unresolvedOnly) {
-                        feedbackService.getUnresolvedFeedbacks()
-                    } else {
-                        feedbackService.getAllFeedbacks()
-                    }
-                }
+            val filter = call.queryParameters["filter"]
+            val feedbacks = when (filter) {
+                "nye" -> feedbackService.getFilteredFeedbacks(FeedbackFilter.Unresolved)
+                "ferdigstilte" -> feedbackService.getFilteredFeedbacks(FeedbackFilter.Resolved)
+                "viktige" -> feedbackService.getFilteredFeedbacks(FeedbackFilter.Important)
+                "særskilt-viktige" -> feedbackService.getFilteredFeedbacks(FeedbackFilter.VeryImportant)
+                else -> feedbackService.getAllFeedbacks()
+            }
 
             call.respondResult(feedbacks)
         }

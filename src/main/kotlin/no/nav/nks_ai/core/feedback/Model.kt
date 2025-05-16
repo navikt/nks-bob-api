@@ -39,6 +39,13 @@ fun UUID.toFeedbackId() = FeedbackId(this)
 fun ApplicationCall.feedbackId(name: String = "id"): FeedbackId? =
     this.parameters[name]?.toUUID()?.toFeedbackId()
 
+enum class FeedbackFilter {
+    Unresolved,
+    Resolved,
+    Important,
+    VeryImportant
+}
+
 @Serializable
 data class Feedback(
     val id: FeedbackId,

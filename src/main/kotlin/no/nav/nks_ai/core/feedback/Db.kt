@@ -14,6 +14,8 @@ import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.UUIDTable
+import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
 
@@ -54,16 +56,20 @@ object FeedbackRepo {
             }
         }
 
-    suspend fun getUnresolvedFeedbacks(): ApplicationResult<List<Feedback>> =
+    private suspend fun getFilteredFeedbacks(op: SqlExpressionBuilder.() -> Op<Boolean>): ApplicationResult<List<Feedback>> =
         suspendTransaction {
             either {
-                FeedbackDAO.find {
-                    Feedbacks.resolved eq false
-                }
+                FeedbackDAO.find(op)
                     .map(FeedbackDAO::toModel)
                     .sortedByDescending(Feedback::createdAt)
             }
         }
+
+    suspend fun getUnresolvedFeedbacks(): ApplicationResult<List<Feedback>> =
+        getFilteredFeedbacks { Feedbacks.resolved eq false }
+
+    suspend fun getResolvedFeedbacks(): ApplicationResult<List<Feedback>> =
+        getFilteredFeedbacks { Feedbacks.resolved eq true }
 
     suspend fun getFeedbackById(feedbackId: FeedbackId): ApplicationResult<Feedback> =
         suspendTransaction {
