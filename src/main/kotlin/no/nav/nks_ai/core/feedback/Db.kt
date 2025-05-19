@@ -6,6 +6,7 @@ import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
+import no.nav.nks_ai.core.conversation.toConversationId
 import no.nav.nks_ai.core.message.MessageDAO
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.Messages
@@ -41,6 +42,7 @@ internal fun FeedbackDAO.toModel() = Feedback(
     id = id.value.toFeedbackId(),
     createdAt = createdAt,
     messageId = message.id.value.toMessageId(),
+    conversationId = message.conversation.id.value.toConversationId(),
     options = options,
     comment = comment,
     resolved = resolved,

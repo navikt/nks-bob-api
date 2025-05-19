@@ -11,6 +11,7 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import no.nav.nks_ai.app.toUUID
+import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.message.MessageId
 import java.util.UUID
 
@@ -50,6 +51,7 @@ enum class FeedbackFilter {
 data class Feedback(
     val id: FeedbackId,
     val messageId: MessageId,
+    val conversationId: ConversationId,
     val createdAt: LocalDateTime,
     val options: List<String>,
     val comment: String?,
