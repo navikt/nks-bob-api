@@ -71,6 +71,7 @@ class UserConfigService {
     suspend fun updateUserConfig(userConfig: UserConfig, navIdent: NavIdent): ApplicationResult<UserConfig> {
         userConfigCache.invalidate(navIdent.plaintext)
         return UserConfigRepo.updateUserConfig(userConfig, navIdent)
+            .onRight { userConfigCache.put(navIdent.plaintext, it) }
     }
 
     suspend fun patchUserConfig(userConfig: PatchUserConfig, navIdent: NavIdent): ApplicationResult<UserConfig> {
@@ -80,6 +81,6 @@ class UserConfigService {
             showStartInfo = Option.fromNullable(userConfig.showStartInfo),
             showTutorial = Option.fromNullable(userConfig.showTutorial),
             showNewConceptInfo = Option.fromNullable(userConfig.showNewConceptInfo),
-        )
+        ).onRight { userConfigCache.put(navIdent.plaintext, it) }
     }
 }
