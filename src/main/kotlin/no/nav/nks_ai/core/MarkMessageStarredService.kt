@@ -1,12 +1,10 @@
 package no.nav.nks_ai.core
 
-import arrow.core.Either
 import arrow.core.raise.either
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert
 import kotlinx.datetime.LocalDateTime
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.Config
 import no.nav.nks_ai.app.bq.BigQueryClient
 import no.nav.nks_ai.app.now
@@ -19,7 +17,7 @@ class MarkMessageStarredService(
     private val bigQueryClient: BigQueryClient,
     private val messageService: MessageService,
 ) {
-    suspend fun markStarred(messageId: MessageId): Either<ApplicationError, Message> = either {
+    suspend fun markStarred(messageId: MessageId): ApplicationResult<Message> = either {
         val message = messageService.getMessage(messageId).bind()
 
         bigQueryClient.insert(

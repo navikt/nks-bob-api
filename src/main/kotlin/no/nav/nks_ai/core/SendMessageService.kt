@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.runningFold
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.ConversationService
@@ -55,7 +56,7 @@ class SendMessageService(
         question: Message,
         conversationId: ConversationId,
         navIdent: NavIdent,
-    ): Either<ApplicationError, Flow<ConversationEvent>> = either {
+    ): ApplicationResult<Flow<ConversationEvent>> = either {
         if (question.messageType != MessageType.Question) {
             return ApplicationError.InvalidInput("Invalid input", "Provided message is not a question").left()
         }
@@ -149,7 +150,7 @@ class SendMessageService(
     private suspend fun handleError(
         throwable: Throwable,
         messageId: MessageId
-    ): Either<ApplicationError, Message> {
+    ): ApplicationResult<Message> {
         logger.error(throwable) { "Error when receiving answer from KBS" }
         return handleError(
             MessageError(
@@ -163,7 +164,7 @@ class SendMessageService(
     private suspend fun handleError(
         error: ApplicationError,
         messageId: MessageId
-    ): Either<ApplicationError, Message> {
+    ): ApplicationResult<Message> {
         return handleError(
             MessageError(
                 title = error.message,
@@ -176,7 +177,7 @@ class SendMessageService(
     private suspend fun handleError(
         errorResponse: KbsErrorResponse,
         messageId: MessageId
-    ): Either<ApplicationError, Message> {
+    ): ApplicationResult<Message> {
         val failedReceive = !errorResponse.title.lowercase().contains("flagget")
         return handleError(
             MessageError(
@@ -192,7 +193,7 @@ class SendMessageService(
         messageError: MessageError,
         messageId: MessageId,
         failedReceive: Boolean = true,
-    ): Either<ApplicationError, Message> {
+    ): ApplicationResult<Message> {
         if (failedReceive) {
             MetricRegister.answerFailedReceive.inc()
         }
@@ -208,7 +209,7 @@ class SendMessageService(
         message: NewMessage,
         conversationId: ConversationId,
         navIdent: NavIdent,
-    ): Either<ApplicationError, Flow<Message>> = either {
+    ): ApplicationResult<Flow<Message>> = either {
         val history = conversationService.getConversationMessages(conversationId, navIdent).bind()
         val question = messageService.addQuestion(conversationId, navIdent, message.content).bind()
         val initialAnswer = messageService.addEmptyAnswer(conversationId).bind()
@@ -263,7 +264,7 @@ class SendMessageService(
     private suspend fun handleKbsError(
         error: Throwable,
         initialAnswer: Message,
-    ): Either<ApplicationError, Message> {
+    ): ApplicationResult<Message> {
         logger.error(error) { "Error when receiving answer from KBS" }
         MetricRegister.answerFailedReceive.inc()
         return messageService.updateMessageError(

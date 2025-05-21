@@ -1,9 +1,11 @@
 package no.nav.nks_ai.core.message
 
-import arrow.core.Either
 import arrow.core.Some
+import arrow.core.raise.either
+import arrow.core.raise.ensure
 import arrow.core.some
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.user.NavIdent
@@ -13,7 +15,7 @@ class MessageService() {
         conversationId: ConversationId,
         navIdent: NavIdent,
         messageContent: String,
-    ): Either<ApplicationError, Message> {
+    ): ApplicationResult<Message> {
         MetricRegister.questionsCreated.inc()
         return MessageRepo.addMessage(
             conversationId = conversationId,
@@ -32,7 +34,7 @@ class MessageService() {
         messageContent: String,
         citations: List<NewCitation>,
         context: List<Context>,
-    ): Either<ApplicationError, Message> {
+    ): ApplicationResult<Message> {
         MetricRegister.answersCreated.inc()
         return MessageRepo.addMessage(
             conversationId = conversationId,
@@ -46,7 +48,7 @@ class MessageService() {
         )
     }
 
-    suspend fun addEmptyAnswer(conversationId: ConversationId): Either<ApplicationError, Message> =
+    suspend fun addEmptyAnswer(conversationId: ConversationId): ApplicationResult<Message> =
         addAnswer(
             conversationId = conversationId,
             messageContent = "",
@@ -78,19 +80,6 @@ class MessageService() {
             contextualizedQuestion = contextualizedQuestion,
         )
 
-    suspend fun updatePendingMessage(
-        messageId: MessageId,
-        pending: Boolean,
-    ): Either<ApplicationError, Message> {
-        return MessageRepo.patchMessage(
-            messageId = messageId,
-            pending = Some(pending),
-        )
-    }
-
-    suspend fun starMessage(messageId: MessageId) =
-        MessageRepo.patchMessage(messageId = messageId, starred = true.some())
-
     suspend fun markStarredMessageUploaded(messageId: MessageId) =
         MessageRepo.markStarredMessageUploaded(messageId)
 
@@ -111,20 +100,18 @@ class MessageService() {
     suspend fun getMessage(messageId: MessageId) =
         MessageRepo.getMessage(messageId)
 
-    suspend fun addFeedbackToMessage(
-        messageId: MessageId,
-        newFeedback: NewFeedback
-    ): Either<ApplicationError, Message> {
-        if (newFeedback.liked) {
-            MetricRegister.answersLiked.inc()
-        } else {
-            MetricRegister.answersDisliked.inc()
+    suspend fun getMessage(messageId: MessageId, navIdent: NavIdent): ApplicationResult<Message> =
+        either {
+            ensure(isOwnedBy(messageId, navIdent).bind()) { ApplicationError.MissingAccess() }
+            getMessage(messageId).bind()
         }
 
-        return MessageRepo.addFeedback(messageId, newFeedback)
+    suspend fun isOwnedBy(messageId: MessageId, navIdent: NavIdent): ApplicationResult<Boolean> = either {
+        val ownedBy = MessageRepo.getOwner(messageId).bind()
+        navIdent.isVerified(ownedBy)
     }
 
-    suspend fun updateMessage(messageId: MessageId, message: UpdateMessage): Either<ApplicationError, Message> =
+    suspend fun updateMessage(messageId: MessageId, message: UpdateMessage): ApplicationResult<Message> =
         MessageRepo.patchMessage(
             messageId = messageId,
             starred = message.starred.some(),
