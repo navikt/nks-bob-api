@@ -138,3 +138,7 @@ data class ErrorResponse(
 class InvalidUuidException() : Throwable(message = "Invalid UUID")
 
 fun InvalidUuidException.toError() = ApplicationError.BadRequest(message!!)
+
+class InvalidInputException(message: String) : Throwable(message)
+
+fun InvalidInputException.toError() = ApplicationError.BadRequest(message!!)

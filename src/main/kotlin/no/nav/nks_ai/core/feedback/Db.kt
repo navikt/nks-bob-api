@@ -26,6 +26,7 @@ internal object Feedbacks : UUIDTable("feedbacks") {
     val options = array<String>("options")
     val comment = text("comment", eagerLoading = true).nullable().clientDefault { null }
     val resolved = bool("resolved").clientDefault { false }
+    val resolved_category = enumeration<ResolvedCategory>("resolved_category").nullable().clientDefault { null }
 }
 
 internal class FeedbackDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -36,6 +37,7 @@ internal class FeedbackDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var options by Feedbacks.options
     var comment by Feedbacks.comment
     var resolved by Feedbacks.resolved
+    var resolvedCategory by Feedbacks.resolved_category
 }
 
 internal fun FeedbackDAO.toModel() = Feedback(
@@ -46,6 +48,7 @@ internal fun FeedbackDAO.toModel() = Feedback(
     options = options,
     comment = comment,
     resolved = resolved,
+    resolvedCategory = resolvedCategory,
 )
 
 object FeedbackRepo {
@@ -72,6 +75,18 @@ object FeedbackRepo {
 
     suspend fun getResolvedFeedbacks(): ApplicationResult<List<Feedback>> =
         getFilteredFeedbacks { Feedbacks.resolved eq true }
+
+    suspend fun getNotRelevantFeedbacks(): ApplicationResult<List<Feedback>> =
+        getFilteredFeedbacks { Feedbacks.resolved_category eq ResolvedCategory.NotRelevant }
+
+    suspend fun getSomewhatImportantFeedbacks(): ApplicationResult<List<Feedback>> =
+        getFilteredFeedbacks { Feedbacks.resolved_category eq ResolvedCategory.SomewhatImportant }
+
+    suspend fun getImportantFeedbacks(): ApplicationResult<List<Feedback>> =
+        getFilteredFeedbacks { Feedbacks.resolved_category eq ResolvedCategory.Important }
+
+    suspend fun getVeryImportantFeedbacks(): ApplicationResult<List<Feedback>> =
+        getFilteredFeedbacks { Feedbacks.resolved_category eq ResolvedCategory.VeryImportant }
 
     suspend fun getFeedbackById(feedbackId: FeedbackId): ApplicationResult<Feedback> =
         suspendTransaction {
@@ -116,6 +131,7 @@ object FeedbackRepo {
         options: List<String>,
         comment: String?,
         resolved: Boolean,
+        resolvedCategory: ResolvedCategory?,
     ): ApplicationResult<Feedback> =
         suspendTransaction {
             either {
@@ -123,6 +139,7 @@ object FeedbackRepo {
                     it.options = options
                     it.comment = comment
                     it.resolved = resolved
+                    it.resolvedCategory = resolvedCategory
                 }
                     ?.let(FeedbackDAO::toModel)
                     ?: raise(ApplicationError.FeedbackNotFound(feedbackId))

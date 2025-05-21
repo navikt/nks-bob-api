@@ -1,5 +1,6 @@
 package no.nav.nks_ai.core.feedback
 
+import arrow.core.raise.either
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.put
@@ -8,6 +9,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.app.respondResult
 
@@ -18,7 +20,7 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
             request {
                 queryParameter<String>("filter") {
                     description =
-                        "Filter which feedbacks will be returned (nye, ferdigstilte, viktige, særskilt-viktige)"
+                        "Filter which feedbacks will be returned (${FeedbackFilter.validValues})"
                     required = false
                 }
             }
@@ -31,14 +33,12 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                 }
             }
         }) {
-            val filter = call.queryParameters["filter"]
-            val feedbacks = when (filter) {
-                "nye" -> feedbackService.getFilteredFeedbacks(FeedbackFilter.Unresolved)
-                "ferdigstilte" -> feedbackService.getFilteredFeedbacks(FeedbackFilter.Resolved)
-                "viktige" -> feedbackService.getFilteredFeedbacks(FeedbackFilter.Important)
-                "særskilt-viktige" -> feedbackService.getFilteredFeedbacks(FeedbackFilter.VeryImportant)
-                else -> feedbackService.getAllFeedbacks()
-            }
+            val feedbacks: ApplicationResult<List<Feedback>> = call.queryParameters["filter"]?.let { filterValue ->
+                either {
+                    val filter = FeedbackFilter.fromFilterValue(filterValue).bind()
+                    feedbackService.getFilteredFeedbacks(filter).bind()
+                }
+            } ?: feedbackService.getAllFeedbacks()
 
             call.respondResult(feedbacks)
         }

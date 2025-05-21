@@ -50,8 +50,10 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
             when (filter) {
                 FeedbackFilter.Unresolved -> FeedbackRepo.getUnresolvedFeedbacks()
                 FeedbackFilter.Resolved -> FeedbackRepo.getResolvedFeedbacks()
-                FeedbackFilter.Important -> FeedbackRepo.getFeedbacks() // TODO
-                FeedbackFilter.VeryImportant -> FeedbackRepo.getFeedbacks() // TODO
+                FeedbackFilter.NotRelevant -> FeedbackRepo.getNotRelevantFeedbacks()
+                FeedbackFilter.SomewhatImportant -> FeedbackRepo.getSomewhatImportantFeedbacks()
+                FeedbackFilter.Important -> FeedbackRepo.getImportantFeedbacks()
+                FeedbackFilter.VeryImportant -> FeedbackRepo.getVeryImportantFeedbacks()
             }
         }
 
@@ -89,17 +91,20 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
     override suspend fun updateFeedback(
         feedbackId: FeedbackId,
         feedback: UpdateFeedback,
-    ): ApplicationResult<Feedback> {
+    ): ApplicationResult<Feedback> = either {
         cache.invalidateAll()
-        return FeedbackRepo.updateFeedback(
+        FeedbackRepo.updateFeedback(
             feedbackId = feedbackId,
             options = feedback.options,
             comment = feedback.comment,
-            resolved = feedback.resolved
-        )
+            resolved = feedback.resolved,
+            resolvedCategory = feedback.resolvedCategory?.let { ResolvedCategory.fromCategoryValue(it).bind() }
+        ).bind()
     }
 
-    override suspend fun deleteFeedback(feedbackId: FeedbackId): ApplicationResult<Unit> =
-        FeedbackRepo.deleteFeedback(feedbackId)
+    override suspend fun deleteFeedback(feedbackId: FeedbackId): ApplicationResult<Unit> {
+        cache.invalidateAll()
+        return FeedbackRepo.deleteFeedback(feedbackId)
+    }
 }
 
