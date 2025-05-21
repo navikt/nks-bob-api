@@ -1,5 +1,5 @@
 alter table messages
-    drop column feedback;
+    drop column if exists feedback;
 
 create table if not exists feedbacks
 (
