@@ -1,11 +1,11 @@
 package no.nav.nks_ai.core.user
 
-import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.raise.either
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.bcryptVerified
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
@@ -46,7 +46,7 @@ internal fun UserConfigDAO.toModel() = UserConfig(
 )
 
 object UserConfigRepo {
-    suspend fun getUserConfig(navIdent: NavIdent): Either<ApplicationError, UserConfig> =
+    suspend fun getUserConfig(navIdent: NavIdent): ApplicationResult<UserConfig> =
         suspendTransaction {
             either {
                 UserConfigDAO.findByNavIdent(navIdent)?.toModel()
@@ -54,7 +54,7 @@ object UserConfigRepo {
             }
         }
 
-    suspend fun addConfig(config: UserConfig, navIdent: NavIdent): Either<ApplicationError, UserConfig> =
+    suspend fun addConfig(config: UserConfig, navIdent: NavIdent): ApplicationResult<UserConfig> =
         suspendTransaction {
             either {
                 UserConfigDAO.new {
@@ -66,7 +66,7 @@ object UserConfigRepo {
             }
         }
 
-    suspend fun updateUserConfig(config: UserConfig, navIdent: NavIdent): Either<ApplicationError, UserConfig> =
+    suspend fun updateUserConfig(config: UserConfig, navIdent: NavIdent): ApplicationResult<UserConfig> =
         suspendTransaction {
             either {
                 UserConfigDAO

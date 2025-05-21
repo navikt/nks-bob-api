@@ -66,7 +66,9 @@ object NotificationRepo {
             either {
                 NotificationDAO.find {
                     Notifications.notificationType eq type
-                }.map { it.toModel() }
+                }
+                    .map(NotificationDAO::toModel)
+                    .sortedByDescending(Notification::createdAt)
             }
         }
 

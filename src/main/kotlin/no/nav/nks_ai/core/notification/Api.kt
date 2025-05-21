@@ -20,7 +20,7 @@ fun Route.notificationUserRoutes(notificationService: NotificationService) {
             response {
                 HttpStatusCode.OK to {
                     description = "The operation was successful"
-                    body<Notification> {
+                    body<List<Notification>> {
                         description = "All notifications"
                     }
                 }
@@ -36,7 +36,7 @@ fun Route.notificationUserRoutes(notificationService: NotificationService) {
             response {
                 HttpStatusCode.OK to {
                     description = "The operation was successful"
-                    body<NewsNotification> {
+                    body<List<NewsNotification>> {
                         description = "All news notifications"
                     }
                 }
@@ -52,7 +52,7 @@ fun Route.notificationUserRoutes(notificationService: NotificationService) {
             response {
                 HttpStatusCode.OK to {
                     description = "The operation was successful"
-                    body<ErrorNotification> {
+                    body<List<ErrorNotification>> {
                         description = "All error notifications"
                     }
                 }
