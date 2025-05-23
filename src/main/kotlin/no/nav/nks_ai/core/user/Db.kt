@@ -6,7 +6,6 @@ import arrow.core.raise.either
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
-import no.nav.nks_ai.app.bcryptVerified
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import org.jetbrains.exposed.dao.UUIDEntity
@@ -36,7 +35,7 @@ internal class UserConfigDAO(id: EntityID<UUID>) : UUIDEntity(id) {
 
 internal fun UserConfigDAO.Companion.findByNavIdent(navIdent: NavIdent): UserConfigDAO? =
     find {
-        UserConfigs.navIdent bcryptVerified navIdent
+        UserConfigs.navIdent eq navIdent.plaintext.value
     }.firstOrNull()
 
 internal fun UserConfigDAO.toModel() = UserConfig(
@@ -58,7 +57,7 @@ object UserConfigRepo {
         suspendTransaction {
             either {
                 UserConfigDAO.new {
-                    this.navIdent = navIdent.hash
+                    this.navIdent = navIdent.plaintext.value
                     this.showStartInfo = config.showStartInfo
                     this.showTutorial = config.showTutorial
                     this.showNewConceptInfo = config.showNewConceptInfo
