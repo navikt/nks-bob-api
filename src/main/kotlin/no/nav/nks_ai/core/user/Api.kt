@@ -59,7 +59,7 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
                 ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
             userConfigService.getOrCreateUserConfig(navIdent)
-                .map { it.asDto(isAdmin(call)) }
+                .map { it.asDto(isAdmin()) }
                 .let { call.respondResult(it) }
         }
         patch({
@@ -83,7 +83,7 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
 
             val userConfig = call.receive<PatchUserConfig>()
             userConfigService.patchUserConfig(userConfig, navIdent)
-                .map { it.asDto(isAdmin(call)) }
+                .map { it.asDto(isAdmin()) }
                 .let { call.respondResult(it) }
         }
         put({
@@ -107,7 +107,7 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
 
             val userConfig = call.receive<UserConfig>()
             userConfigService.updateUserConfig(userConfig, navIdent)
-                .map { it.asDto(isAdmin(call)) }
+                .map { it.asDto(isAdmin()) }
                 .let { call.respondResult(it) }
         }
     }
