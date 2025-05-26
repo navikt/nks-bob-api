@@ -124,5 +124,5 @@ data class UpdateFeedback(
     val options: List<String>,
     val comment: String?,
     val resolved: Boolean,
-    val resolvedCategory: String?,
+    val resolvedCategory: ResolvedCategory?,
 )
