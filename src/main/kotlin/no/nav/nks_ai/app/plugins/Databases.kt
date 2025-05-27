@@ -27,8 +27,8 @@ object Db {
                 addDataSourceProperty("user", config.username)
                 addDataSourceProperty("password", config.password)
             }
-            maximumPoolSize = 20
-            minimumIdle = 5
+            maximumPoolSize = 15
+            minimumIdle = 3
             connectionTimeout = 30_000
             maxLifetime = 60_000
             isAutoCommit = false

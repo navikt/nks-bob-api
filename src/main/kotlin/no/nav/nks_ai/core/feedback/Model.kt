@@ -85,7 +85,7 @@ class ResolvedCategorySerializer : KSerializer<ResolvedCategory> {
 @Serializable(ResolvedCategorySerializer::class)
 enum class ResolvedCategory(val value: String) {
     NotRelevant("ikke-relevant"),
-    SomewhatImportant("litt-viktig"),
+    SomewhatImportant("lite-viktig"),
     Important("viktig"),
     VeryImportant("særskilt-viktig");
 
@@ -124,5 +124,5 @@ data class UpdateFeedback(
     val options: List<String>,
     val comment: String?,
     val resolved: Boolean,
-    val resolvedCategory: String?,
+    val resolvedCategory: ResolvedCategory?,
 )
