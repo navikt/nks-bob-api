@@ -115,7 +115,7 @@ object MetricRegister {
         .register(appMicrometerRegistry.prometheusRegistry)
 
     private val answerFeedbackResolvedCategory = Counter.Builder()
-        .name("${METRICS_NS}_answer_feedback_resolvedCategory")
+        .name("${METRICS_NS}_answer_feedback_resolved_category")
         .help("Totalt antall valg på tilbakemeldinger")
         .labelNames("kategori")
         .register(appMicrometerRegistry.prometheusRegistry)

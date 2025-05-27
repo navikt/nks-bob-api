@@ -85,7 +85,7 @@ class ResolvedCategorySerializer : KSerializer<ResolvedCategory> {
 @Serializable(ResolvedCategorySerializer::class)
 enum class ResolvedCategory(val value: String) {
     NotRelevant("ikke-relevant"),
-    SomewhatImportant("litt-viktig"),
+    SomewhatImportant("lite-viktig"),
     Important("viktig"),
     VeryImportant("særskilt-viktig");
 
