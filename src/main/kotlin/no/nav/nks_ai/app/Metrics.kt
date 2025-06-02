@@ -120,8 +120,10 @@ object MetricRegister {
         .labelNames("kategori")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    fun trackFeedbackResolved(resolvedCategory: ResolvedCategory?) {
-        answerFeedbacksResolved.inc()
+    fun trackFeedbackResolved(resolved: Boolean, resolvedCategory: ResolvedCategory?) {
+        if (resolved) {
+            answerFeedbacksResolved.inc()
+        }
         resolvedCategory?.let {
             answerFeedbackResolvedCategory.labels(it.value).inc()
         }

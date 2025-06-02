@@ -94,9 +94,10 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
     ): ApplicationResult<Feedback> = either {
         cache.invalidateAll()
 
-        if (feedback.resolved) {
-            MetricRegister.trackFeedbackResolved(feedback.resolvedCategory)
-        }
+        MetricRegister.trackFeedbackResolved(
+            feedback.resolved,
+            feedback.resolvedCategory
+        )
 
         FeedbackRepo.updateFeedback(
             feedbackId = feedbackId,
