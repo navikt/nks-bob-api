@@ -6,6 +6,7 @@ import io.prometheus.client.Counter
 import io.prometheus.client.Gauge
 import io.prometheus.client.SimpleTimer
 import io.prometheus.client.Summary
+import no.nav.nks_ai.core.feedback.ResolvedCategory
 
 
 internal val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -105,6 +106,26 @@ object MetricRegister {
         }
         if (hasComment) {
             answerFeedbackComments.inc()
+        }
+    }
+
+    private val answerFeedbacksResolved = Counter.Builder()
+        .name("${METRICS_NS}_answer_feedbacks_resolved")
+        .help("Hvor mange tilbakemeldinger som har blitt ferdigstilt")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    private val answerFeedbackResolvedCategory = Counter.Builder()
+        .name("${METRICS_NS}_answer_feedback_resolved_category")
+        .help("Totalt antall valg på tilbakemeldinger")
+        .labelNames("kategori")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    fun trackFeedbackResolved(resolved: Boolean, resolvedCategory: ResolvedCategory?) {
+        if (resolved) {
+            answerFeedbacksResolved.inc()
+        }
+        resolvedCategory?.let {
+            answerFeedbackResolvedCategory.labels(it.value).inc()
         }
     }
 }
