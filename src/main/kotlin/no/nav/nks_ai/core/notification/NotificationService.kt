@@ -1,8 +1,12 @@
 package no.nav.nks_ai.core.notification
 
 import arrow.core.Option
+import arrow.core.raise.either
+import arrow.core.raise.ensure
 import com.github.benmanes.caffeine.cache.Caffeine
+import com.sksamuel.aedile.core.Cache
 import com.sksamuel.aedile.core.asCache
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.eitherGet
 
@@ -51,14 +55,21 @@ fun notificationService() = object : NotificationService {
             NotificationRepo.getErrorNotifications()
         }.map { it.map(ErrorNotification::fromNotification) }
 
-    override suspend fun addNotification(notification: CreateNotification): ApplicationResult<Notification> {
+    override suspend fun addNotification(notification: CreateNotification): ApplicationResult<Notification> = either {
+        if (notification.notificationType.isAlert()) {
+            val errors = NotificationRepo.getErrorNotifications().bind()
+            ensure(errors.isEmpty()) {
+                ApplicationError.BadRequest("Cannot create multiple error notifications")
+            }
+        }
+
         invalidateCaches(notification.notificationType)
-        return NotificationRepo.addNotification(
+        NotificationRepo.addNotification(
             expiresAt = notification.expiresAt,
             notificationType = notification.notificationType,
             title = notification.title,
             content = notification.content,
-        )
+        ).bind()
     }
 
     override suspend fun getNotification(notificationId: NotificationId): ApplicationResult<Notification> =
@@ -106,5 +117,18 @@ fun notificationService() = object : NotificationService {
             NotificationType.News -> cache.invalidate(NEWS)
             else -> cache.invalidate(ERRORS)
         }
+    }
+
+    private fun updateCaches(notification: Notification) {
+        cache.append(ALL, notification)
+        when (notification.notificationType) {
+            NotificationType.News -> cache.append(NEWS, notification)
+            else -> cache.append(ERRORS, notification)
+        }
+    }
+
+    private fun <K, V> Cache<K, List<V>>.append(key: K, value: V) {
+        val existing = getOrNull(key) ?: emptyList()
+        put(key, existing + value)
     }
 }

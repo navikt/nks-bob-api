@@ -42,7 +42,10 @@ value class NotificationId(@Contextual val value: UUID)
 enum class NotificationType {
     News,
     Error,
-    Warning,
+    Warning;
+
+    fun isAlert() =
+        this == Error || this == Warning
 }
 
 @Serializable
