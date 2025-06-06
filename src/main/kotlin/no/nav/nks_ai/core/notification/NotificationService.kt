@@ -4,11 +4,12 @@ import arrow.core.Option
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import com.github.benmanes.caffeine.cache.Caffeine
-import com.sksamuel.aedile.core.Cache
 import com.sksamuel.aedile.core.asCache
+import com.sksamuel.aedile.core.expireAfterWrite
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.eitherGet
+import kotlin.time.Duration.Companion.minutes
 
 interface NotificationService {
     suspend fun getAllNotifications(): ApplicationResult<List<Notification>>
@@ -35,7 +36,10 @@ interface NotificationService {
 }
 
 fun notificationService() = object : NotificationService {
-    private val cache = Caffeine.newBuilder().asCache<String, List<Notification>>()
+    private val cache = Caffeine.newBuilder()
+        .expireAfterWrite(5.minutes)
+        .asCache<String, List<Notification>>()
+
     private val ALL = "all"
     private val NEWS = "news"
     private val ERRORS = "errors"
@@ -117,18 +121,5 @@ fun notificationService() = object : NotificationService {
             NotificationType.News -> cache.invalidate(NEWS)
             else -> cache.invalidate(ERRORS)
         }
-    }
-
-    private fun updateCaches(notification: Notification) {
-        cache.append(ALL, notification)
-        when (notification.notificationType) {
-            NotificationType.News -> cache.append(NEWS, notification)
-            else -> cache.append(ERRORS, notification)
-        }
-    }
-
-    private fun <K, V> Cache<K, List<V>>.append(key: K, value: V) {
-        val existing = getOrNull(key) ?: emptyList()
-        put(key, existing + value)
     }
 }
