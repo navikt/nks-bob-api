@@ -4,7 +4,9 @@ import arrow.core.raise.either
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
+import no.nav.nks_ai.app.Pagination
 import no.nav.nks_ai.app.now
+import no.nav.nks_ai.app.paginated
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.core.conversation.toConversationId
 import no.nav.nks_ai.core.message.MessageDAO
@@ -52,41 +54,46 @@ internal fun FeedbackDAO.toModel() = Feedback(
 )
 
 object FeedbackRepo {
-    suspend fun getFeedbacks(): ApplicationResult<List<Feedback>> =
+    suspend fun getFeedbacks(pagination: Pagination): ApplicationResult<List<Feedback>> =
         suspendTransaction {
             either {
                 FeedbackDAO.all()
+                    .paginated(pagination)
                     .map(FeedbackDAO::toModel)
                     .sortedByDescending(Feedback::createdAt)
             }
         }
 
-    private suspend fun getFilteredFeedbacks(op: SqlExpressionBuilder.() -> Op<Boolean>): ApplicationResult<List<Feedback>> =
+    private suspend fun getFilteredFeedbacks(
+        pagination: Pagination,
+        op: SqlExpressionBuilder.() -> Op<Boolean>
+    ): ApplicationResult<List<Feedback>> =
         suspendTransaction {
             either {
                 FeedbackDAO.find(op)
+                    .paginated(pagination)
                     .map(FeedbackDAO::toModel)
                     .sortedByDescending(Feedback::createdAt)
             }
         }
 
-    suspend fun getUnresolvedFeedbacks(): ApplicationResult<List<Feedback>> =
-        getFilteredFeedbacks { Feedbacks.resolved eq false }
+    suspend fun getUnresolvedFeedbacks(pagination: Pagination): ApplicationResult<List<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolved eq false }
 
-    suspend fun getResolvedFeedbacks(): ApplicationResult<List<Feedback>> =
-        getFilteredFeedbacks { Feedbacks.resolved eq true }
+    suspend fun getResolvedFeedbacks(pagination: Pagination): ApplicationResult<List<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolved eq true }
 
-    suspend fun getNotRelevantFeedbacks(): ApplicationResult<List<Feedback>> =
-        getFilteredFeedbacks { Feedbacks.resolved_category eq ResolvedCategory.NotRelevant }
+    suspend fun getNotRelevantFeedbacks(pagination: Pagination): ApplicationResult<List<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolved_category eq ResolvedCategory.NotRelevant }
 
-    suspend fun getSomewhatImportantFeedbacks(): ApplicationResult<List<Feedback>> =
-        getFilteredFeedbacks { Feedbacks.resolved_category eq ResolvedCategory.SomewhatImportant }
+    suspend fun getSomewhatImportantFeedbacks(pagination: Pagination): ApplicationResult<List<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolved_category eq ResolvedCategory.SomewhatImportant }
 
-    suspend fun getImportantFeedbacks(): ApplicationResult<List<Feedback>> =
-        getFilteredFeedbacks { Feedbacks.resolved_category eq ResolvedCategory.Important }
+    suspend fun getImportantFeedbacks(pagination: Pagination): ApplicationResult<List<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolved_category eq ResolvedCategory.Important }
 
-    suspend fun getVeryImportantFeedbacks(): ApplicationResult<List<Feedback>> =
-        getFilteredFeedbacks { Feedbacks.resolved_category eq ResolvedCategory.VeryImportant }
+    suspend fun getVeryImportantFeedbacks(pagination: Pagination): ApplicationResult<List<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolved_category eq ResolvedCategory.VeryImportant }
 
     suspend fun getFeedbackById(feedbackId: FeedbackId): ApplicationResult<Feedback> =
         suspendTransaction {

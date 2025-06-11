@@ -9,7 +9,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
 import no.nav.nks_ai.app.ApplicationError
-import no.nav.nks_ai.app.ApplicationResult
+import no.nav.nks_ai.app.pagination
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.app.respondResult
 
@@ -23,6 +23,14 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                         "Filter which feedbacks will be returned (${FeedbackFilter.validValues})"
                     required = false
                 }
+                queryParameter<Int>("page") {
+                    description = "Which page to fetch (default = 0)"
+                    required = false
+                }
+                queryParameter<Int>("size") {
+                    description = "How many feedbacks to fetch (default = 100)"
+                    required = false
+                }
             }
             response {
                 HttpStatusCode.OK to {
@@ -33,14 +41,15 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                 }
             }
         }) {
-            val feedbacks: ApplicationResult<List<Feedback>> = call.queryParameters["filter"]?.let { filterValue ->
-                either {
-                    val filter = FeedbackFilter.fromFilterValue(filterValue).bind()
-                    feedbackService.getFilteredFeedbacks(filter).bind()
-                }
-            } ?: feedbackService.getAllFeedbacks()
-
-            call.respondResult(feedbacks)
+            either {
+                val pagination = call.pagination().bind()
+                call.queryParameters["filter"]
+                    ?.let {
+                        val filter = FeedbackFilter.fromFilterValue(it).bind()
+                        feedbackService.getFilteredFeedbacks(filter, pagination).bind()
+                    }
+                    ?: feedbackService.getAllFeedbacks(pagination).bind()
+            }.let { call.respondResult(it) }
         }
 
         route("/{id}") {
