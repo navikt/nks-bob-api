@@ -19,6 +19,7 @@ import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
@@ -60,9 +61,9 @@ object FeedbackRepo {
             either {
                 Page(
                     data = FeedbackDAO.all()
+                        .orderBy(Feedbacks.createdAt to SortOrder.DESC)
                         .paginated(pagination)
-                        .map(FeedbackDAO::toModel)
-                        .sortedByDescending(Feedback::createdAt),
+                        .map(FeedbackDAO::toModel),
                     total = FeedbackDAO.all().count(),
                 )
             }
@@ -76,9 +77,9 @@ object FeedbackRepo {
             either {
                 Page(
                     data = FeedbackDAO.find(op)
+                        .orderBy(Feedbacks.createdAt to SortOrder.DESC)
                         .paginated(pagination)
-                        .map(FeedbackDAO::toModel)
-                        .sortedByDescending(Feedback::createdAt),
+                        .map(FeedbackDAO::toModel),
                     total = FeedbackDAO.find(op).count()
                 )
             }
