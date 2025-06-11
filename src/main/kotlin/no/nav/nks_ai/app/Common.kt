@@ -1,10 +1,15 @@
 package no.nav.nks_ai.app
 
 import arrow.core.Either
+import arrow.core.left
+import arrow.core.raise.catch
+import arrow.core.raise.either
+import arrow.core.raise.ensure
 import arrow.core.right
 import com.sksamuel.aedile.core.Cache
 import io.ktor.callid.withCallId
 import io.ktor.http.HttpMethod
+import io.ktor.http.Parameters
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -25,6 +30,7 @@ import org.jetbrains.exposed.sql.Expression
 import org.jetbrains.exposed.sql.ExpressionWithColumnType
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.QueryBuilder
+import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.append
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -103,3 +109,31 @@ suspend fun <K, V, Err> Cache<K, V>.eitherGet(
             put(key, it)
             it
         }
+
+data class Pagination(val page: Int, val size: Int)
+
+fun Parameters.getInt(name: String, default: Int) = get(name)?.toInt() ?: default
+
+fun ApplicationCall.pagination(): ApplicationResult<Pagination> = either {
+    val page = catch({ parameters.getInt("page", 0).right() }) {
+        ApplicationError.BadRequest("Could not parse number. ${it.message}").left()
+    }.bind()
+    ensure(page >= 0) {
+        ApplicationError.BadRequest("Only positive page values are allowed")
+    }
+
+    val size = catch({ parameters.getInt("size", 100).right() }) {
+        ApplicationError.BadRequest("Could not parse number. ${it.message}").left()
+    }.bind()
+    ensure(size >= 0) {
+        ApplicationError.BadRequest("Only positive size values are allowed")
+    }
+    ensure(size <= 1000) {
+        ApplicationError.BadRequest("Cannot fetch more than 1000 elements at once")
+    }
+
+    Pagination(page, size)
+}
+
+fun <T> SizedIterable<T>.paginated(pagination: Pagination) =
+    limit(pagination.size).offset((pagination.size * pagination.page).toLong())
