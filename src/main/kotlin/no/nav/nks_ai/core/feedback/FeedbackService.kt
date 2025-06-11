@@ -5,6 +5,7 @@ import arrow.core.raise.ensure
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.MetricRegister
+import no.nav.nks_ai.app.Page
 import no.nav.nks_ai.app.Pagination
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.MessageService
@@ -14,9 +15,9 @@ import no.nav.nks_ai.core.user.NavIdent
 interface FeedbackService {
     suspend fun getFeedback(feedbackId: FeedbackId): ApplicationResult<Feedback>
 
-    suspend fun getAllFeedbacks(pagination: Pagination): ApplicationResult<List<Feedback>>
+    suspend fun getAllFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>>
 
-    suspend fun getFilteredFeedbacks(filter: FeedbackFilter, pagination: Pagination): ApplicationResult<List<Feedback>>
+    suspend fun getFilteredFeedbacks(filter: FeedbackFilter?, pagination: Pagination): ApplicationResult<Page<Feedback>>
 
     suspend fun getFeedbacksForMessage(messageId: MessageId, navIdent: NavIdent): ApplicationResult<List<Feedback>>
 
@@ -35,13 +36,13 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
     override suspend fun getFeedback(feedbackId: FeedbackId): ApplicationResult<Feedback> =
         FeedbackRepo.getFeedbackById(feedbackId)
 
-    override suspend fun getAllFeedbacks(pagination: Pagination): ApplicationResult<List<Feedback>> =
+    override suspend fun getAllFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
         FeedbackRepo.getFeedbacks(pagination)
 
     override suspend fun getFilteredFeedbacks(
-        filter: FeedbackFilter,
+        filter: FeedbackFilter?,
         pagination: Pagination
-    ): ApplicationResult<List<Feedback>> =
+    ): ApplicationResult<Page<Feedback>> =
         when (filter) {
             FeedbackFilter.Unresolved -> FeedbackRepo.getUnresolvedFeedbacks(pagination)
             FeedbackFilter.Resolved -> FeedbackRepo.getResolvedFeedbacks(pagination)
@@ -49,6 +50,7 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
             FeedbackFilter.SomewhatImportant -> FeedbackRepo.getSomewhatImportantFeedbacks(pagination)
             FeedbackFilter.Important -> FeedbackRepo.getImportantFeedbacks(pagination)
             FeedbackFilter.VeryImportant -> FeedbackRepo.getVeryImportantFeedbacks(pagination)
+            null -> getAllFeedbacks(pagination)
         }
 
     override suspend fun getFeedbacksForMessage(

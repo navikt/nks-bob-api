@@ -24,6 +24,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.Serializable
 import no.nav.nks_ai.core.user.NavIdent
 import org.jetbrains.exposed.sql.ComplexExpression
 import org.jetbrains.exposed.sql.Expression
@@ -137,3 +138,9 @@ fun ApplicationCall.pagination(): ApplicationResult<Pagination> = either {
 
 fun <T> SizedIterable<T>.paginated(pagination: Pagination) =
     limit(pagination.size).offset((pagination.size * pagination.page).toLong())
+
+@Serializable
+data class Page<T>(
+    val data: List<T>,
+    val total: Long,
+)

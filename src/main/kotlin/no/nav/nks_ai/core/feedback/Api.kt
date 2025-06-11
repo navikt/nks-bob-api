@@ -9,6 +9,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.Page
 import no.nav.nks_ai.app.pagination
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.app.respondResult
@@ -35,7 +36,7 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
             response {
                 HttpStatusCode.OK to {
                     description = "The operation was successful"
-                    body<List<Feedback>> {
+                    body<Page<Feedback>> {
                         description = "All feedbacks"
                     }
                 }
