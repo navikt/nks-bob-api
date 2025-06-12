@@ -113,19 +113,21 @@ suspend fun <K, V, Err> Cache<K, V>.eitherGet(
 
 data class Pagination(val page: Int, val size: Int)
 
-fun Parameters.getInt(name: String, default: Int) = get(name)?.toInt() ?: default
+fun Parameters.getInt(name: String, default: Int): ApplicationResult<Int> =
+    catch({
+        val int = get(name)?.toInt() ?: default
+        int.right()
+    }) {
+        ApplicationError.BadRequest("Could not parse number. ${it.message}").left()
+    }
 
 fun ApplicationCall.pagination(): ApplicationResult<Pagination> = either {
-    val page = catch({ parameters.getInt("page", 0).right() }) {
-        ApplicationError.BadRequest("Could not parse number. ${it.message}").left()
-    }.bind()
+    val page = parameters.getInt("page", 0).bind()
+    val size = parameters.getInt("size", 100).bind()
+
     ensure(page >= 0) {
         ApplicationError.BadRequest("Only positive page values are allowed")
     }
-
-    val size = catch({ parameters.getInt("size", 100).right() }) {
-        ApplicationError.BadRequest("Could not parse number. ${it.message}").left()
-    }.bind()
     ensure(size >= 0) {
         ApplicationError.BadRequest("Only positive size values are allowed")
     }
