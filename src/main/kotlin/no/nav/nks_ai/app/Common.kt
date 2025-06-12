@@ -82,6 +82,12 @@ fun ApplicationCall.getNavIdent(): NavIdent? =
     getClaim(getIssuerName(), "NAVident")
         ?.let { NavIdent(it) }
 
+fun ApplicationCall.navIdent(): ApplicationResult<NavIdent> = either {
+    getClaim(getIssuerName(), "NAVident")
+        ?.let { NavIdent(it) }
+        ?: raise(ApplicationError.MissingNavIdent())
+}
+
 fun Route.sse(
     path: String,
     method: HttpMethod,
