@@ -50,6 +50,8 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
             FeedbackFilter.SomewhatImportant -> FeedbackRepo.getSomewhatImportantFeedbacks(pagination)
             FeedbackFilter.Important -> FeedbackRepo.getImportantFeedbacks(pagination)
             FeedbackFilter.VeryImportant -> FeedbackRepo.getVeryImportantFeedbacks(pagination)
+            FeedbackFilter.UserError -> FeedbackRepo.getUserErrorFeedbacks(pagination)
+            FeedbackFilter.AiError -> FeedbackRepo.getAiErrorFeedbacks(pagination)
             null -> getAllFeedbacks(pagination)
         }
 
@@ -89,7 +91,7 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
     ): ApplicationResult<Feedback> = either {
         MetricRegister.trackFeedbackResolved(
             feedback.resolved,
-            feedback.resolvedCategory
+            feedback.resolvedImportance
         )
 
         FeedbackRepo.updateFeedback(
@@ -97,7 +99,9 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
             options = feedback.options,
             comment = feedback.comment,
             resolved = feedback.resolved,
+            resolvedImportance = feedback.resolvedImportance,
             resolvedCategory = feedback.resolvedCategory,
+            resolvedNote = feedback.resolvedNote,
         ).bind()
     }
 

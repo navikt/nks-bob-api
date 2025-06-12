@@ -30,7 +30,9 @@ internal object Feedbacks : UUIDTable("feedbacks") {
     val options = array<String>("options")
     val comment = text("comment", eagerLoading = true).nullable().clientDefault { null }
     val resolved = bool("resolved").clientDefault { false }
-    val resolved_category = enumeration<ResolvedCategory>("resolved_category").nullable().clientDefault { null }
+    val resolvedImportance = enumeration<ResolvedImportance>("resolved_importance").nullable().clientDefault { null }
+    val resolvedCategory = enumeration<ResolvedCategory>("resolved_category").nullable().clientDefault { null }
+    val resolvedNote = text("resolved_note").nullable().clientDefault { null }
 }
 
 internal class FeedbackDAO(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -41,7 +43,9 @@ internal class FeedbackDAO(id: EntityID<UUID>) : UUIDEntity(id) {
     var options by Feedbacks.options
     var comment by Feedbacks.comment
     var resolved by Feedbacks.resolved
-    var resolvedCategory by Feedbacks.resolved_category
+    var resolvedImportance by Feedbacks.resolvedImportance
+    var resolvedCategory by Feedbacks.resolvedCategory
+    var resolvedNote by Feedbacks.resolvedNote
 }
 
 internal fun FeedbackDAO.toModel() = Feedback(
@@ -52,7 +56,9 @@ internal fun FeedbackDAO.toModel() = Feedback(
     options = options,
     comment = comment,
     resolved = resolved,
+    resolvedImportance = resolvedImportance,
     resolvedCategory = resolvedCategory,
+    resolvedNote = resolvedNote,
 )
 
 object FeedbackRepo {
@@ -92,16 +98,22 @@ object FeedbackRepo {
         getFilteredFeedbacks(pagination) { Feedbacks.resolved eq true }
 
     suspend fun getNotRelevantFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolved_category eq ResolvedCategory.NotRelevant }
+        getFilteredFeedbacks(pagination) { Feedbacks.resolvedImportance eq ResolvedImportance.NotRelevant }
 
     suspend fun getSomewhatImportantFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolved_category eq ResolvedCategory.SomewhatImportant }
+        getFilteredFeedbacks(pagination) { Feedbacks.resolvedImportance eq ResolvedImportance.SomewhatImportant }
 
     suspend fun getImportantFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolved_category eq ResolvedCategory.Important }
+        getFilteredFeedbacks(pagination) { Feedbacks.resolvedImportance eq ResolvedImportance.Important }
 
     suspend fun getVeryImportantFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolved_category eq ResolvedCategory.VeryImportant }
+        getFilteredFeedbacks(pagination) { Feedbacks.resolvedImportance eq ResolvedImportance.VeryImportant }
+
+    suspend fun getUserErrorFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolvedCategory eq ResolvedCategory.UserError }
+
+    suspend fun getAiErrorFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolvedCategory eq ResolvedCategory.AiError }
 
     suspend fun getFeedbackById(feedbackId: FeedbackId): ApplicationResult<Feedback> =
         suspendTransaction {
@@ -146,7 +158,9 @@ object FeedbackRepo {
         options: List<String>,
         comment: String?,
         resolved: Boolean,
+        resolvedImportance: ResolvedImportance?,
         resolvedCategory: ResolvedCategory?,
+        resolvedNote: String?,
     ): ApplicationResult<Feedback> =
         suspendTransaction {
             either {
@@ -154,7 +168,9 @@ object FeedbackRepo {
                     it.options = options
                     it.comment = comment
                     it.resolved = resolved
+                    it.resolvedImportance = resolvedImportance
                     it.resolvedCategory = resolvedCategory
+                    it.resolvedNote = resolvedNote
                 }
                     ?.let(FeedbackDAO::toModel)
                     ?: raise(ApplicationError.FeedbackNotFound(feedbackId))
