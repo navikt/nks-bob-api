@@ -41,8 +41,10 @@ value class FeedbackId(@Contextual val value: UUID)
 
 fun UUID.toFeedbackId() = FeedbackId(this)
 
-fun ApplicationCall.feedbackId(name: String = "id"): FeedbackId? =
-    this.parameters[name]?.toUUID()?.toFeedbackId()
+fun ApplicationCall.feedbackId(name: String = "id"): ApplicationResult<FeedbackId> = either {
+    parameters[name]?.toUUID()?.toFeedbackId()
+        ?: raise(ApplicationError.MissingFeedbackId())
+}
 
 enum class FeedbackFilter(val value: String) {
     Unresolved("nye"),
