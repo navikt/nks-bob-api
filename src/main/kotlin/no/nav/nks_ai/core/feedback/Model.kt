@@ -116,7 +116,7 @@ class ResolvedCategorySerializer : KSerializer<ResolvedCategory> {
     override fun deserialize(decoder: Decoder): ResolvedCategory {
         val value = decoder.decodeString()
         return ResolvedCategory.fromCategoryValue(value).getOrNull()
-            ?: throw InvalidInputException("Error parsing category value $value. Valid values: ${ResolvedImportance.validValues}")
+            ?: throw InvalidInputException("Error parsing category value $value. Valid values: ${ResolvedCategory.validValues}")
     }
 
     override val descriptor: SerialDescriptor
@@ -125,7 +125,7 @@ class ResolvedCategorySerializer : KSerializer<ResolvedCategory> {
 
 @Serializable(ResolvedCategorySerializer::class)
 enum class ResolvedCategory(val value: String) {
-    UserError("brukerfei"),
+    UserError("brukerfeil"),
     AiError("ki-feil");
 
     companion object {

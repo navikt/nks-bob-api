@@ -91,9 +91,9 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
             }) {
                 call.respondEither {
                     val feedbackId = call.feedbackId().bind()
-                    val createFeedback = call.receive<UpdateFeedback>()
+                    val updateFeedback = call.receive<UpdateFeedback>()
 
-                    feedbackService.updateFeedback(feedbackId, createFeedback)
+                    feedbackService.updateFeedback(feedbackId, updateFeedback)
                 }
             }
             /*patch({
