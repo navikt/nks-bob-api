@@ -10,6 +10,7 @@ import io.ktor.server.sse.SSE
 import io.ktor.server.websocket.WebSockets
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.InvalidInputException
 import no.nav.nks_ai.app.InvalidUuidException
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.app.toError
@@ -31,6 +32,9 @@ fun Application.configureSerialization() {
             )
         }
         exception<InvalidUuidException> { call, exception ->
+            call.respondError(exception.toError())
+        }
+        exception<InvalidInputException> { call, exception ->
             call.respondError(exception.toError())
         }
         exception<Throwable> { call, exception ->

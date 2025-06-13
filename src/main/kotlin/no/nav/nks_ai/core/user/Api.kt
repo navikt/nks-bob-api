@@ -9,11 +9,9 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import no.nav.nks_ai.app.ApplicationError
-import no.nav.nks_ai.app.getNavIdent
+import no.nav.nks_ai.app.navIdent
 import no.nav.nks_ai.app.plugins.isAdmin
-import no.nav.nks_ai.app.respondError
-import no.nav.nks_ai.app.respondResult
+import no.nav.nks_ai.app.respondEither
 
 enum class UserType {
     @SerialName("user")
@@ -55,12 +53,12 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
                 }
             }
         }) {
-            val navIdent = call.getNavIdent()
-                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
+            call.respondEither {
+                val navIdent = call.navIdent().bind()
 
-            userConfigService.getOrCreateUserConfig(navIdent)
-                .map { it.asDto(isAdmin()) }
-                .let { call.respondResult(it) }
+                userConfigService.getOrCreateUserConfig(navIdent)
+                    .map { it.asDto(isAdmin()) }
+            }
         }
         patch({
             description = "Patch the current users config."
@@ -78,13 +76,13 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
                 }
             }
         }) {
-            val navIdent = call.getNavIdent()
-                ?: return@patch call.respondError(ApplicationError.MissingNavIdent())
+            call.respondEither {
+                val navIdent = call.navIdent().bind()
+                val userConfig = call.receive<PatchUserConfig>()
 
-            val userConfig = call.receive<PatchUserConfig>()
-            userConfigService.patchUserConfig(userConfig, navIdent)
-                .map { it.asDto(isAdmin()) }
-                .let { call.respondResult(it) }
+                userConfigService.patchUserConfig(userConfig, navIdent)
+                    .map { it.asDto(isAdmin()) }
+            }
         }
         put({
             description = "Update the current users config."
@@ -102,13 +100,13 @@ fun Route.userConfigRoutes(userConfigService: UserConfigService) {
                 }
             }
         }) {
-            val navIdent = call.getNavIdent()
-                ?: return@put call.respondError(ApplicationError.MissingNavIdent())
+            call.respondEither {
+                val navIdent = call.navIdent().bind()
+                val userConfig = call.receive<UserConfig>()
 
-            val userConfig = call.receive<UserConfig>()
-            userConfigService.updateUserConfig(userConfig, navIdent)
-                .map { it.asDto(isAdmin()) }
-                .let { call.respondResult(it) }
+                userConfigService.updateUserConfig(userConfig, navIdent)
+                    .map { it.asDto(isAdmin()) }
+            }
         }
     }
 }

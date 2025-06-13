@@ -1,6 +1,8 @@
 package no.nav.nks_ai.app
 
 import arrow.core.Either
+import arrow.core.raise.Raise
+import arrow.core.raise.either
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
@@ -118,15 +120,43 @@ typealias ApplicationResult<T> = Either<ApplicationError, T>
 suspend fun ApplicationCall.respondError(error: ApplicationError) =
     respond(error.code, error.toErrorResponse())
 
+/**
+ * Responds with 200 OK and value of type <T> if result is succesessful,
+ * or with ApplicationError mapped to ErrorResponse if failure.
+ */
 suspend inline fun <reified T : Any> ApplicationCall.respondResult(result: ApplicationResult<T>): ApplicationResult<T> =
     respondResult(HttpStatusCode.OK, result)
 
+/**
+ * Responds with statusCode and value of type <T> if result is succesessful,
+ * or with ApplicationError mapped to ErrorResponse if failure.
+ */
 suspend inline fun <reified T : Any> ApplicationCall.respondResult(
     statusCode: HttpStatusCode,
     result: ApplicationResult<T>
 ): ApplicationResult<T> = result
     .onLeft { error -> respondError(error) }
     .onRight { value -> respond(status = statusCode, message = value) }
+
+/**
+ * Responds with 200 OK and value of type <T> if result of either block is succesessful,
+ * or with ApplicationError mapped to ErrorResponse if failure.
+ */
+suspend inline fun <reified T : Any> ApplicationCall.respondEither(
+    noinline block: suspend Raise<ApplicationError>.() -> ApplicationResult<T>
+): ApplicationResult<T> = respondEither(HttpStatusCode.OK, block)
+
+/**
+ * Responds with statusCode and value of type <T> if result of either block is succesessful,
+ * or with ApplicationError mapped to ErrorResponse if failure.
+ */
+suspend inline fun <reified T : Any> ApplicationCall.respondEither(
+    statusCode: HttpStatusCode,
+    noinline block: suspend Raise<ApplicationError>.() -> ApplicationResult<T>
+): ApplicationResult<T> = either {
+    val result = block()
+    respondResult(statusCode, result).bind()
+}
 
 @Serializable
 data class ErrorResponse(

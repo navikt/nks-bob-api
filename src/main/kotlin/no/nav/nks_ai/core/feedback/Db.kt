@@ -1,43 +1,45 @@
 package no.nav.nks_ai.core.feedback
 
 import arrow.core.raise.either
-import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
-import no.nav.nks_ai.app.now
+import no.nav.nks_ai.app.BaseEntity
+import no.nav.nks_ai.app.BaseTable
+import no.nav.nks_ai.app.Page
+import no.nav.nks_ai.app.Pagination
+import no.nav.nks_ai.app.paginated
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.core.conversation.toConversationId
 import no.nav.nks_ai.core.message.MessageDAO
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.Messages
 import no.nav.nks_ai.core.message.toMessageId
-import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
-import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
 
-internal object Feedbacks : UUIDTable("feedbacks") {
-    val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
+internal object Feedbacks : BaseTable("feedbacks") {
     val message = reference("message", Messages)
     val options = array<String>("options")
     val comment = text("comment", eagerLoading = true).nullable().clientDefault { null }
     val resolved = bool("resolved").clientDefault { false }
-    val resolved_category = enumeration<ResolvedCategory>("resolved_category").nullable().clientDefault { null }
+    val resolvedImportance = enumeration<ResolvedImportance>("resolved_importance").nullable().clientDefault { null }
+    val resolvedCategory = enumeration<ResolvedCategory>("resolved_category").nullable().clientDefault { null }
+    val resolvedNote = text("resolved_note").nullable().clientDefault { null }
 }
 
-internal class FeedbackDAO(id: EntityID<UUID>) : UUIDEntity(id) {
+internal class FeedbackDAO(id: EntityID<UUID>) : BaseEntity(id, Feedbacks) {
     companion object : UUIDEntityClass<FeedbackDAO>(Feedbacks)
 
-    var createdAt by Feedbacks.createdAt
     var message by MessageDAO.Companion referencedOn Feedbacks.message
     var options by Feedbacks.options
     var comment by Feedbacks.comment
     var resolved by Feedbacks.resolved
-    var resolvedCategory by Feedbacks.resolved_category
+    var resolvedImportance by Feedbacks.resolvedImportance
+    var resolvedCategory by Feedbacks.resolvedCategory
+    var resolvedNote by Feedbacks.resolvedNote
 }
 
 internal fun FeedbackDAO.toModel() = Feedback(
@@ -48,45 +50,62 @@ internal fun FeedbackDAO.toModel() = Feedback(
     options = options,
     comment = comment,
     resolved = resolved,
+    resolvedImportance = resolvedImportance,
     resolvedCategory = resolvedCategory,
+    resolvedNote = resolvedNote,
 )
 
 object FeedbackRepo {
-    suspend fun getFeedbacks(): ApplicationResult<List<Feedback>> =
+    suspend fun getFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
         suspendTransaction {
             either {
-                FeedbackDAO.all()
-                    .map(FeedbackDAO::toModel)
-                    .sortedByDescending(Feedback::createdAt)
+                Page(
+                    data = FeedbackDAO.all()
+                        .paginated(pagination, Feedbacks)
+                        .map(FeedbackDAO::toModel),
+                    total = FeedbackDAO.all().count(),
+                )
             }
         }
 
-    private suspend fun getFilteredFeedbacks(op: SqlExpressionBuilder.() -> Op<Boolean>): ApplicationResult<List<Feedback>> =
+    private suspend fun getFilteredFeedbacks(
+        pagination: Pagination,
+        op: SqlExpressionBuilder.() -> Op<Boolean>
+    ): ApplicationResult<Page<Feedback>> =
         suspendTransaction {
             either {
-                FeedbackDAO.find(op)
-                    .map(FeedbackDAO::toModel)
-                    .sortedByDescending(Feedback::createdAt)
+                Page(
+                    data = FeedbackDAO.find(op)
+                        .paginated(pagination, Feedbacks)
+                        .map(FeedbackDAO::toModel),
+                    total = FeedbackDAO.find(op).count()
+                )
             }
         }
 
-    suspend fun getUnresolvedFeedbacks(): ApplicationResult<List<Feedback>> =
-        getFilteredFeedbacks { Feedbacks.resolved eq false }
+    suspend fun getUnresolvedFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolved eq false }
 
-    suspend fun getResolvedFeedbacks(): ApplicationResult<List<Feedback>> =
-        getFilteredFeedbacks { Feedbacks.resolved eq true }
+    suspend fun getResolvedFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolved eq true }
 
-    suspend fun getNotRelevantFeedbacks(): ApplicationResult<List<Feedback>> =
-        getFilteredFeedbacks { Feedbacks.resolved_category eq ResolvedCategory.NotRelevant }
+    suspend fun getNotRelevantFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolvedImportance eq ResolvedImportance.NotRelevant }
 
-    suspend fun getSomewhatImportantFeedbacks(): ApplicationResult<List<Feedback>> =
-        getFilteredFeedbacks { Feedbacks.resolved_category eq ResolvedCategory.SomewhatImportant }
+    suspend fun getSomewhatImportantFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolvedImportance eq ResolvedImportance.SomewhatImportant }
 
-    suspend fun getImportantFeedbacks(): ApplicationResult<List<Feedback>> =
-        getFilteredFeedbacks { Feedbacks.resolved_category eq ResolvedCategory.Important }
+    suspend fun getImportantFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolvedImportance eq ResolvedImportance.Important }
 
-    suspend fun getVeryImportantFeedbacks(): ApplicationResult<List<Feedback>> =
-        getFilteredFeedbacks { Feedbacks.resolved_category eq ResolvedCategory.VeryImportant }
+    suspend fun getVeryImportantFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolvedImportance eq ResolvedImportance.VeryImportant }
+
+    suspend fun getUserErrorFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolvedCategory eq ResolvedCategory.UserError }
+
+    suspend fun getAiErrorFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
+        getFilteredFeedbacks(pagination) { Feedbacks.resolvedCategory eq ResolvedCategory.AiError }
 
     suspend fun getFeedbackById(feedbackId: FeedbackId): ApplicationResult<Feedback> =
         suspendTransaction {
@@ -131,7 +150,9 @@ object FeedbackRepo {
         options: List<String>,
         comment: String?,
         resolved: Boolean,
+        resolvedImportance: ResolvedImportance?,
         resolvedCategory: ResolvedCategory?,
+        resolvedNote: String?,
     ): ApplicationResult<Feedback> =
         suspendTransaction {
             either {
@@ -139,7 +160,9 @@ object FeedbackRepo {
                     it.options = options
                     it.comment = comment
                     it.resolved = resolved
+                    it.resolvedImportance = resolvedImportance
                     it.resolvedCategory = resolvedCategory
+                    it.resolvedNote = resolvedNote
                 }
                     ?.let(FeedbackDAO::toModel)
                     ?: raise(ApplicationError.FeedbackNotFound(feedbackId))
