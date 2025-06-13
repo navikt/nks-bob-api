@@ -1,12 +1,12 @@
 package no.nav.nks_ai.core.feedback
 
 import arrow.core.raise.either
-import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
+import no.nav.nks_ai.app.BaseEntity
+import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.Page
 import no.nav.nks_ai.app.Pagination
-import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.paginated
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.core.conversation.toConversationId
@@ -14,18 +14,13 @@ import no.nav.nks_ai.core.message.MessageDAO
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.Messages
 import no.nav.nks_ai.core.message.toMessageId
-import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.Op
-import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
-import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
 
-internal object Feedbacks : UUIDTable("feedbacks") {
-    val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
+internal object Feedbacks : BaseTable("feedbacks") {
     val message = reference("message", Messages)
     val options = array<String>("options")
     val comment = text("comment", eagerLoading = true).nullable().clientDefault { null }
@@ -35,10 +30,9 @@ internal object Feedbacks : UUIDTable("feedbacks") {
     val resolvedNote = text("resolved_note").nullable().clientDefault { null }
 }
 
-internal class FeedbackDAO(id: EntityID<UUID>) : UUIDEntity(id) {
+internal class FeedbackDAO(id: EntityID<UUID>) : BaseEntity(id, Feedbacks) {
     companion object : UUIDEntityClass<FeedbackDAO>(Feedbacks)
 
-    var createdAt by Feedbacks.createdAt
     var message by MessageDAO.Companion referencedOn Feedbacks.message
     var options by Feedbacks.options
     var comment by Feedbacks.comment
@@ -67,8 +61,7 @@ object FeedbackRepo {
             either {
                 Page(
                     data = FeedbackDAO.all()
-                        .orderBy(Feedbacks.createdAt to SortOrder.DESC)
-                        .paginated(pagination)
+                        .paginated(pagination, Feedbacks)
                         .map(FeedbackDAO::toModel),
                     total = FeedbackDAO.all().count(),
                 )
@@ -83,8 +76,7 @@ object FeedbackRepo {
             either {
                 Page(
                     data = FeedbackDAO.find(op)
-                        .orderBy(Feedbacks.createdAt to SortOrder.DESC)
-                        .paginated(pagination)
+                        .paginated(pagination, Feedbacks)
                         .map(FeedbackDAO::toModel),
                     total = FeedbackDAO.find(op).count()
                 )
