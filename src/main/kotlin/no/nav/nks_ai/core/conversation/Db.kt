@@ -4,31 +4,29 @@ import arrow.core.raise.either
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
+import no.nav.nks_ai.app.BaseEntity
+import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.bcryptVerified
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.app.truncate
 import no.nav.nks_ai.core.user.NavIdent
-import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
 
-internal object Conversations : UUIDTable() {
+internal object Conversations : BaseTable("conversations") {
     val title = varchar("title", 255)
-    val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
     val owner = varchar("owner", 255)
 }
 
-internal class ConversationDAO(id: EntityID<UUID>) : UUIDEntity(id) {
+internal class ConversationDAO(id: EntityID<UUID>) : BaseEntity(id, Conversations) {
     companion object : UUIDEntityClass<ConversationDAO>(Conversations)
 
     var title by Conversations.title
-    var createdAt by Conversations.createdAt
     var owner by Conversations.owner
 }
 
