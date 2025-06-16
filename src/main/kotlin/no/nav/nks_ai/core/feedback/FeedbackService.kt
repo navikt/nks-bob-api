@@ -5,6 +5,8 @@ import arrow.core.raise.ensure
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.MetricRegister
+import no.nav.nks_ai.app.Page
+import no.nav.nks_ai.app.Pagination
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.MessageService
 import no.nav.nks_ai.core.message.MessageType
@@ -13,9 +15,9 @@ import no.nav.nks_ai.core.user.NavIdent
 interface FeedbackService {
     suspend fun getFeedback(feedbackId: FeedbackId): ApplicationResult<Feedback>
 
-    suspend fun getAllFeedbacks(): ApplicationResult<List<Feedback>>
+    suspend fun getAllFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>>
 
-    suspend fun getFilteredFeedbacks(filter: FeedbackFilter): ApplicationResult<List<Feedback>>
+    suspend fun getFilteredFeedbacks(filter: FeedbackFilter?, pagination: Pagination): ApplicationResult<Page<Feedback>>
 
     suspend fun getFeedbacksForMessage(messageId: MessageId, navIdent: NavIdent): ApplicationResult<List<Feedback>>
 
@@ -34,17 +36,23 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
     override suspend fun getFeedback(feedbackId: FeedbackId): ApplicationResult<Feedback> =
         FeedbackRepo.getFeedbackById(feedbackId)
 
-    override suspend fun getAllFeedbacks(): ApplicationResult<List<Feedback>> =
-        FeedbackRepo.getFeedbacks()
+    override suspend fun getAllFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
+        FeedbackRepo.getFeedbacks(pagination)
 
-    override suspend fun getFilteredFeedbacks(filter: FeedbackFilter): ApplicationResult<List<Feedback>> =
+    override suspend fun getFilteredFeedbacks(
+        filter: FeedbackFilter?,
+        pagination: Pagination
+    ): ApplicationResult<Page<Feedback>> =
         when (filter) {
-            FeedbackFilter.Unresolved -> FeedbackRepo.getUnresolvedFeedbacks()
-            FeedbackFilter.Resolved -> FeedbackRepo.getResolvedFeedbacks()
-            FeedbackFilter.NotRelevant -> FeedbackRepo.getNotRelevantFeedbacks()
-            FeedbackFilter.SomewhatImportant -> FeedbackRepo.getSomewhatImportantFeedbacks()
-            FeedbackFilter.Important -> FeedbackRepo.getImportantFeedbacks()
-            FeedbackFilter.VeryImportant -> FeedbackRepo.getVeryImportantFeedbacks()
+            FeedbackFilter.Unresolved -> FeedbackRepo.getUnresolvedFeedbacks(pagination)
+            FeedbackFilter.Resolved -> FeedbackRepo.getResolvedFeedbacks(pagination)
+            FeedbackFilter.NotRelevant -> FeedbackRepo.getNotRelevantFeedbacks(pagination)
+            FeedbackFilter.SomewhatImportant -> FeedbackRepo.getSomewhatImportantFeedbacks(pagination)
+            FeedbackFilter.Important -> FeedbackRepo.getImportantFeedbacks(pagination)
+            FeedbackFilter.VeryImportant -> FeedbackRepo.getVeryImportantFeedbacks(pagination)
+            FeedbackFilter.UserError -> FeedbackRepo.getUserErrorFeedbacks(pagination)
+            FeedbackFilter.AiError -> FeedbackRepo.getAiErrorFeedbacks(pagination)
+            null -> getAllFeedbacks(pagination)
         }
 
     override suspend fun getFeedbacksForMessage(
@@ -83,7 +91,7 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
     ): ApplicationResult<Feedback> = either {
         MetricRegister.trackFeedbackResolved(
             feedback.resolved,
-            feedback.resolvedCategory
+            feedback.resolvedImportance
         )
 
         FeedbackRepo.updateFeedback(
@@ -91,7 +99,9 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
             options = feedback.options,
             comment = feedback.comment,
             resolved = feedback.resolved,
+            resolvedImportance = feedback.resolvedImportance,
             resolvedCategory = feedback.resolvedCategory,
+            resolvedNote = feedback.resolvedNote,
         ).bind()
     }
 

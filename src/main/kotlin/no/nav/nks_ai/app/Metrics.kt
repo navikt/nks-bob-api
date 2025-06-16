@@ -6,7 +6,7 @@ import io.prometheus.client.Counter
 import io.prometheus.client.Gauge
 import io.prometheus.client.SimpleTimer
 import io.prometheus.client.Summary
-import no.nav.nks_ai.core.feedback.ResolvedCategory
+import no.nav.nks_ai.core.feedback.ResolvedImportance
 
 
 internal val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -120,11 +120,11 @@ object MetricRegister {
         .labelNames("kategori")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    fun trackFeedbackResolved(resolved: Boolean, resolvedCategory: ResolvedCategory?) {
+    fun trackFeedbackResolved(resolved: Boolean, resolvedImportance: ResolvedImportance?) {
         if (resolved) {
             answerFeedbacksResolved.inc()
         }
-        resolvedCategory?.let {
+        resolvedImportance?.let {
             answerFeedbackResolvedCategory.labels(it.value).inc()
         }
     }

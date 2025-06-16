@@ -1,6 +1,5 @@
 package no.nav.nks_ai.core.feedback
 
-import arrow.core.raise.either
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.put
@@ -8,10 +7,9 @@ import io.github.smiley4.ktoropenapi.route
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
-import no.nav.nks_ai.app.ApplicationError
-import no.nav.nks_ai.app.ApplicationResult
-import no.nav.nks_ai.app.respondError
-import no.nav.nks_ai.app.respondResult
+import no.nav.nks_ai.app.Page
+import no.nav.nks_ai.app.pagination
+import no.nav.nks_ai.app.respondEither
 
 fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
     route("/admin/feedbacks") {
@@ -23,24 +21,31 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                         "Filter which feedbacks will be returned (${FeedbackFilter.validValues})"
                     required = false
                 }
+                queryParameter<Int>("page") {
+                    description = "Which page to fetch (default = 0)"
+                    required = false
+                }
+                queryParameter<Int>("size") {
+                    description = "How many feedbacks to fetch (default = 100)"
+                    required = false
+                }
             }
             response {
                 HttpStatusCode.OK to {
                     description = "The operation was successful"
-                    body<List<Feedback>> {
+                    body<Page<Feedback>> {
                         description = "All feedbacks"
                     }
                 }
             }
         }) {
-            val feedbacks: ApplicationResult<List<Feedback>> = call.queryParameters["filter"]?.let { filterValue ->
-                either {
-                    val filter = FeedbackFilter.fromFilterValue(filterValue).bind()
-                    feedbackService.getFilteredFeedbacks(filter).bind()
-                }
-            } ?: feedbackService.getAllFeedbacks()
+            call.respondEither {
+                val pagination = call.pagination().bind()
+                val filter = call.queryParameters["filter"]
+                    ?.let { FeedbackFilter.fromFilterValue(it).bind() }
 
-            call.respondResult(feedbacks)
+                feedbackService.getFilteredFeedbacks(filter, pagination)
+            }
         }
 
         route("/{id}") {
@@ -60,10 +65,10 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                     }
                 }
             }) {
-                val feedbackId = call.feedbackId()
-                    ?: return@get call.respondError(ApplicationError.MissingFeedbackId())
-
-                call.respondResult(feedbackService.getFeedback(feedbackId))
+                call.respondEither {
+                    val feedbackId = call.feedbackId().bind()
+                    feedbackService.getFeedback(feedbackId)
+                }
             }
             put({
                 description = "Update a feedback"
@@ -84,11 +89,12 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                     }
                 }
             }) {
-                val feedbackId = call.feedbackId()
-                    ?: return@put call.respondError(ApplicationError.MissingFeedbackId())
+                call.respondEither {
+                    val feedbackId = call.feedbackId().bind()
+                    val updateFeedback = call.receive<UpdateFeedback>()
 
-                val createFeedback = call.receive<UpdateFeedback>()
-                call.respondResult(feedbackService.updateFeedback(feedbackId, createFeedback))
+                    feedbackService.updateFeedback(feedbackId, updateFeedback)
+                }
             }
             /*patch({
                 description = "Patch a feedback"
@@ -128,10 +134,10 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                     }
                 }
             }) {
-                val feedbackId = call.feedbackId()
-                    ?: return@delete call.respondError(ApplicationError.MissingFeedbackId())
-
-                call.respondResult(feedbackService.deleteFeedback(feedbackId))
+                call.respondEither(HttpStatusCode.NoContent) {
+                    val feedbackId = call.feedbackId().bind()
+                    feedbackService.deleteFeedback(feedbackId)
+                }
             }
         }
     }
