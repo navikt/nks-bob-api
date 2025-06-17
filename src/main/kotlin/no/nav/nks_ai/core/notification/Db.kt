@@ -6,27 +6,25 @@ import arrow.core.raise.either
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
+import no.nav.nks_ai.app.BaseEntity
+import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
-import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
 
-internal object Notifications : UUIDTable("notifications") {
-    val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
+internal object Notifications : BaseTable("notifications") {
     val expiresAt = datetime("expires_at").nullable()
     val notificationType = enumeration<NotificationType>("notification_type")
     val title = text("title", eagerLoading = true)
     val content = text("content", eagerLoading = true)
 }
 
-internal class NotificationDAO(id: EntityID<UUID>) : UUIDEntity(id) {
+internal class NotificationDAO(id: EntityID<UUID>) : BaseEntity(id, Notifications) {
     companion object : UUIDEntityClass<NotificationDAO>(Notifications)
 
-    var createdAt by Notifications.createdAt
     var expiresAt by Notifications.expiresAt
     var notificationType by Notifications.notificationType
     var title by Notifications.title

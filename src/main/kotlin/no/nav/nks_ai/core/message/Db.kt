@@ -7,15 +7,15 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
+import no.nav.nks_ai.app.BaseEntity
+import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.core.conversation.ConversationDAO
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.Conversations
-import org.jetbrains.exposed.dao.UUIDEntity
 import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
@@ -25,10 +25,9 @@ val jsonConfig = Json {
     ignoreUnknownKeys = true
 }
 
-internal object Messages : UUIDTable() {
+internal object Messages : BaseTable("messages") {
     val content = text("content", eagerLoading = true)
     val conversation = reference("conversation", Conversations)
-    val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
     val messageType = enumeration<MessageType>("message_type")
     val messageRole = enumeration<MessageRole>("message_role")
     val createdBy = varchar("created_by", 255)
@@ -43,13 +42,12 @@ internal object Messages : UUIDTable() {
     val starredUploadedAt = datetime("starred_uploaded_at").nullable()
 }
 
-internal class MessageDAO(id: EntityID<UUID>) : UUIDEntity(id) {
+internal class MessageDAO(id: EntityID<UUID>) : BaseEntity(id, Messages) {
     companion object : UUIDEntityClass<MessageDAO>(Messages)
 
     var content by Messages.content
     var conversation by ConversationDAO.Companion referencedOn Messages.conversation
     var citations by Messages.citations
-    var createdAt by Messages.createdAt
     var messageType by Messages.messageType
     var messageRole by Messages.messageRole
     var createdBy by Messages.createdBy

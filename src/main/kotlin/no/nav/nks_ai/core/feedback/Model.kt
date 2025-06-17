@@ -41,8 +41,10 @@ value class FeedbackId(@Contextual val value: UUID)
 
 fun UUID.toFeedbackId() = FeedbackId(this)
 
-fun ApplicationCall.feedbackId(name: String = "id"): FeedbackId? =
-    this.parameters[name]?.toUUID()?.toFeedbackId()
+fun ApplicationCall.feedbackId(name: String = "id"): ApplicationResult<FeedbackId> = either {
+    parameters[name]?.toUUID()?.toFeedbackId()
+        ?: raise(ApplicationError.MissingFeedbackId())
+}
 
 enum class FeedbackFilter(val value: String) {
     Unresolved("nye"),
@@ -50,7 +52,9 @@ enum class FeedbackFilter(val value: String) {
     NotRelevant("ikke-relevante"),
     SomewhatImportant("litt-viktige"),
     Important("viktige"),
-    VeryImportant("særskilt-viktige");
+    VeryImportant("særskilt-viktige"),
+    UserError("brukerfeil"),
+    AiError("ki-feil");
 
     companion object {
         private val labelToEnum = entries.associateBy { it.value }
@@ -60,6 +64,43 @@ enum class FeedbackFilter(val value: String) {
         fun fromFilterValue(value: String): ApplicationResult<FeedbackFilter> = either {
             labelToEnum[value]
                 ?: raise(ApplicationError.SerializationError("Error parsing filter value $value. Valid values: $validValues"))
+        }
+    }
+}
+
+class ResolvedImportanceSerializer : KSerializer<ResolvedImportance> {
+    override fun serialize(
+        encoder: Encoder,
+        resolvedImportance: ResolvedImportance
+    ) {
+        encoder.encodeString(resolvedImportance.value)
+    }
+
+    override fun deserialize(decoder: Decoder): ResolvedImportance {
+        val value = decoder.decodeString()
+        return ResolvedImportance.fromImportanceValue(value).getOrNull()
+            ?: throw InvalidInputException("Error parsing importance value $value. Valid values: ${ResolvedImportance.validValues}")
+    }
+
+    override val descriptor: SerialDescriptor
+        get() = PrimitiveSerialDescriptor("ResolvedImportance", PrimitiveKind.STRING)
+}
+
+@Serializable(ResolvedImportanceSerializer::class)
+enum class ResolvedImportance(val value: String) {
+    NotRelevant("ikke-relevant"),
+    SomewhatImportant("lite-viktig"),
+    Important("viktig"),
+    VeryImportant("særskilt-viktig");
+
+    companion object {
+        private val labelToEnum = entries.associateBy { it.value }
+
+        val validValues = entries.toTypedArray().asList().map { it.value }.joinToString(", ")
+
+        fun fromImportanceValue(value: String): ApplicationResult<ResolvedImportance> = either {
+            labelToEnum[value]
+                ?: raise(ApplicationError.SerializationError("Error parsing importance value $value. Valid values: $validValues"))
         }
     }
 }
@@ -84,14 +125,11 @@ class ResolvedCategorySerializer : KSerializer<ResolvedCategory> {
 
 @Serializable(ResolvedCategorySerializer::class)
 enum class ResolvedCategory(val value: String) {
-    NotRelevant("ikke-relevant"),
-    SomewhatImportant("lite-viktig"),
-    Important("viktig"),
-    VeryImportant("særskilt-viktig");
+    UserError("brukerfeil"),
+    AiError("ki-feil");
 
     companion object {
         private val labelToEnum = entries.associateBy { it.value }
-
         val validValues = entries.toTypedArray().asList().map { it.value }.joinToString(", ")
 
         fun fromCategoryValue(value: String): ApplicationResult<ResolvedCategory> = either {
@@ -110,7 +148,9 @@ data class Feedback(
     val options: List<String>,
     val comment: String?,
     val resolved: Boolean,
+    val resolvedImportance: ResolvedImportance?,
     val resolvedCategory: ResolvedCategory?,
+    val resolvedNote: String?,
 )
 
 @Serializable
@@ -124,5 +164,7 @@ data class UpdateFeedback(
     val options: List<String>,
     val comment: String?,
     val resolved: Boolean,
+    val resolvedImportance: ResolvedImportance?,
     val resolvedCategory: ResolvedCategory?,
+    val resolvedNote: String?,
 )
