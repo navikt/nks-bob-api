@@ -1,11 +1,13 @@
 package no.nav.nks_ai.core
 
+import arrow.core.raise.either
 import arrow.core.separateEither
 import dev.starry.ktscheduler.job.Job
 import dev.starry.ktscheduler.scheduler.KtScheduler
 import dev.starry.ktscheduler.triggers.IntervalTrigger
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
+import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.isLeader
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.MessageService
@@ -45,8 +47,8 @@ class UploadStarredMessagesJob(
         scheduler.start()
     }
 
-    private suspend fun synchronizeStarredMessages() {
-        val messages: List<MessageId> = messageService.getStarredMessagesNotUploaded().map { it.id }
+    private suspend fun synchronizeStarredMessages(): ApplicationResult<Unit> = either {
+        val messages: List<MessageId> = messageService.getStarredMessagesNotUploaded().bind().map { it.id }
         logger.info { "Found ${messages.size} starred messages" }
 
         val (errors, uploadedMessages) = messages.map { messageId ->

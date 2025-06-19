@@ -1,6 +1,7 @@
 package no.nav.nks_ai.app
 
 import arrow.core.Either
+import arrow.core.flatten
 import arrow.core.left
 import arrow.core.raise.catch
 import arrow.core.raise.either
@@ -48,8 +49,15 @@ import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.util.UUID
 
-suspend fun <T> suspendTransaction(block: Transaction.() -> T): T =
-    newSuspendedTransaction(Dispatchers.IO, statement = block)
+suspend fun <T> suspendTransaction(block: Transaction.() -> ApplicationResult<T>): ApplicationResult<T> =
+    Either.catch {
+        newSuspendedTransaction(Dispatchers.IO, statement = block)
+    }.mapLeft { throwable ->
+        ApplicationError.InternalServerError(
+            throwable.message ?: "Database error",
+            throwable.stackTraceToString()
+        )
+    }.flatten()
 
 abstract class BaseTable(name: String) : UUIDTable(name) {
     val createdAt = datetime("created_at")
