@@ -5,13 +5,13 @@ import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.BaseEntity
+import no.nav.nks_ai.app.BaseEntityClass
 import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.bcryptVerified
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.app.truncate
 import no.nav.nks_ai.core.user.NavIdent
-import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.and
@@ -24,7 +24,7 @@ internal object Conversations : BaseTable("conversations") {
 }
 
 internal class ConversationDAO(id: EntityID<UUID>) : BaseEntity(id, Conversations) {
-    companion object : UUIDEntityClass<ConversationDAO>(Conversations)
+    companion object : BaseEntityClass<ConversationDAO>(Conversations)
 
     var title by Conversations.title
     var owner by Conversations.owner

@@ -4,6 +4,7 @@ import arrow.core.raise.either
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.BaseEntity
+import no.nav.nks_ai.app.BaseEntityClass
 import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.Page
 import no.nav.nks_ai.app.Pagination
@@ -14,7 +15,6 @@ import no.nav.nks_ai.core.message.MessageDAO
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.Messages
 import no.nav.nks_ai.core.message.toMessageId
-import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
@@ -31,7 +31,7 @@ internal object Feedbacks : BaseTable("feedbacks") {
 }
 
 internal class FeedbackDAO(id: EntityID<UUID>) : BaseEntity(id, Feedbacks) {
-    companion object : UUIDEntityClass<FeedbackDAO>(Feedbacks)
+    companion object : BaseEntityClass<FeedbackDAO>(Feedbacks)
 
     var message by MessageDAO.Companion referencedOn Feedbacks.message
     var options by Feedbacks.options

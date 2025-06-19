@@ -8,13 +8,13 @@ import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.BaseEntity
+import no.nav.nks_ai.app.BaseEntityClass
 import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.core.conversation.ConversationDAO
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.Conversations
-import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.json.jsonb
@@ -43,7 +43,7 @@ internal object Messages : BaseTable("messages") {
 }
 
 internal class MessageDAO(id: EntityID<UUID>) : BaseEntity(id, Messages) {
-    companion object : UUIDEntityClass<MessageDAO>(Messages)
+    companion object : BaseEntityClass<MessageDAO>(Messages)
 
     var content by Messages.content
     var conversation by ConversationDAO.Companion referencedOn Messages.conversation
