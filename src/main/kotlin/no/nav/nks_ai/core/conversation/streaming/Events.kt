@@ -4,6 +4,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.core.message.Citation
 import no.nav.nks_ai.core.message.Context
 import no.nav.nks_ai.core.message.Message
@@ -63,6 +64,18 @@ sealed class ConversationEvent() {
         val id: MessageId,
         val errors: List<MessageError>,
     ) : ConversationEvent()
+
+    @Serializable
+    @SerialName("ServerError")
+    data class ServerError(
+        val message: String,
+        val description: String,
+    ) : ConversationEvent() {
+        constructor(error: ApplicationError) : this(
+            message = error.message,
+            description = error.description,
+        )
+    }
 
     @Serializable
     class NoOp : ConversationEvent()

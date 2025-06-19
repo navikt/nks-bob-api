@@ -50,9 +50,7 @@ fun Route.conversationSse(
                         val question = messageService.addQuestion(conversationId, navIdent, newMessage.content).bind()
                         send(messageEvent(ConversationEvent.NewMessage(question.id, question)))
 
-                        val messageFlow = sendMessageService.askQuestion(question, conversationId, navIdent)
-                            .onLeft { call.respondError(it) }.bind()
-
+                        val messageFlow = sendMessageService.askQuestion(question, conversationId, navIdent).bind()
                         messageFlow
                             .filter { it !is ConversationEvent.NoOp }
                             .map(::messageEvent)
@@ -61,10 +59,16 @@ fun Route.conversationSse(
                             .collect(::trySend)
                     }.onLeft { error ->
                         logger.error { "Error in SSE session: $error" }
+                        send(messageEvent(ConversationEvent.ServerError(error)))
                     }
                 }.await()
             } catch (t: Throwable) {
                 logger.error(t) { "Error in SSE session" }
+                val error = ApplicationError.InternalServerError(
+                    t.message ?: "Error in SSE session",
+                    t.stackTraceToString()
+                )
+                send(messageEvent(ConversationEvent.ServerError(error)))
             } finally {
                 closeSession()
             }
