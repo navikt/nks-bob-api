@@ -26,9 +26,14 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.core.user.NavIdent
+import org.jetbrains.exposed.dao.EntityChangeType
+import org.jetbrains.exposed.dao.EntityHook
 import org.jetbrains.exposed.dao.UUIDEntity
+import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.UUIDTable
+import org.jetbrains.exposed.dao.toEntity
+import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.ComplexExpression
 import org.jetbrains.exposed.sql.Expression
 import org.jetbrains.exposed.sql.ExpressionWithColumnType
@@ -38,6 +43,7 @@ import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.append
+import org.jetbrains.exposed.sql.exposedLogger
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.util.UUID
@@ -46,11 +52,50 @@ suspend fun <T> suspendTransaction(block: Transaction.() -> T): T =
     newSuspendedTransaction(Dispatchers.IO, statement = block)
 
 abstract class BaseTable(name: String) : UUIDTable(name) {
-    val createdAt = datetime("created_at").clientDefault { LocalDateTime.now() }
+    val createdAt = datetime("created_at")
+        .clientDefault { LocalDateTime.now() }
+
+    val updatedAt = datetime("updated_at")
+        .clientDefault { LocalDateTime.now() }
 }
 
 abstract class BaseEntity(id: EntityID<UUID>, table: BaseTable) : UUIDEntity(id) {
     val createdAt: LocalDateTime by table.createdAt
+    var updatedAt: LocalDateTime by table.updatedAt
+}
+
+abstract class BaseEntityClass<out E : BaseEntity>(
+    table: BaseTable
+) : UUIDEntityClass<E>(table) {
+    init {
+        EntityHook.subscribe { change ->
+            val changedEntity = change.toEntity(this)
+            when (val type = change.changeType) {
+                EntityChangeType.Updated -> {
+                    val now = nowUTC()
+                    changedEntity?.let {
+                        if (it.writeValues[table.updatedAt as Column<*>] == null) {
+                            it.updatedAt = now
+                        }
+                    }
+                    logChange(changedEntity, type, now)
+                }
+
+                else -> logChange(changedEntity, type)
+            }
+        }
+    }
+
+    private fun nowUTC() = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+
+    private fun logChange(entity: E?, type: EntityChangeType, dateTime: LocalDateTime? = null) {
+        entity?.let {
+            val entityClassName = this::class.java.enclosingClass.simpleName
+            exposedLogger.info(
+                "$entityClassName(${it.id}) ${type.name.lowercase()} at ${dateTime ?: nowUTC()}"
+            )
+        }
+    }
 }
 
 infix fun <T> ExpressionWithColumnType<T>.bcryptVerified(t: NavIdent): Op<Boolean> =
