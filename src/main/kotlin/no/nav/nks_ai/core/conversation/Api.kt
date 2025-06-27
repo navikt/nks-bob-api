@@ -19,6 +19,7 @@ import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
+import no.nav.nks_ai.app.respondResult
 import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.conversation.streaming.WebsocketFlowHandler
 import no.nav.nks_ai.core.message.Message
@@ -47,8 +48,7 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
-            conversationService.getAllConversations(navIdent)
-                .let { call.respond(it) }
+            call.respondResult(conversationService.getAllConversations(navIdent))
         }
         post({
             description = "Create a new conversation"
@@ -120,9 +120,7 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
-            conversationService.getConversation(conversationId, navIdent)
-                .onLeft { call.respondError(it) }
-                .onRight { call.respond(HttpStatusCode.OK, it) }
+            call.respondResult(conversationService.getConversation(conversationId, navIdent))
         }
         delete("/{id}", {
             description = "Delete a conversation with the given ID"
@@ -143,8 +141,10 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@delete call.respondError(ApplicationError.MissingNavIdent())
 
-            conversationService.deleteConversation(conversationId, navIdent)
-            call.respond(HttpStatusCode.NoContent)
+            call.respondResult(
+                HttpStatusCode.NoContent,
+                conversationService.deleteConversation(conversationId, navIdent)
+            )
         }
         put("/{id}", {
             description = "Update a conversation with the given ID"
@@ -173,9 +173,7 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@put call.respondError(ApplicationError.MissingNavIdent())
 
-            conversationService.updateConversation(conversationId, navIdent, conversation)
-                .onLeft { error -> call.respondError(error) }
-                .onRight { updatedConversation -> call.respond(updatedConversation) }
+            call.respondResult(conversationService.updateConversation(conversationId, navIdent, conversation))
         }
         get("/{id}/messages", {
             description = "Get all messages for a given conversation"
@@ -199,9 +197,7 @@ fun Route.conversationRoutes(
             val navIdent = call.getNavIdent()
                 ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
-            conversationService.getConversationMessages(conversationId, navIdent)
-                .onLeft { error -> call.respondError(error) }
-                .onRight { call.respond(it) }
+            call.respondResult(conversationService.getConversationMessages(conversationId, navIdent))
         }
         post("/{id}/messages", {
             description = "Add a new message to the conversation"
