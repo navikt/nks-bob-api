@@ -7,10 +7,9 @@ import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.BaseEntity
+import no.nav.nks_ai.app.BaseEntityClass
 import no.nav.nks_ai.app.BaseTable
-import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
-import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
@@ -23,7 +22,7 @@ internal object Notifications : BaseTable("notifications") {
 }
 
 internal class NotificationDAO(id: EntityID<UUID>) : BaseEntity(id, Notifications) {
-    companion object : UUIDEntityClass<NotificationDAO>(Notifications)
+    companion object : BaseEntityClass<NotificationDAO>(Notifications)
 
     var expiresAt by Notifications.expiresAt
     var notificationType by Notifications.notificationType

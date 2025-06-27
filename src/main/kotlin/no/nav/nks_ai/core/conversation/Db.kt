@@ -1,21 +1,20 @@
 package no.nav.nks_ai.core.conversation
 
 import arrow.core.raise.either
+import arrow.core.right
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.BaseEntity
+import no.nav.nks_ai.app.BaseEntityClass
 import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.bcryptVerified
-import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.app.truncate
 import no.nav.nks_ai.core.user.NavIdent
-import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.SizedIterable
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
 
 internal object Conversations : BaseTable("conversations") {
@@ -24,7 +23,7 @@ internal object Conversations : BaseTable("conversations") {
 }
 
 internal class ConversationDAO(id: EntityID<UUID>) : BaseEntity(id, Conversations) {
-    companion object : UUIDEntityClass<ConversationDAO>(Conversations)
+    companion object : BaseEntityClass<ConversationDAO>(Conversations)
 
     var title by Conversations.title
     var owner by Conversations.owner
@@ -60,14 +59,17 @@ object ConversationRepo {
             }
         }
 
-    suspend fun deleteConversation(conversationId: ConversationId, navIdent: NavIdent): Unit =
+    suspend fun deleteConversation(conversationId: ConversationId, navIdent: NavIdent): ApplicationResult<Unit> =
         suspendTransaction {
-            ConversationDAO.findByIdAndNavIdent(conversationId, navIdent)?.delete()
+            either {
+                ConversationDAO.findByIdAndNavIdent(conversationId, navIdent)?.delete()
+                    ?: raise(ApplicationError.ConversationNotFound(conversationId))
+            }
         }
 
-    suspend fun deleteAllConversations(navIdent: NavIdent): Unit =
+    suspend fun deleteAllConversations(navIdent: NavIdent): ApplicationResult<Unit> =
         suspendTransaction {
-            ConversationDAO.findAllByNavIdent(navIdent).forEach { it.delete() }
+            ConversationDAO.findAllByNavIdent(navIdent).forEach { it.delete() }.right()
         }
 
     suspend fun getConversation(conversationId: ConversationId, navIdent: NavIdent): ApplicationResult<Conversation> =
@@ -91,10 +93,11 @@ object ConversationRepo {
             }
         }
 
-    suspend fun getAllConversations(navIdent: NavIdent): List<Conversation> =
+    suspend fun getAllConversations(navIdent: NavIdent): ApplicationResult<List<Conversation>> =
         suspendTransaction {
             ConversationDAO.findAllByNavIdent(navIdent)
                 .map { it.toModel() }
+                .right()
         }
 
     suspend fun updateConversation(
@@ -115,19 +118,19 @@ object ConversationRepo {
 
     suspend fun deleteConversations(
         conversationIds: List<ConversationId>,
-    ): Unit =
+    ): ApplicationResult<Unit> =
         suspendTransaction {
             ConversationDAO.find {
                 Conversations.id inList conversationIds.map { it.value }
-            }.forEach { it.delete() }
+            }.forEach { it.delete() }.right()
         }
 
     suspend fun getConversationsCreatedBefore(
         dateTime: LocalDateTime,
-    ): List<Conversation> =
+    ): ApplicationResult<List<Conversation>> =
         suspendTransaction {
             ConversationDAO.find {
                 Conversations.createdAt.less(dateTime)
-            }.map { it.toModel() }
+            }.map { it.toModel() }.right()
         }
 }

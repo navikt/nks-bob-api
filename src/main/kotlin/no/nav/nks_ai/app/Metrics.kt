@@ -6,6 +6,7 @@ import io.prometheus.client.Counter
 import io.prometheus.client.Gauge
 import io.prometheus.client.SimpleTimer
 import io.prometheus.client.Summary
+import no.nav.nks_ai.core.feedback.ResolvedCategory
 import no.nav.nks_ai.core.feedback.ResolvedImportance
 
 
@@ -114,17 +115,30 @@ object MetricRegister {
         .help("Hvor mange tilbakemeldinger som har blitt ferdigstilt")
         .register(appMicrometerRegistry.prometheusRegistry)
 
+    private val answerFeedbackResolvedImportance = Counter.Builder()
+        .name("${METRICS_NS}_answer_feedback_resolved_importance")
+        .help("Totalt antall viktighet på tilbakemeldinger")
+        .labelNames("viktighet")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
     private val answerFeedbackResolvedCategory = Counter.Builder()
         .name("${METRICS_NS}_answer_feedback_resolved_category")
         .help("Totalt antall valg på tilbakemeldinger")
         .labelNames("kategori")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    fun trackFeedbackResolved(resolved: Boolean, resolvedImportance: ResolvedImportance?) {
+    fun trackFeedbackResolved(
+        resolved: Boolean,
+        resolvedImportance: ResolvedImportance?,
+        resolvedCategory: ResolvedCategory?
+    ) {
         if (resolved) {
             answerFeedbacksResolved.inc()
         }
         resolvedImportance?.let {
+            answerFeedbackResolvedImportance.labels(it.value).inc()
+        }
+        resolvedCategory?.let {
             answerFeedbackResolvedCategory.labels(it.value).inc()
         }
     }

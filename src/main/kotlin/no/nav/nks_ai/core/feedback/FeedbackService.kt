@@ -91,7 +91,8 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
     ): ApplicationResult<Feedback> = either {
         MetricRegister.trackFeedbackResolved(
             feedback.resolved,
-            feedback.resolvedImportance
+            feedback.resolvedImportance,
+            feedback.resolvedCategory,
         )
 
         FeedbackRepo.updateFeedback(

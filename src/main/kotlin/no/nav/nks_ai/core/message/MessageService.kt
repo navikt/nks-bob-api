@@ -83,7 +83,7 @@ class MessageService() {
     suspend fun markStarredMessageUploaded(messageId: MessageId) =
         MessageRepo.markStarredMessageUploaded(messageId)
 
-    suspend fun getStarredMessagesNotUploaded(): List<Message> =
+    suspend fun getStarredMessagesNotUploaded(): ApplicationResult<List<Message>> =
         MessageRepo.getStarredMessagesNotUploaded()
 
     suspend fun updateMessageError(
