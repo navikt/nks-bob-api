@@ -180,7 +180,7 @@ object MessageRepo {
     suspend fun getMessagesByConversation(conversationId: ConversationId): ApplicationResult<List<Message>> =
         suspendTransaction {
             MessageDAO.find { Messages.conversation eq conversationId.value }
-                .orderBy(Messages.createdAt to SortOrder.DESC)
+                .orderBy(Messages.createdAt to SortOrder.ASC)
                 .map { it.toModel() }
                 .right()
         }
