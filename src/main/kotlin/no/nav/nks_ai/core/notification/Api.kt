@@ -12,6 +12,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.respondError
+import no.nav.nks_ai.app.respondResult
 
 fun Route.notificationUserRoutes(notificationService: NotificationService) {
     route("/notifications") {
@@ -42,9 +43,7 @@ fun Route.notificationUserRoutes(notificationService: NotificationService) {
                 }
             }
         }) {
-            notificationService.getNews()
-                .onRight { news -> call.respond(news) }
-                .onLeft { error -> call.respondError(error) }
+            call.respondResult(notificationService.getNews())
         }
 
         get("/errors", {
@@ -58,9 +57,7 @@ fun Route.notificationUserRoutes(notificationService: NotificationService) {
                 }
             }
         }) {
-            notificationService.getErrors()
-                .onRight { errorNotifications -> call.respond(errorNotifications) }
-                .onLeft { error -> call.respondError(error) }
+            call.respondResult(notificationService.getErrors())
         }
 
         get("/{id}", {
@@ -82,9 +79,7 @@ fun Route.notificationUserRoutes(notificationService: NotificationService) {
             val notificationId = call.notificationId()
                 ?: return@get call.respondError(ApplicationError.MissingNotificationId())
 
-            notificationService.getNotification(notificationId)
-                .onRight { notification -> call.respond(notification) }
-                .onLeft { error -> call.respondError(error) }
+            call.respondResult(notificationService.getNotification(notificationId))
         }
     }
 }
@@ -109,9 +104,7 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
         }) {
             val createNotification = call.receive<CreateNotification>()
 
-            notificationService.addNotification(createNotification)
-                .onRight { notification -> call.respond(HttpStatusCode.Created, notification) }
-                .onLeft { error -> call.respondError(error) }
+            call.respondResult(notificationService.addNotification(createNotification))
         }
 
         route("/{id}") {
@@ -139,9 +132,7 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
 
                 val createNotification = call.receive<CreateNotification>()
 
-                notificationService.updateNotification(notificationId, createNotification)
-                    .onRight { notification -> call.respond(notification) }
-                    .onLeft { error -> call.respondError(error) }
+                call.respondResult(notificationService.updateNotification(notificationId, createNotification))
             }
             patch({
                 description = "Patch a notification"
@@ -167,9 +158,7 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
 
                 val patchNotification = call.receive<PatchNotification>()
 
-                notificationService.patchNotification(notificationId, patchNotification)
-                    .onRight { notification -> call.respond(notification) }
-                    .onLeft { error -> call.respondError(error) }
+                call.respondResult(notificationService.patchNotification(notificationId, patchNotification))
             }
             delete({
                 description = "Delete a notification"
@@ -187,9 +176,7 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
                 val notificationId = call.notificationId()
                     ?: return@delete call.respondError(ApplicationError.MissingNotificationId())
 
-                notificationService.deleteNotification(notificationId)
-                    .onRight { call.respond(HttpStatusCode.NoContent) }
-                    .onLeft { error -> call.respondError(error) }
+                call.respondResult(notificationService.deleteNotification(notificationId))
             }
         }
     }

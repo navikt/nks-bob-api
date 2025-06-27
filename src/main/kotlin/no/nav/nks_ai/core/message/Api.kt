@@ -5,7 +5,6 @@ import io.github.smiley4.ktoropenapi.post
 import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
-import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.nks_ai.app.ApplicationError
@@ -70,9 +69,7 @@ fun Route.messageRoutes(
 
             val message = call.receive<UpdateMessage>()
 
-            messageService.updateMessage(messageId, message)
-                .onLeft { error -> call.respondError(error) }
-                .onRight { call.respond(it) }
+            call.respondResult(messageService.updateMessage(messageId, message))
         }
         get("/{id}/feedback", {
             description = "Get the feedback for a message"
