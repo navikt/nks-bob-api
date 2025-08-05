@@ -3,19 +3,21 @@ package no.nav.nks_ai.core.message
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.raise.either
+import arrow.core.right
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.BaseEntity
+import no.nav.nks_ai.app.BaseEntityClass
 import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.core.conversation.ConversationDAO
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.Conversations
-import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
@@ -43,7 +45,7 @@ internal object Messages : BaseTable("messages") {
 }
 
 internal class MessageDAO(id: EntityID<UUID>) : BaseEntity(id, Messages) {
-    companion object : UUIDEntityClass<MessageDAO>(Messages)
+    companion object : BaseEntityClass<MessageDAO>(Messages)
 
     var content by Messages.content
     var conversation by ConversationDAO.Companion referencedOn Messages.conversation
@@ -175,11 +177,12 @@ object MessageRepo {
             }
         }
 
-    suspend fun getMessagesByConversation(conversationId: ConversationId): List<Message> =
+    suspend fun getMessagesByConversation(conversationId: ConversationId): ApplicationResult<List<Message>> =
         suspendTransaction {
             MessageDAO.find { Messages.conversation eq conversationId.value }
-                .sortedBy { Messages.createdAt }
+                .orderBy(Messages.createdAt to SortOrder.ASC)
                 .map { it.toModel() }
+                .right()
         }
 
     suspend fun getConversationId(messageId: MessageId): ApplicationResult<ConversationId> =
@@ -203,7 +206,7 @@ object MessageRepo {
             }
         }
 
-    suspend fun getStarredMessagesNotUploaded(): List<Message> =
+    suspend fun getStarredMessagesNotUploaded(): ApplicationResult<List<Message>> =
         suspendTransaction {
             MessageDAO
                 .find {
@@ -211,6 +214,7 @@ object MessageRepo {
                         Messages.starred.eq(true)
                     }
                 }.map(MessageDAO::toModel)
+                .right()
         }
 
     suspend fun getOwner(messageId: MessageId): ApplicationResult<String> =

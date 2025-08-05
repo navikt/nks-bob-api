@@ -3,16 +3,13 @@ package no.nav.nks_ai.core.user
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.raise.either
-import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.BaseEntity
+import no.nav.nks_ai.app.BaseEntityClass
 import no.nav.nks_ai.app.BaseTable
-import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.suspendTransaction
-import org.jetbrains.exposed.dao.UUIDEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import java.util.UUID
 
 internal object UserConfigs : BaseTable("user_configs") {
@@ -23,7 +20,7 @@ internal object UserConfigs : BaseTable("user_configs") {
 }
 
 internal class UserConfigDAO(id: EntityID<UUID>) : BaseEntity(id, UserConfigs) {
-    companion object : UUIDEntityClass<UserConfigDAO>(UserConfigs)
+    companion object : BaseEntityClass<UserConfigDAO>(UserConfigs)
 
     var navIdent by UserConfigs.navIdent
     var showStartInfo by UserConfigs.showStartInfo

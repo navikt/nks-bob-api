@@ -27,7 +27,7 @@ class ConversationService(
     ): ApplicationResult<Conversation> =
         ConversationRepo.getConversation(conversationId, navIdent)
 
-    suspend fun getAllConversations(navIdent: NavIdent): List<Conversation> =
+    suspend fun getAllConversations(navIdent: NavIdent): ApplicationResult<List<Conversation>> =
         ConversationRepo.getAllConversations(navIdent)
 
     suspend fun getConversationMessages(
@@ -36,29 +36,28 @@ class ConversationService(
     ): ApplicationResult<List<Message>> = either {
         ConversationRepo.getConversation(conversationId, navIdent).bind()
 
-        MessageRepo.getMessagesByConversation(conversationId)
-            .sortedBy { it.createdAt }
+        MessageRepo.getMessagesByConversation(conversationId).bind()
     }
 
-    suspend fun deleteConversation(conversationId: ConversationId, navIdent: NavIdent): Unit =
+    suspend fun deleteConversation(conversationId: ConversationId, navIdent: NavIdent): ApplicationResult<Unit> =
         ConversationRepo.deleteConversation(conversationId, navIdent)
 
     suspend fun updateConversation(id: ConversationId, navIdent: NavIdent, conversation: UpdateConversation) =
         ConversationRepo.updateConversation(id, navIdent, conversation)
 
-    suspend fun deleteOldConversations() {
+    suspend fun deleteOldConversations(): ApplicationResult<Unit> = either {
         val deleteBefore = Clock.System.now()
             .minus(Config.conversationsMaxAge)
             .toLocalDateTime(TimeZone.currentSystemDefault())
 
-        val conversations = ConversationRepo.getConversationsCreatedBefore(deleteBefore)
+        val conversations = ConversationRepo.getConversationsCreatedBefore(deleteBefore).bind()
         if (conversations.isEmpty()) {
             logger.info { "Found 0 conversations older than $deleteBefore." }
-            return
+            return@either
         }
 
         logger.info { "Deleting ${conversations.size} conversations older than $deleteBefore" }
-        ConversationRepo.deleteConversations(conversations.map { it.id })
+        ConversationRepo.deleteConversations(conversations.map { it.id }).bind()
     }
 }
 

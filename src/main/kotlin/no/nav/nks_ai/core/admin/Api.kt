@@ -9,6 +9,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.respondError
+import no.nav.nks_ai.app.respondResult
 import no.nav.nks_ai.core.conversation.Conversation
 import no.nav.nks_ai.core.conversation.ConversationSummary
 import no.nav.nks_ai.core.conversation.conversationId
@@ -38,8 +39,9 @@ fun Route.adminRoutes(adminService: AdminService) {
                     ?.let { NavIdent(it) }
                     ?: return@get call.respondError(missingNavIdent())
 
-                adminService.getAllConversations(navIdent)
-                    .let { call.respond(it) }
+                call.respondResult(
+                    adminService.getAllConversations(navIdent)
+                )
             }
             delete({
                 description = "Delete all conversations for a given user"
@@ -80,9 +82,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 val conversationId = call.conversationId()
                     ?: return@get call.respondError(ApplicationError.MissingConversationId())
 
-                adminService.getConversation(conversationId)
-                    .onLeft { call.respondError(it) }
-                    .onRight { summary -> call.respond(HttpStatusCode.OK, summary) }
+                call.respondResult(adminService.getConversation(conversationId))
             }
             delete("/{id}", {
                 description = "Delete a conversation with the given ID for the given user"
@@ -129,9 +129,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 val conversationId = call.conversationId()
                     ?: return@get call.respondError(ApplicationError.MissingConversationId())
 
-                adminService.getConversationSummary(conversationId)
-                    .onLeft { call.respondError(it) }
-                    .onRight { summary -> call.respond(HttpStatusCode.OK, summary) }
+                call.respondResult(adminService.getConversationSummary(conversationId))
             }
             get("/{id}/messages", {
                 description = "Get all messages for the given conversation ID"
@@ -152,8 +150,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 val conversationId = call.conversationId()
                     ?: return@get call.respondError(ApplicationError.MissingConversationId())
 
-                val messages = adminService.getConversationMessages(conversationId)
-                call.respond(messages)
+                call.respondResult(adminService.getConversationMessages(conversationId))
             }
         }
         route("/messages") {
@@ -176,9 +173,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 val messageId = call.messageId()
                     ?: return@get call.respondError(ApplicationError.MissingMessageId())
 
-                adminService.getConversationFromMessageId(messageId)
-                    .onLeft { call.respondError(it) }
-                    .onRight { conversation -> call.respond(HttpStatusCode.OK, conversation) }
+                call.respondResult(adminService.getConversationFromMessageId(messageId))
             }
             get("/{id}/conversation/summary", {
                 description = "Get conversation summary for the given message ID"
@@ -203,9 +198,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                     val conversation = adminService.getConversationFromMessageId(messageId)
                         .onLeft { call.respondError(it) }.bind()
 
-                    adminService.getConversationSummary(conversation.id)
-                        .onLeft { call.respondError(it) }
-                        .onRight { summary -> call.respond(HttpStatusCode.OK, summary) }
+                    call.respondResult(adminService.getConversationSummary(conversation.id))
                 }
             }
         }

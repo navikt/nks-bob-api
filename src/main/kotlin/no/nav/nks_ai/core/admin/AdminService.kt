@@ -20,7 +20,7 @@ class AdminService() {
         ConversationRepo.deleteConversation(conversationId, navIdent)
     }
 
-    suspend fun getAllConversations(navIdent: NavIdent): List<Conversation> =
+    suspend fun getAllConversations(navIdent: NavIdent): ApplicationResult<List<Conversation>> =
         ConversationRepo.getAllConversations(navIdent)
 
     suspend fun getConversation(conversationId: ConversationId): ApplicationResult<Conversation> =
@@ -29,13 +29,13 @@ class AdminService() {
     suspend fun getConversationSummary(conversationId: ConversationId): ApplicationResult<ConversationSummary> =
         either {
             val conversation = ConversationRepo.getConversation(conversationId).bind()
-            val messages = MessageRepo.getMessagesByConversation(conversationId).sortedBy { it.createdAt }
+            val messages = MessageRepo.getMessagesByConversation(conversationId).bind()
 
             ConversationSummary.from(conversation, messages)
         }
 
-    suspend fun getConversationMessages(conversationId: ConversationId): List<Message> =
-        MessageRepo.getMessagesByConversation(conversationId).sortedBy { it.createdAt }
+    suspend fun getConversationMessages(conversationId: ConversationId): ApplicationResult<List<Message>> =
+        MessageRepo.getMessagesByConversation(conversationId)
 
     suspend fun getConversationFromMessageId(messageId: MessageId): ApplicationResult<Conversation> =
         either {
