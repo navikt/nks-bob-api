@@ -17,7 +17,10 @@ interface FeedbackService {
 
     suspend fun getAllFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>>
 
-    suspend fun getFilteredFeedbacks(filter: FeedbackFilter?, pagination: Pagination): ApplicationResult<Page<Feedback>>
+    suspend fun getFilteredFeedbacks(
+        filter: FeedbackFilter?,
+        pagination: Pagination
+    ): ApplicationResult<Page<Feedback>>
 
     suspend fun getFeedbacksForMessage(messageId: MessageId, navIdent: NavIdent): ApplicationResult<List<Feedback>>
 
@@ -42,18 +45,38 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
     override suspend fun getFilteredFeedbacks(
         filter: FeedbackFilter?,
         pagination: Pagination
-    ): ApplicationResult<Page<Feedback>> =
-        when (filter) {
+    ): ApplicationResult<Page<Feedback>> = either {
+        val result = when (filter) {
+            null -> getAllFeedbacks(pagination)
+
             FeedbackFilter.Unresolved -> FeedbackRepo.getUnresolvedFeedbacks(pagination)
             FeedbackFilter.Resolved -> FeedbackRepo.getResolvedFeedbacks(pagination)
-            FeedbackFilter.NotRelevant -> FeedbackRepo.getNotRelevantFeedbacks(pagination)
-            FeedbackFilter.SomewhatImportant -> FeedbackRepo.getSomewhatImportantFeedbacks(pagination)
-            FeedbackFilter.Important -> FeedbackRepo.getImportantFeedbacks(pagination)
-            FeedbackFilter.VeryImportant -> FeedbackRepo.getVeryImportantFeedbacks(pagination)
             FeedbackFilter.UserError -> FeedbackRepo.getUserErrorFeedbacks(pagination)
             FeedbackFilter.AiError -> FeedbackRepo.getAiErrorFeedbacks(pagination)
-            null -> getAllFeedbacks(pagination)
+
+            FeedbackFilter.NotRelevant,
+            FeedbackFilter.SomewhatImportant,
+            FeedbackFilter.Important,
+            FeedbackFilter.VeryImportant -> FeedbackRepo.getFeedbacksWithResolvedImportance(
+                FeedbackFilter.getResolvedImportance(filter).bind(),
+                pagination
+            )
+
+            FeedbackFilter.InaccurateAnswer,
+            FeedbackFilter.MissingDetails,
+            FeedbackFilter.UnexpectedArticle,
+            FeedbackFilter.WrongContext,
+            FeedbackFilter.MixingBenefits,
+            FeedbackFilter.CitationNotFound,
+            FeedbackFilter.MissingSources,
+            FeedbackFilter.Other ->
+                FeedbackRepo.getFeedbacksWithOption(
+                    FeedbackFilter.getOptionText(filter).bind(),
+                    pagination
+                )
         }
+        result.bind()
+    }
 
     override suspend fun getFeedbacksForMessage(
         messageId: MessageId,
