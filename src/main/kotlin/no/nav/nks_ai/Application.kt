@@ -12,11 +12,12 @@ import io.ktor.client.plugins.sse.SSE
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.*
+import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import io.opentelemetry.instrumentation.ktor.v3_0.KtorClientTelemetry
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.app.Config
@@ -27,6 +28,7 @@ import no.nav.nks_ai.app.plugins.configureMonitoring
 import no.nav.nks_ai.app.plugins.configureOpenApi
 import no.nav.nks_ai.app.plugins.configureSecurity
 import no.nav.nks_ai.app.plugins.configureSerialization
+import no.nav.nks_ai.app.plugins.defautOpenTelemetry
 import no.nav.nks_ai.app.plugins.healthRoutes
 import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.core.ConversationDeletionJob
@@ -153,6 +155,9 @@ private fun defaultHttpClient(
             intercept { request, callId ->
                 request.header(HttpHeaders.XRequestId, callId)
             }
+        }
+        install(KtorClientTelemetry) {
+            setOpenTelemetry(defautOpenTelemetry)
         }
         block()
     }

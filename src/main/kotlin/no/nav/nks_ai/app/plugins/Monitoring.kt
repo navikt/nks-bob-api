@@ -1,15 +1,28 @@
 package no.nav.nks_ai.app.plugins
 
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.metrics.micrometer.*
-import io.ktor.server.plugins.callid.*
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.metrics.micrometer.MicrometerMetrics
+import io.ktor.server.plugins.callid.CallId
+import io.ktor.server.plugins.callid.callIdMdc
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.request.path
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.instrumentation.ktor.v3_0.KtorServerTelemetry
+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
 import no.nav.nks_ai.app.appMicrometerRegistry
 import org.slf4j.event.Level
+
+val defautOpenTelemetry: OpenTelemetry = AutoConfiguredOpenTelemetrySdk.builder()
+    .build()
+    .openTelemetrySdk
 
 fun Application.configureMonitoring() {
     install(MicrometerMetrics) {
@@ -34,6 +47,9 @@ fun Application.configureMonitoring() {
         verify { callId: String ->
             callId.isNotEmpty()
         }
+    }
+    install(KtorServerTelemetry) {
+        setOpenTelemetry(defautOpenTelemetry)
     }
 }
 

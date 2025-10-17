@@ -9,6 +9,7 @@ val hikari_version: String by project
 val postgres_version: String by project
 val flyway_version: String by project
 val opentelemetry_version: String by project
+val opentelemetry_sdk_version: String by project
 
 plugins {
     kotlin("jvm") version "2.1.20"
@@ -83,7 +84,11 @@ dependencies {
     implementation("io.ktor:ktor-server-websockets-jvm")
     implementation("io.ktor:ktor-server-cors")
     implementation("io.micrometer:micrometer-registry-prometheus:$prometheus_version")
-    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:2.10.0-alpha")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:${opentelemetry_version}")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-ktor-3.0:${opentelemetry_version}")
+    implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:${opentelemetry_sdk_version}")
+    implementation("io.opentelemetry:opentelemetry-extension-kotlin:${opentelemetry_sdk_version}")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp:${opentelemetry_sdk_version}")
     implementation("net.logstash.logback:logstash-logback-encoder:8.0")
 //    implementation("no.nav.security:token-validation-ktor-v2:5.0.5") // TODO waiting for ktor 3.0.0 support
     implementation("org.flywaydb:flyway-core:$flyway_version")
@@ -95,8 +100,6 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposed_version")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
-    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:$opentelemetry_version")
-    implementation("io.opentelemetry.instrumentation:opentelemetry-ktor-3.0:$opentelemetry_version")
     implementation("org.postgresql:postgresql:$postgres_version")
     implementation("com.github.Pool-Of-Tears:KtScheduler:1.1.6")
     testImplementation("io.ktor:ktor-server-test-host-jvm")
