@@ -21,7 +21,7 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.compoundOr
+import org.jetbrains.exposed.sql.compoundAnd
 
 internal object Feedbacks : BaseTable("feedbacks") {
     val message = reference("message", Messages).nullable()
@@ -90,7 +90,7 @@ object FeedbackRepo {
         filters: List<FeedbackFilter>,
         pagination: Pagination
     ): ApplicationResult<Page<Feedback>> = either {
-        val op = filters.map { getFilterExpression(it).bind() }.compoundOr()
+        val op = filters.map { getFilterExpression(it).bind() }.compoundAnd()
         getFilteredFeedbacks(pagination) { op }.bind()
     }
 
