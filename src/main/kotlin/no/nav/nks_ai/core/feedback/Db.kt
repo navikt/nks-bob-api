@@ -24,7 +24,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.compoundOr
 
 internal object Feedbacks : BaseTable("feedbacks") {
-    val message = reference("message", Messages)
+    val message = reference("message", Messages).nullable()
     val options = array<String>("options")
     val comment = text("comment", eagerLoading = true).nullable().clientDefault { null }
     val resolved = bool("resolved").clientDefault { false }
@@ -36,7 +36,7 @@ internal object Feedbacks : BaseTable("feedbacks") {
 internal class FeedbackDAO(id: EntityID<UUID>) : BaseEntity(id, Feedbacks) {
     companion object : BaseEntityClass<FeedbackDAO>(Feedbacks)
 
-    var message by MessageDAO.Companion referencedOn Feedbacks.message
+    var message by MessageDAO.Companion optionalReferencedOn Feedbacks.message
     var options by Feedbacks.options
     var comment by Feedbacks.comment
     var resolved by Feedbacks.resolved
@@ -48,8 +48,8 @@ internal class FeedbackDAO(id: EntityID<UUID>) : BaseEntity(id, Feedbacks) {
 internal fun FeedbackDAO.toModel() = Feedback(
     id = id.value.toFeedbackId(),
     createdAt = createdAt,
-    messageId = message.id.value.toMessageId(),
-    conversationId = message.conversation.id.value.toConversationId(),
+    messageId = message?.id?.value?.toMessageId(),
+    conversationId = message?.conversation?.id?.value?.toConversationId(),
     options = options,
     comment = comment,
     resolved = resolved,

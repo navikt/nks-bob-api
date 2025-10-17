@@ -184,8 +184,8 @@ enum class ResolvedCategory(val value: String) {
 @Serializable
 data class Feedback(
     val id: FeedbackId,
-    val messageId: MessageId,
-    val conversationId: ConversationId,
+    val messageId: MessageId?,
+    val conversationId: ConversationId?,
     val createdAt: LocalDateTime,
     val options: List<String>,
     val comment: String?,
