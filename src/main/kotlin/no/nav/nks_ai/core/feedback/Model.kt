@@ -2,6 +2,7 @@ package no.nav.nks_ai.core.feedback
 
 import arrow.core.raise.either
 import io.ktor.server.application.ApplicationCall
+import java.util.*
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.KSerializer
@@ -17,7 +18,6 @@ import no.nav.nks_ai.app.InvalidInputException
 import no.nav.nks_ai.app.toUUID
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.message.MessageId
-import java.util.UUID
 
 object FeedbackIdSerializer : KSerializer<FeedbackId> {
     override fun deserialize(decoder: Decoder): FeedbackId {
@@ -54,16 +54,58 @@ enum class FeedbackFilter(val value: String) {
     Important("viktige"),
     VeryImportant("særskilt-viktige"),
     UserError("brukerfeil"),
-    AiError("ki-feil");
+    AiError("ki-feil"),
+    InaccurateAnswer("hele-deler-av-svaret-er-feil"),
+    MissingDetails("mangler-vesentlige-detaljer"),
+    UnexpectedArticle("benytter-ikke-forventede-artikler"),
+    WrongContext("forholder-seg-ikke-til-kontekst"),
+    MixingBenefits("blander-ytelser"),
+    CitationNotFound("finner-ikke-sitatet-i-artikkelen"),
+    MissingSources("mangler-kilder"),
+    Other("annet");
 
     companion object {
         private val labelToEnum = entries.associateBy { it.value }
 
-        val validValues = entries.toTypedArray().asList().map { it.value }.joinToString(", ")
+        val validValues = entries.toTypedArray().asList().joinToString(", ") { it.value }
 
         fun fromFilterValue(value: String): ApplicationResult<FeedbackFilter> = either {
             labelToEnum[value]
                 ?: raise(ApplicationError.SerializationError("Error parsing filter value $value. Valid values: $validValues"))
+        }
+
+        fun getResolvedImportance(filter: FeedbackFilter): ApplicationResult<ResolvedImportance> = either {
+            when (filter) {
+                NotRelevant -> ResolvedImportance.NotRelevant
+                SomewhatImportant -> ResolvedImportance.SomewhatImportant
+                Important -> ResolvedImportance.Important
+                VeryImportant -> ResolvedImportance.VeryImportant
+                else -> raise(
+                    ApplicationError.InvalidInput(
+                        "Invalid input",
+                        "Supplied value ${filter.value} is not a resolved importance value."
+                    )
+                )
+            }
+        }
+
+        fun getOptionText(filter: FeedbackFilter): ApplicationResult<String> = either {
+            when (filter) {
+                InaccurateAnswer -> "Hele-/deler av svaret er feil"
+                MissingDetails -> "Mangler vesentlige detaljer"
+                UnexpectedArticle -> "Benytter ikke forventede artikler"
+                WrongContext -> "Forholder seg ikke til kontekst"
+                MixingBenefits -> "Blander ytelser"
+                CitationNotFound -> "Finner ikke sitatet i artikkelen"
+                MissingSources -> "Mangler kilder"
+                Other -> "Annet"
+                else -> raise(
+                    ApplicationError.InvalidInput(
+                        "Invalid input",
+                        "Supplied value ${filter.value} is not an option value."
+                    )
+                )
+            }
         }
     }
 }
@@ -96,7 +138,7 @@ enum class ResolvedImportance(val value: String) {
     companion object {
         private val labelToEnum = entries.associateBy { it.value }
 
-        val validValues = entries.toTypedArray().asList().map { it.value }.joinToString(", ")
+        val validValues = entries.toTypedArray().asList().joinToString(", ") { it.value }
 
         fun fromImportanceValue(value: String): ApplicationResult<ResolvedImportance> = either {
             labelToEnum[value]
@@ -130,7 +172,7 @@ enum class ResolvedCategory(val value: String) {
 
     companion object {
         private val labelToEnum = entries.associateBy { it.value }
-        val validValues = entries.toTypedArray().asList().map { it.value }.joinToString(", ")
+        val validValues = entries.toTypedArray().asList().joinToString(", ") { it.value }
 
         fun fromCategoryValue(value: String): ApplicationResult<ResolvedCategory> = either {
             labelToEnum[value]
@@ -142,8 +184,8 @@ enum class ResolvedCategory(val value: String) {
 @Serializable
 data class Feedback(
     val id: FeedbackId,
-    val messageId: MessageId,
-    val conversationId: ConversationId,
+    val messageId: MessageId?,
+    val conversationId: ConversationId?,
     val createdAt: LocalDateTime,
     val options: List<String>,
     val comment: String?,

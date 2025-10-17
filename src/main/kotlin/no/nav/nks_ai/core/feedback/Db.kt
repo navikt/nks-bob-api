@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.feedback
 
 import arrow.core.raise.either
+import java.util.*
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.BaseEntity
@@ -8,6 +9,7 @@ import no.nav.nks_ai.app.BaseEntityClass
 import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.Page
 import no.nav.nks_ai.app.Pagination
+import no.nav.nks_ai.app.has
 import no.nav.nks_ai.app.paginated
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.core.conversation.toConversationId
@@ -18,10 +20,11 @@ import no.nav.nks_ai.core.message.toMessageId
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
-import java.util.UUID
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.compoundOr
 
 internal object Feedbacks : BaseTable("feedbacks") {
-    val message = reference("message", Messages)
+    val message = reference("message", Messages).nullable()
     val options = array<String>("options")
     val comment = text("comment", eagerLoading = true).nullable().clientDefault { null }
     val resolved = bool("resolved").clientDefault { false }
@@ -33,7 +36,7 @@ internal object Feedbacks : BaseTable("feedbacks") {
 internal class FeedbackDAO(id: EntityID<UUID>) : BaseEntity(id, Feedbacks) {
     companion object : BaseEntityClass<FeedbackDAO>(Feedbacks)
 
-    var message by MessageDAO.Companion referencedOn Feedbacks.message
+    var message by MessageDAO.Companion optionalReferencedOn Feedbacks.message
     var options by Feedbacks.options
     var comment by Feedbacks.comment
     var resolved by Feedbacks.resolved
@@ -45,8 +48,8 @@ internal class FeedbackDAO(id: EntityID<UUID>) : BaseEntity(id, Feedbacks) {
 internal fun FeedbackDAO.toModel() = Feedback(
     id = id.value.toFeedbackId(),
     createdAt = createdAt,
-    messageId = message.id.value.toMessageId(),
-    conversationId = message.conversation.id.value.toConversationId(),
+    messageId = message?.id?.value?.toMessageId(),
+    conversationId = message?.conversation?.id?.value?.toConversationId(),
     options = options,
     comment = comment,
     resolved = resolved,
@@ -83,29 +86,38 @@ object FeedbackRepo {
             }
         }
 
-    suspend fun getUnresolvedFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolved eq false }
+    suspend fun getFeedbacksFilteredBy(
+        filters: List<FeedbackFilter>,
+        pagination: Pagination
+    ): ApplicationResult<Page<Feedback>> = either {
+        val op = filters.map { getFilterExpression(it).bind() }.compoundOr()
+        getFilteredFeedbacks(pagination) { op }.bind()
+    }
 
-    suspend fun getResolvedFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolved eq true }
+    private fun getFilterExpression(filter: FeedbackFilter): ApplicationResult<Op<Boolean>> = either {
+        when (filter) {
+            FeedbackFilter.Unresolved -> Feedbacks.resolved eq false
+            FeedbackFilter.Resolved -> Feedbacks.resolved eq true
+            FeedbackFilter.UserError -> Feedbacks.resolvedCategory eq ResolvedCategory.UserError
+            FeedbackFilter.AiError -> Feedbacks.resolvedCategory eq ResolvedCategory.AiError
 
-    suspend fun getNotRelevantFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolvedImportance eq ResolvedImportance.NotRelevant }
+            FeedbackFilter.NotRelevant,
+            FeedbackFilter.SomewhatImportant,
+            FeedbackFilter.Important,
+            FeedbackFilter.VeryImportant ->
+                Feedbacks.resolvedImportance eq FeedbackFilter.getResolvedImportance(filter).bind()
 
-    suspend fun getSomewhatImportantFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolvedImportance eq ResolvedImportance.SomewhatImportant }
-
-    suspend fun getImportantFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolvedImportance eq ResolvedImportance.Important }
-
-    suspend fun getVeryImportantFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolvedImportance eq ResolvedImportance.VeryImportant }
-
-    suspend fun getUserErrorFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolvedCategory eq ResolvedCategory.UserError }
-
-    suspend fun getAiErrorFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolvedCategory eq ResolvedCategory.AiError }
+            FeedbackFilter.InaccurateAnswer,
+            FeedbackFilter.MissingDetails,
+            FeedbackFilter.UnexpectedArticle,
+            FeedbackFilter.WrongContext,
+            FeedbackFilter.MixingBenefits,
+            FeedbackFilter.CitationNotFound,
+            FeedbackFilter.MissingSources,
+            FeedbackFilter.Other ->
+                Feedbacks.options has FeedbackFilter.getOptionText(filter).bind()
+        }
+    }
 
     suspend fun getFeedbackById(feedbackId: FeedbackId): ApplicationResult<Feedback> =
         suspendTransaction {

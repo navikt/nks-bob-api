@@ -8,6 +8,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
 import no.nav.nks_ai.app.Page
+import no.nav.nks_ai.app.Sort
 import no.nav.nks_ai.app.pagination
 import no.nav.nks_ai.app.respondEither
 
@@ -16,7 +17,7 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
         get({
             description = "Get all feedbacks"
             request {
-                queryParameter<String>("filter") {
+                queryParameter<List<String>>("filter") {
                     description =
                         "Filter which feedbacks will be returned (${FeedbackFilter.validValues})"
                     required = false
@@ -27,6 +28,11 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                 }
                 queryParameter<Int>("size") {
                     description = "How many feedbacks to fetch (default = 100)"
+                    required = false
+                }
+                queryParameter<String>("sort") {
+                    description =
+                        "Sort order (default = ${Sort.CreatedAtDesc.value}). Valid values: ${Sort.validValues}"
                     required = false
                 }
             }
@@ -41,10 +47,11 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
         }) {
             call.respondEither {
                 val pagination = call.pagination().bind()
-                val filter = call.queryParameters["filter"]
-                    ?.let { FeedbackFilter.fromFilterValue(it).bind() }
+                val filters = call.queryParameters.getAll("filter")
+                    ?.map { FeedbackFilter.fromFilterValue(it).bind() }
+                    ?: emptyList()
 
-                feedbackService.getFilteredFeedbacks(filter, pagination)
+                feedbackService.getFilteredFeedbacks(filters, pagination)
             }
         }
 

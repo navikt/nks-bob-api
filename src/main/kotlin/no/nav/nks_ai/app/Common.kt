@@ -20,6 +20,7 @@ import io.ktor.server.routing.route
 import io.ktor.server.sse.SSE
 import io.ktor.server.sse.ServerSSESession
 import io.ktor.server.sse.sse
+import java.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
@@ -47,7 +48,6 @@ import org.jetbrains.exposed.sql.append
 import org.jetbrains.exposed.sql.exposedLogger
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import java.util.UUID
 
 suspend fun <T> suspendTransaction(block: Transaction.() -> ApplicationResult<T>): ApplicationResult<T> =
     Either.catch {
@@ -116,6 +116,19 @@ class BcryptVerifiedOp(
     override fun toQueryBuilder(queryBuilder: QueryBuilder) =
         queryBuilder {
             append(expr1, " = crypt(", expr2, ", ", expr1, ") ")
+        }
+}
+
+infix fun Column<List<String>>.has(value: String): Op<Boolean> =
+    HasOp(this, value)
+
+class HasOp(
+    val column: Column<List<String>>,
+    val value: String
+) : Op<Boolean>(), ComplexExpression {
+    override fun toQueryBuilder(queryBuilder: QueryBuilder) =
+        queryBuilder {
+            append("'", value, "'", " = ANY(", column, ")")
         }
 }
 
