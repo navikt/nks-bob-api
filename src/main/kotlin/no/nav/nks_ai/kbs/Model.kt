@@ -139,6 +139,15 @@ sealed class KbsErrorResponse {
             override val title: String,
             override val detail: String,
         ) : KbsTypedError()
+
+        @Serializable
+        @SerialName(RATE_LIMIT_ERROR_NAME)
+        data class KbsRateLimitError(
+            override val type: KbsErrorType = KbsErrorType.RateLimitError,
+            override val status: Int,
+            override val title: String,
+            override val detail: String,
+        ) : KbsTypedError()
     }
 
     @Serializable
@@ -152,6 +161,7 @@ sealed class KbsErrorResponse {
 
 private const val VALIDATION_ERROR_NAME = "urn:nks-kbs:error:validation"
 private const val MODEL_ERROR_NAME = "urn:nks-kbs:error:model"
+private const val RATE_LIMIT_ERROR_NAME = "urn:nks-kbs:error:rate_limit"
 
 @Serializable
 enum class KbsErrorType {
@@ -160,6 +170,9 @@ enum class KbsErrorType {
 
     @SerialName(MODEL_ERROR_NAME)
     ModelError,
+
+    @SerialName(RATE_LIMIT_ERROR_NAME)
+    RateLimitError,
 }
 
 internal data class KbsValidationException(
