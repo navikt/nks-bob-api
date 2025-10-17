@@ -17,7 +17,7 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
         get({
             description = "Get all feedbacks"
             request {
-                queryParameter<String>("filter") {
+                queryParameter<List<String>>("filter") {
                     description =
                         "Filter which feedbacks will be returned (${FeedbackFilter.validValues})"
                     required = false
@@ -47,10 +47,11 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
         }) {
             call.respondEither {
                 val pagination = call.pagination().bind()
-                val filter = call.queryParameters["filter"]
-                    ?.let { FeedbackFilter.fromFilterValue(it).bind() }
+                val filters = call.queryParameters.getAll("filter")
+                    ?.map { FeedbackFilter.fromFilterValue(it).bind() }
+                    ?: emptyList()
 
-                feedbackService.getFilteredFeedbacks(filter, pagination)
+                feedbackService.getFilteredFeedbacks(filters, pagination)
             }
         }
 

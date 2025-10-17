@@ -20,6 +20,8 @@ import no.nav.nks_ai.core.message.toMessageId
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.compoundOr
 
 internal object Feedbacks : BaseTable("feedbacks") {
     val message = reference("message", Messages)
@@ -84,28 +86,38 @@ object FeedbackRepo {
             }
         }
 
-    suspend fun getUnresolvedFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolved eq false }
+    suspend fun getFeedbacksFilteredBy(
+        filters: List<FeedbackFilter>,
+        pagination: Pagination
+    ): ApplicationResult<Page<Feedback>> = either {
+        val op = filters.map { getFilterExpression(it).bind() }.compoundOr()
+        getFilteredFeedbacks(pagination) { op }.bind()
+    }
 
-    suspend fun getResolvedFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolved eq true }
+    private fun getFilterExpression(filter: FeedbackFilter): ApplicationResult<Op<Boolean>> = either {
+        when (filter) {
+            FeedbackFilter.Unresolved -> Feedbacks.resolved eq false
+            FeedbackFilter.Resolved -> Feedbacks.resolved eq true
+            FeedbackFilter.UserError -> Feedbacks.resolvedCategory eq ResolvedCategory.UserError
+            FeedbackFilter.AiError -> Feedbacks.resolvedCategory eq ResolvedCategory.AiError
 
-    suspend fun getUserErrorFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolvedCategory eq ResolvedCategory.UserError }
+            FeedbackFilter.NotRelevant,
+            FeedbackFilter.SomewhatImportant,
+            FeedbackFilter.Important,
+            FeedbackFilter.VeryImportant ->
+                Feedbacks.resolvedImportance eq FeedbackFilter.getResolvedImportance(filter).bind()
 
-    suspend fun getAiErrorFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) { Feedbacks.resolvedCategory eq ResolvedCategory.AiError }
-
-    suspend fun getFeedbacksWithResolvedImportance(resolvedImportance: ResolvedImportance, pagination: Pagination) =
-        getFilteredFeedbacks(pagination) {
-            Feedbacks.resolvedImportance eq resolvedImportance
+            FeedbackFilter.InaccurateAnswer,
+            FeedbackFilter.MissingDetails,
+            FeedbackFilter.UnexpectedArticle,
+            FeedbackFilter.WrongContext,
+            FeedbackFilter.MixingBenefits,
+            FeedbackFilter.CitationNotFound,
+            FeedbackFilter.MissingSources,
+            FeedbackFilter.Other ->
+                Feedbacks.options has FeedbackFilter.getOptionText(filter).bind()
         }
-
-    suspend fun getFeedbacksWithOption(option: String, pagination: Pagination): ApplicationResult<Page<Feedback>> =
-        getFilteredFeedbacks(pagination) {
-            Feedbacks.options.has(option)
-        }
-
+    }
 
     suspend fun getFeedbackById(feedbackId: FeedbackId): ApplicationResult<Feedback> =
         suspendTransaction {

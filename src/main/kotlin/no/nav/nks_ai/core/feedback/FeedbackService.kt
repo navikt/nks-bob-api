@@ -18,7 +18,7 @@ interface FeedbackService {
     suspend fun getAllFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>>
 
     suspend fun getFilteredFeedbacks(
-        filter: FeedbackFilter?,
+        filters: List<FeedbackFilter>,
         pagination: Pagination
     ): ApplicationResult<Page<Feedback>>
 
@@ -43,40 +43,14 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
         FeedbackRepo.getFeedbacks(pagination)
 
     override suspend fun getFilteredFeedbacks(
-        filter: FeedbackFilter?,
+        filters: List<FeedbackFilter>,
         pagination: Pagination
-    ): ApplicationResult<Page<Feedback>> = either {
-        val result = when (filter) {
-            null -> getAllFeedbacks(pagination)
-
-            FeedbackFilter.Unresolved -> FeedbackRepo.getUnresolvedFeedbacks(pagination)
-            FeedbackFilter.Resolved -> FeedbackRepo.getResolvedFeedbacks(pagination)
-            FeedbackFilter.UserError -> FeedbackRepo.getUserErrorFeedbacks(pagination)
-            FeedbackFilter.AiError -> FeedbackRepo.getAiErrorFeedbacks(pagination)
-
-            FeedbackFilter.NotRelevant,
-            FeedbackFilter.SomewhatImportant,
-            FeedbackFilter.Important,
-            FeedbackFilter.VeryImportant -> FeedbackRepo.getFeedbacksWithResolvedImportance(
-                FeedbackFilter.getResolvedImportance(filter).bind(),
-                pagination
-            )
-
-            FeedbackFilter.InaccurateAnswer,
-            FeedbackFilter.MissingDetails,
-            FeedbackFilter.UnexpectedArticle,
-            FeedbackFilter.WrongContext,
-            FeedbackFilter.MixingBenefits,
-            FeedbackFilter.CitationNotFound,
-            FeedbackFilter.MissingSources,
-            FeedbackFilter.Other ->
-                FeedbackRepo.getFeedbacksWithOption(
-                    FeedbackFilter.getOptionText(filter).bind(),
-                    pagination
-                )
+    ): ApplicationResult<Page<Feedback>> =
+        if (filters.isEmpty()) {
+            getAllFeedbacks(pagination)
+        } else {
+            FeedbackRepo.getFeedbacksFilteredBy(filters, pagination)
         }
-        result.bind()
-    }
 
     override suspend fun getFeedbacksForMessage(
         messageId: MessageId,
