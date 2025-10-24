@@ -23,7 +23,6 @@ import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.defaultJsonConfig
 import no.nav.nks_ai.kbs.KbsStreamResponse.KbsChatResponse
 import no.nav.nks_ai.kbs.KbsStreamResponse.StatusUpdateResponse
-import kotlin.String
 
 private val logger = KotlinLogging.logger {}
 
@@ -111,7 +110,7 @@ class KbsClient(
                 }
             }
         }
-    }.retry(2) { throwable ->
+    }.retry(3) { throwable ->
         if (throwable.cause is KbsValidationException) {
             logger.warn { "Error when receiving message from KBS. Retrying..." }
             return@retry true

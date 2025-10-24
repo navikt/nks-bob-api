@@ -15,7 +15,7 @@ object Config {
     val issuers: NonEmptyList<IssuerConfig>
     val bigQuery: BigQueryConfig
 
-    const val HTTP_CLIENT_TIMEOUT_MS = 60 * 1000
+    const val HTTP_CLIENT_TIMEOUT_MS = 120 * 1000
 
     val conversationsMaxAge: Duration = 30.days
 
