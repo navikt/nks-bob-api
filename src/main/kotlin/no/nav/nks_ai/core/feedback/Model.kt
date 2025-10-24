@@ -62,7 +62,18 @@ enum class FeedbackFilter(val value: String) {
     MixingBenefits("blander-ytelser"),
     CitationNotFound("finner-ikke-sitatet-i-artikkelen"),
     MissingSources("mangler-kilder"),
-    Other("annet");
+    Other("annet"),
+    Arbeid("arbeid"),
+    Helse("helse"),
+    Familie("familie"),
+    Pleiepenger("pleiepenger"),
+    Gjeldsveiledning("gjeldsveiledning"),
+    SosialeTjenester("sosiale-tjenester"),
+    Pensjon("pensjon"),
+    Uforetrygd("uforetrygd"),
+    Arbeidsgiver("arbeidsgiver"),
+    Internasjonalt("internasjonalt"),
+    Fellesrutinene("fellesrutinene");
 
     companion object {
         private val labelToEnum = entries.associateBy { it.value }
@@ -103,6 +114,28 @@ enum class FeedbackFilter(val value: String) {
                     ApplicationError.InvalidInput(
                         "Invalid input",
                         "Supplied value ${filter.value} is not an option value."
+                    )
+                )
+            }
+        }
+
+        fun getDomain(filter: FeedbackFilter): ApplicationResult<Domain> = either {
+            when (filter) {
+                Arbeid -> Domain.Arbeid
+                Helse -> Domain.Helse
+                Familie -> Domain.Familie
+                Pleiepenger -> Domain.Pleiepenger
+                Gjeldsveiledning -> Domain.Gjeldsveiledning
+                SosialeTjenester -> Domain.SosialeTjenester
+                Pensjon -> Domain.Pensjon
+                Uforetrygd -> Domain.Uforetrygd
+                Arbeidsgiver -> Domain.Arbeidsgiver
+                Internasjonalt -> Domain.Internasjonalt
+                Fellesrutinene -> Domain.Fellesrutinene
+                else -> raise(
+                    ApplicationError.InvalidInput(
+                        "Invalid input",
+                        "Supplied value ${filter.value} is not a domain value."
                     )
                 )
             }
@@ -181,6 +214,47 @@ enum class ResolvedCategory(val value: String) {
     }
 }
 
+class DomainSerializer : KSerializer<Domain> {
+    override fun serialize(encoder: Encoder, value: Domain) {
+        encoder.encodeString(value.value)
+    }
+
+    override fun deserialize(decoder: Decoder): Domain {
+        val value = decoder.decodeString()
+        return Domain.fromValue(value).getOrNull()
+            ?: throw InvalidInputException("Error parsing domain value $value. Valid values: ${Domain.validValues}")
+    }
+
+    override val descriptor: SerialDescriptor
+        get() = PrimitiveSerialDescriptor("Domain", PrimitiveKind.STRING)
+}
+
+@Serializable(DomainSerializer::class)
+enum class Domain(val value: String) {
+    Arbeid("arbeid"),
+    Helse("helse"),
+    Familie("familie"),
+    Pleiepenger("pleiepenger"),
+    Gjeldsveiledning("gjeldsveiledning"),
+    SosialeTjenester("sosiale-tjenester"),
+    Pensjon("pensjon"),
+    Uforetrygd("uforetrygd"),
+    Arbeidsgiver("arbeidsgiver"),
+    Internasjonalt("internasjonalt"),
+    Fellesrutinene("fellesrutinene");
+
+    companion object {
+        private val labelToEnum = entries.associateBy { it.value }
+        val validValues = entries.toTypedArray().asList().joinToString(", ") { it.value }
+
+        fun fromValue(value: String): ApplicationResult<Domain> = either {
+            labelToEnum[value]
+                ?: raise(ApplicationError.SerializationError("Error parsing domain value $value. Valid values: ${Domain.validValues}"))
+        }
+    }
+}
+
+
 @Serializable
 data class Feedback(
     val id: FeedbackId,
@@ -193,6 +267,7 @@ data class Feedback(
     val resolvedImportance: ResolvedImportance?,
     val resolvedCategory: ResolvedCategory?,
     val resolvedNote: String?,
+    val domain: Domain?
 )
 
 @Serializable
@@ -209,4 +284,5 @@ data class UpdateFeedback(
     val resolvedImportance: ResolvedImportance?,
     val resolvedCategory: ResolvedCategory?,
     val resolvedNote: String?,
+    val domain: Domain?,
 )
