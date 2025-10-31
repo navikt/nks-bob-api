@@ -7,6 +7,7 @@ import arrow.core.raise.either
 import arrow.core.right
 import arrow.core.some
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -42,8 +43,6 @@ import no.nav.nks_ai.kbs.KbsStreamResponse
 import no.nav.nks_ai.kbs.fromMessage
 import no.nav.nks_ai.kbs.toModel
 import no.nav.nks_ai.kbs.toNewCitation
-import kotlin.collections.map
-import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger { }
 
@@ -108,7 +107,7 @@ class SendMessageService(
             }
                 .conflate()
                 .collectLatest { latest ->
-                    delay(3.seconds)
+                    delay(10.seconds)
                     latest.onSome { message ->
                         messageService.updateAnswer(
                             messageId = message.id,

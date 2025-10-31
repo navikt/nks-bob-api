@@ -31,6 +31,7 @@ internal object Feedbacks : BaseTable("feedbacks") {
     val resolvedImportance = enumeration<ResolvedImportance>("resolved_importance").nullable().clientDefault { null }
     val resolvedCategory = enumeration<ResolvedCategory>("resolved_category").nullable().clientDefault { null }
     val resolvedNote = text("resolved_note").nullable().clientDefault { null }
+    val domain = enumeration<Domain>("domain").nullable().clientDefault { null }
 }
 
 internal class FeedbackDAO(id: EntityID<UUID>) : BaseEntity(id, Feedbacks) {
@@ -43,6 +44,7 @@ internal class FeedbackDAO(id: EntityID<UUID>) : BaseEntity(id, Feedbacks) {
     var resolvedImportance by Feedbacks.resolvedImportance
     var resolvedCategory by Feedbacks.resolvedCategory
     var resolvedNote by Feedbacks.resolvedNote
+    var domain by Feedbacks.domain
 }
 
 internal fun FeedbackDAO.toModel() = Feedback(
@@ -56,6 +58,7 @@ internal fun FeedbackDAO.toModel() = Feedback(
     resolvedImportance = resolvedImportance,
     resolvedCategory = resolvedCategory,
     resolvedNote = resolvedNote,
+    domain = domain,
 )
 
 object FeedbackRepo {
@@ -116,6 +119,19 @@ object FeedbackRepo {
             FeedbackFilter.MissingSources,
             FeedbackFilter.Other ->
                 Feedbacks.options has FeedbackFilter.getOptionText(filter).bind()
+
+            FeedbackFilter.Arbeid,
+            FeedbackFilter.Helse,
+            FeedbackFilter.Familie,
+            FeedbackFilter.Pleiepenger,
+            FeedbackFilter.Gjeldsveiledning,
+            FeedbackFilter.SosialeTjenester,
+            FeedbackFilter.Pensjon,
+            FeedbackFilter.Uforetrygd,
+            FeedbackFilter.Arbeidsgiver,
+            FeedbackFilter.Internasjonalt,
+            FeedbackFilter.Fellesrutinene ->
+                Feedbacks.domain eq FeedbackFilter.getDomain(filter).bind()
         }
     }
 
@@ -165,6 +181,7 @@ object FeedbackRepo {
         resolvedImportance: ResolvedImportance?,
         resolvedCategory: ResolvedCategory?,
         resolvedNote: String?,
+        domain: Domain?,
     ): ApplicationResult<Feedback> =
         suspendTransaction {
             either {
@@ -175,6 +192,7 @@ object FeedbackRepo {
                     it.resolvedImportance = resolvedImportance
                     it.resolvedCategory = resolvedCategory
                     it.resolvedNote = resolvedNote
+                    it.domain = domain
                 }
                     ?.let(FeedbackDAO::toModel)
                     ?: raise(ApplicationError.FeedbackNotFound(feedbackId))
