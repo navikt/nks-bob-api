@@ -134,12 +134,12 @@ object MetricRegister {
     ) {
         if (resolved) {
             answerFeedbacksResolved.inc()
-        }
-        resolvedImportance?.let {
-            answerFeedbackResolvedImportance.labels(it.value).inc()
-        }
-        resolvedCategory?.let {
-            answerFeedbackResolvedCategory.labels(it.value).inc()
+            resolvedImportance?.let {
+                answerFeedbackResolvedImportance.labels(it.value).inc()
+            }
+            resolvedCategory?.let {
+                answerFeedbackResolvedCategory.labels(it.value).inc()
+            }
         }
     }
 }
