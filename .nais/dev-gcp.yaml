@@ -6,6 +6,9 @@ metadata:
     team: nks-aiautomatisering
   name: nks-bob-api
   namespace: nks-aiautomatisering
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
 spec:
   envFrom:
   image: "{{ image }}"
