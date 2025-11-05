@@ -100,6 +100,7 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
             resolvedImportance = feedback.resolvedImportance,
             resolvedCategory = feedback.resolvedCategory,
             resolvedNote = feedback.resolvedNote,
+            domain = feedback.domain,
         ).bind()
     }
 
