@@ -11,10 +11,10 @@ val flyway_version: String by project
 val opentelemetry_version: String by project
 
 plugins {
-    kotlin("jvm") version "2.1.20"
-    id("io.ktor.plugin") version "3.1.1"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.20"
-    id("com.gradleup.shadow") version "8.3.6"
+    kotlin("jvm") version "2.2.21"
+    id("io.ktor.plugin") version "3.3.1"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.21"
+    id("com.gradleup.shadow") version "9.2.2"
 }
 
 group = "no.nav.nks_ai"
@@ -57,6 +57,7 @@ dependencies {
     implementation("com.ucasoft.ktor:ktor-simple-cache-jvm:0.53.4")
     implementation("com.ucasoft.ktor:ktor-simple-memory-cache-jvm:0.53.4")
     implementation("com.zaxxer:HikariCP:$hikari_version")
+    implementation("de.mobilesol.micrometer:micrometer-bigquery:1.0.0")
     implementation("io.arrow-kt:arrow-core:2.0.1")
     implementation("io.arrow-kt:arrow-resilience:2.0.1")
     implementation("io.github.config4k:config4k:0.7.0")
