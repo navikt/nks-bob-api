@@ -55,6 +55,7 @@ enum class FeedbackFilter(val value: String) {
     VeryImportant("særskilt-viktige"),
     UserError("brukerfeil"),
     AiError("ki-feil"),
+    DateExpired("dato-utgatt"),
     InaccurateAnswer("hele-deler-av-svaret-er-feil"),
     MissingDetails("mangler-vesentlige-detaljer"),
     UnexpectedArticle("benytter-ikke-forventede-artikler"),
@@ -201,7 +202,8 @@ class ResolvedCategorySerializer : KSerializer<ResolvedCategory> {
 @Serializable(ResolvedCategorySerializer::class)
 enum class ResolvedCategory(val value: String) {
     UserError("brukerfeil"),
-    AiError("ki-feil");
+    AiError("ki-feil"),
+    DateExpired("dato-utgatt");
 
     companion object {
         private val labelToEnum = entries.associateBy { it.value }
