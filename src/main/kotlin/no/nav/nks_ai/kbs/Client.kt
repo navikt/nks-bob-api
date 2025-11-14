@@ -54,7 +54,7 @@ class KbsClient(
                 when (response.event) {
                     "chat_chunk" -> {
                         response.data?.let { data ->
-                            val chatResponse = defaultJsonConfig().decodeFromString<KbsChatResponse>(data)
+                            val chatResponse = defaultJsonConfig().decodeFromString<KbsChatResponse>(data.sanitize())
                             if (timer.isRunning && chatResponse.answer.text.isNotEmpty()) {
                                 timer.stop()
                             }
@@ -138,3 +138,9 @@ class KbsClient(
         }
     }
 }
+
+private fun String.sanitize(): String = this
+    .replace("\\u0000f8", "ø")
+    .replace("\\u0000e5", "å")
+    .replace("\\u0000e6", "æ")
+    .replace("\\u0000", "")
