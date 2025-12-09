@@ -4,6 +4,7 @@ import arrow.core.None
 import arrow.core.Option
 import arrow.core.raise.either
 import arrow.core.right
+import java.util.*
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.ApplicationError
@@ -21,7 +22,6 @@ import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
-import java.util.UUID
 
 val jsonConfig = Json {
     ignoreUnknownKeys = true
@@ -185,6 +185,13 @@ object MessageRepo {
                 .right()
         }
 
+    suspend fun conversationHasMessages(conversationId: ConversationId): ApplicationResult<Boolean> =
+        suspendTransaction {
+            either {
+                MessageDAO.find { Messages.conversation eq conversationId.value }.empty().not()
+            }
+        }
+
     suspend fun getConversationId(messageId: MessageId): ApplicationResult<ConversationId> =
         suspendTransaction {
             either {
@@ -223,5 +230,23 @@ object MessageRepo {
                 MessageDAO.findById(messageId.value)?.conversation?.owner
                     ?: raise(ApplicationError.MessageNotFound(messageId))
             }
+        }
+
+    suspend fun deleteMessages(
+        messageIds: List<MessageId>,
+    ): ApplicationResult<Unit> =
+        suspendTransaction {
+            MessageDAO.find {
+                Messages.id inList messageIds.map { it.value }
+            }.forEach { it.delete() }.right()
+        }
+
+    suspend fun getMessagesCreatedBefore(
+        dateTime: LocalDateTime,
+    ): ApplicationResult<List<Message>> =
+        suspendTransaction {
+            MessageDAO.find {
+                Messages.createdAt.less(dateTime)
+            }.map { it.toModel() }.right()
         }
 }

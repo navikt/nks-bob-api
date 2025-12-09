@@ -12,7 +12,7 @@ import io.ktor.client.plugins.sse.SSE
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.*
+import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.routing.route
@@ -97,7 +97,7 @@ fun Application.module() {
     val notificationService = notificationService()
     val feedbackService = feedbackService(messageService)
 
-    ConversationDeletionJob(conversationService, httpClient).start()
+    ConversationDeletionJob(conversationService, messageService, httpClient).start()
     UploadStarredMessagesJob(messageService, markMessageStarredService, httpClient).start()
 
     routing {
