@@ -18,8 +18,12 @@ import no.nav.nks_ai.core.conversation.ConversationDAO
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.Conversations
 import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.sql.ISqlExpressionBuilder
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 
@@ -234,11 +238,11 @@ object MessageRepo {
 
     suspend fun deleteMessages(
         messageIds: List<MessageId>,
-    ): ApplicationResult<Unit> =
+    ): ApplicationResult<Int> =
         suspendTransaction {
-            MessageDAO.find {
+            Messages.deleteWhere {
                 Messages.id inList messageIds.map { it.value }
-            }.forEach { it.delete() }.right()
+            }.right()
         }
 
     suspend fun getMessagesCreatedBefore(

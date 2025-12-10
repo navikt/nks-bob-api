@@ -129,6 +129,7 @@ class MessageService() {
         }
 
         logger.info { "Deleting ${messages.size} messages older than $deleteBefore" }
-        MessageRepo.deleteMessages(messages.map { it.id }).bind()
+        val deletedCount = MessageRepo.deleteMessages(messages.map { it.id }).bind()
+        logger.info { "$deletedCount messages deleted" }
     }
 }

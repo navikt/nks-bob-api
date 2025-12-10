@@ -2,6 +2,7 @@ package no.nav.nks_ai.core.conversation
 
 import arrow.core.raise.either
 import arrow.core.right
+import java.util.*
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
@@ -14,8 +15,9 @@ import no.nav.nks_ai.app.truncate
 import no.nav.nks_ai.core.user.NavIdent
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.SizedIterable
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.and
-import java.util.UUID
+import org.jetbrains.exposed.sql.deleteWhere
 
 internal object Conversations : BaseTable("conversations") {
     val title = varchar("title", 255)
@@ -118,11 +120,11 @@ object ConversationRepo {
 
     suspend fun deleteConversations(
         conversationIds: List<ConversationId>,
-    ): ApplicationResult<Unit> =
+    ): ApplicationResult<Int> =
         suspendTransaction {
-            ConversationDAO.find {
+            Conversations.deleteWhere {
                 Conversations.id inList conversationIds.map { it.value }
-            }.forEach { it.delete() }.right()
+            }.right()
         }
 
     suspend fun getConversationsCreatedBefore(

@@ -54,7 +54,8 @@ class ConversationService(
         }
 
         logger.info { "Deleting ${conversations.size} conversations older than $deleteBefore" }
-        ConversationRepo.deleteConversations(conversations.map { it.id }).bind()
+        val deletedCount = ConversationRepo.deleteConversations(conversations.map { it.id }).bind()
+        logger.info { "$deletedCount conversations deleted" }
     }
 }
 
