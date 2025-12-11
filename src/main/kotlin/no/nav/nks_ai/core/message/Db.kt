@@ -187,11 +187,6 @@ object MessageRepo {
                 .right()
         }
 
-    suspend fun conversationHasMessages(conversationId: ConversationId): ApplicationResult<Boolean> =
-        suspendTransaction {
-            MessageDAO.find { Messages.conversation eq conversationId.value }.empty().not().right()
-        }
-
     suspend fun getConversationId(messageId: MessageId): ApplicationResult<ConversationId> =
         suspendTransaction {
             either {
