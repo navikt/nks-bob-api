@@ -18,8 +18,6 @@ import no.nav.nks_ai.core.conversation.ConversationDAO
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.Conversations
 import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.sql.ISqlExpressionBuilder
-import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.and
@@ -191,9 +189,7 @@ object MessageRepo {
 
     suspend fun conversationHasMessages(conversationId: ConversationId): ApplicationResult<Boolean> =
         suspendTransaction {
-            either {
-                MessageDAO.find { Messages.conversation eq conversationId.value }.empty().not()
-            }
+            MessageDAO.find { Messages.conversation eq conversationId.value }.empty().not().right()
         }
 
     suspend fun getConversationId(messageId: MessageId): ApplicationResult<ConversationId> =

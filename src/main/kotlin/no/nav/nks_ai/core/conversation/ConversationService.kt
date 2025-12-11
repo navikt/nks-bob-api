@@ -49,7 +49,7 @@ class ConversationService(
             }
 
         if (conversations.isEmpty()) {
-            logger.info { "Found 0 conversations older than $deleteBefore." }
+            logger.info { "Found 0 conversations older than $deleteBefore" }
             return@either
         }
 

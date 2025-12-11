@@ -124,7 +124,7 @@ class MessageService() {
     suspend fun deleteOldMessages(deleteBefore: LocalDateTime): ApplicationResult<Unit> = either {
         val messages = MessageRepo.getMessagesCreatedBefore(deleteBefore).bind()
         if (messages.isEmpty()) {
-            logger.info { "Found 0 messages older than $deleteBefore." }
+            logger.info { "Found 0 messages older than $deleteBefore" }
             return@either
         }
 
