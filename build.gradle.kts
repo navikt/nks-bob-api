@@ -51,6 +51,7 @@ repositories {
 dependencies {
     implementation("at.favre.lib:bcrypt:0.10.2")
     implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("ch.qos.logback:logback-core:${logback_version}")
     implementation("com.google.cloud:google-cloud-bigquery:2.47.0")
     implementation("com.h2database:h2:$h2_version")
     implementation("com.sksamuel.aedile:aedile-core:2.0.3")
@@ -86,6 +87,7 @@ dependencies {
     implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:2.10.0-alpha")
     implementation("net.logstash.logback:logstash-logback-encoder:8.0")
 //    implementation("no.nav.security:token-validation-ktor-v2:5.0.5") // TODO waiting for ktor 3.0.0 support
+    implementation("org.codehaus.janino:janino:3.1.12")
     implementation("org.flywaydb:flyway-core:$flyway_version")
     implementation("org.flywaydb:flyway-database-postgresql:$flyway_version")
     implementation("org.jetbrains.exposed:exposed-core:$exposed_version")

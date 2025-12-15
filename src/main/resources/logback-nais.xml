@@ -1,0 +1,19 @@
+<included scan="true" scanPeriod="30 seconds">
+    <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>call-id</includeMdcKeyName>
+            <includeMdcKeyName>trace_id</includeMdcKeyName>
+            <includeMdcKeyName>span_id</includeMdcKeyName>
+        </encoder>
+    </appender>
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.v1_0.OpenTelemetryAppender">
+        <appender-ref ref="stdout_json"/>
+    </appender>
+    <root level="debug">
+        <appender-ref ref="stdout_json"/>
+    </root>
+    <logger name="org.eclipse.jetty" level="INFO"/>
+    <logger name="io.netty" level="INFO"/>
+    <logger name="Exposed" level="INFO"/>
+    <logger name="com.zaxxer.hikari" level="INFO"/>
+</included>
