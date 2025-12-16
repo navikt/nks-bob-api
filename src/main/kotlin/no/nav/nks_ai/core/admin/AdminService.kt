@@ -12,13 +12,11 @@ import no.nav.nks_ai.core.message.MessageRepo
 import no.nav.nks_ai.core.user.NavIdent
 
 class AdminService() {
-    suspend fun deleteAllConversations(navIdent: NavIdent) {
+    suspend fun deleteAllConversations(navIdent: NavIdent) =
         ConversationRepo.deleteAllConversations(navIdent)
-    }
 
-    suspend fun deleteConversation(conversationId: ConversationId, navIdent: NavIdent) {
+    suspend fun deleteConversation(conversationId: ConversationId, navIdent: NavIdent) =
         ConversationRepo.deleteConversation(conversationId, navIdent)
-    }
 
     suspend fun getAllConversations(navIdent: NavIdent): ApplicationResult<List<Conversation>> =
         ConversationRepo.getAllConversations(navIdent)

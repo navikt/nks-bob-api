@@ -1,15 +1,12 @@
 package no.nav.nks_ai.core.admin
 
-import arrow.core.raise.either
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.nks_ai.app.ApplicationError
-import no.nav.nks_ai.app.respondError
-import no.nav.nks_ai.app.respondResult
+import no.nav.nks_ai.app.respondEither
 import no.nav.nks_ai.core.conversation.Conversation
 import no.nav.nks_ai.core.conversation.ConversationSummary
 import no.nav.nks_ai.core.conversation.conversationId
@@ -35,13 +32,13 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }) {
-                val navIdent = call.request.queryParameters["navIdent"]
-                    ?.let { NavIdent(it) }
-                    ?: return@get call.respondError(missingNavIdent())
+                call.respondEither {
+                    val navIdent = call.request.queryParameters["navIdent"]
+                        ?.let { NavIdent(it) }
+                        ?: raise(missingNavIdent())
 
-                call.respondResult(
                     adminService.getAllConversations(navIdent)
-                )
+                }
             }
             delete({
                 description = "Delete all conversations for a given user"
@@ -56,12 +53,13 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }) {
-                val navIdent = call.request.queryParameters["navIdent"]
-                    ?.let { NavIdent(it) }
-                    ?: return@delete call.respondError(missingNavIdent())
+                call.respondEither(HttpStatusCode.NoContent) {
+                    val navIdent = call.request.queryParameters["navIdent"]
+                        ?.let { NavIdent(it) }
+                        ?: raise(missingNavIdent())
 
-                adminService.deleteAllConversations(navIdent)
-                call.respond(HttpStatusCode.NoContent)
+                    adminService.deleteAllConversations(navIdent)
+                }
             }
             get("/{id}", {
                 description = "Get conversation by id"
@@ -79,10 +77,12 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }) {
-                val conversationId = call.conversationId()
-                    ?: return@get call.respondError(ApplicationError.MissingConversationId())
+                call.respondEither {
+                    val conversationId = call.conversationId()
+                        ?: raise(ApplicationError.MissingConversationId())
 
-                call.respondResult(adminService.getConversation(conversationId))
+                    adminService.getConversation(conversationId)
+                }
             }
             delete("/{id}", {
                 description = "Delete a conversation with the given ID for the given user"
@@ -100,15 +100,16 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }) {
-                val navIdent = call.request.queryParameters["navIdent"]
-                    ?.let { NavIdent(it) }
-                    ?: return@delete call.respondError(missingNavIdent())
+                call.respondEither(HttpStatusCode.NoContent) {
+                    val navIdent = call.request.queryParameters["navIdent"]
+                        ?.let { NavIdent(it) }
+                        ?: raise(missingNavIdent())
 
-                val conversationId = call.conversationId()
-                    ?: return@delete call.respondError(ApplicationError.MissingConversationId())
+                    val conversationId = call.conversationId()
+                        ?: raise(ApplicationError.MissingConversationId())
 
-                adminService.deleteConversation(conversationId, navIdent)
-                call.respond(HttpStatusCode.NoContent)
+                    adminService.deleteConversation(conversationId, navIdent)
+                }
             }
             get("/{id}/summary", {
                 description = "Get conversation summary for the given conversation ID"
@@ -126,10 +127,12 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }) {
-                val conversationId = call.conversationId()
-                    ?: return@get call.respondError(ApplicationError.MissingConversationId())
+                call.respondEither {
+                    val conversationId = call.conversationId()
+                        ?: raise(ApplicationError.MissingConversationId())
 
-                call.respondResult(adminService.getConversationSummary(conversationId))
+                    adminService.getConversationSummary(conversationId)
+                }
             }
             get("/{id}/messages", {
                 description = "Get all messages for the given conversation ID"
@@ -147,10 +150,12 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }) {
-                val conversationId = call.conversationId()
-                    ?: return@get call.respondError(ApplicationError.MissingConversationId())
+                call.respondEither {
+                    val conversationId = call.conversationId()
+                        ?: raise(ApplicationError.MissingConversationId())
 
-                call.respondResult(adminService.getConversationMessages(conversationId))
+                    adminService.getConversationMessages(conversationId)
+                }
             }
         }
         route("/messages") {
@@ -170,10 +175,12 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }) {
-                val messageId = call.messageId()
-                    ?: return@get call.respondError(ApplicationError.MissingMessageId())
+                call.respondEither {
+                    val messageId = call.messageId()
+                        ?: raise(ApplicationError.MissingMessageId())
 
-                call.respondResult(adminService.getConversationFromMessageId(messageId))
+                    adminService.getConversationFromMessageId(messageId)
+                }
             }
             get("/{id}/conversation/summary", {
                 description = "Get conversation summary for the given message ID"
@@ -191,14 +198,12 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }) {
-                either {
+                call.respondEither {
                     val messageId = call.messageId()
-                        ?: return@get call.respondError(ApplicationError.MissingMessageId())
+                        ?: raise(ApplicationError.MissingMessageId())
 
-                    val conversation = adminService.getConversationFromMessageId(messageId)
-                        .onLeft { call.respondError(it) }.bind()
-
-                    call.respondResult(adminService.getConversationSummary(conversation.id))
+                    val conversation = adminService.getConversationFromMessageId(messageId).bind()
+                    adminService.getConversationSummary(conversation.id)
                 }
             }
         }
