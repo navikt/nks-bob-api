@@ -5,9 +5,9 @@ flyway = "11.4.1"
 hikari = "6.2.1"
 kotlin = "2.1.20"
 ktor = "3.1.1"
-logback = "1.5.18"
+logback = "1.5.21"
 opentelemetry = "2.10.0-alpha"
-postgres = "42.7.5"
+postgres = "42.7.8"
 prometheus = "1.6.13"
 
 [libraries]
@@ -23,7 +23,7 @@ exposed-json = { module = "org.jetbrains.exposed:exposed-json", version.ref = "e
 exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposed" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-database-postgres = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
-google-cloud-bigquery = { module = "com.google.cloud:google-cloud-bigquery", version = "2.47.0" }
+google-cloud-bigquery = { module = "com.google.cloud:google-cloud-bigquery", version = "2.57.1" }
 hikari-cp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
 janino = { module = "org.codehaus.janino:janino", version = "3.1.12" }
 kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version = "7.0.5" }
