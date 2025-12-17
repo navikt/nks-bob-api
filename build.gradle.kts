@@ -52,7 +52,6 @@ dependencies {
     implementation(libs.flyway.core)
     implementation(libs.flyway.database.postgres)
     implementation(libs.google.cloud.bigquery)
-    implementation(libs.h2.database)
     implementation(libs.hikari.cp)
     implementation(libs.janino)
     implementation(libs.kotlin.logging)

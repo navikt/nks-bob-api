@@ -2,7 +2,6 @@
 arrow = "2.0.1"
 exposed = "0.60.0"
 flyway = "11.4.1"
-h2 = "2.2.224"
 hikari = "6.2.1"
 kotlin = "2.1.20"
 ktor = "3.1.1"
@@ -25,7 +24,6 @@ exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datet
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-database-postgres = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 google-cloud-bigquery = { module = "com.google.cloud:google-cloud-bigquery", version = "2.47.0" }
-h2-database = { module = "com.h2database:h2", version.ref = "h2" }
 hikari-cp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
 janino = { module = "org.codehaus.janino:janino", version = "3.1.12" }
 kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version = "7.0.5" }
