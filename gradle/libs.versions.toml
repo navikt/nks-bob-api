@@ -1,0 +1,72 @@
+[versions]
+arrow = "2.0.1"
+exposed = "0.60.0"
+flyway = "11.4.1"
+h2 = "2.2.224"
+hikari = "6.2.1"
+kotlin = "2.1.20"
+ktor = "3.1.1"
+logback = "1.5.18"
+opentelemetry = "2.10.0-alpha"
+postgres = "42.7.5"
+prometheus = "1.6.13"
+
+[libraries]
+aedile-core = { module = "com.sksamuel.aedile:aedile-core", version = "2.0.3" }
+arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
+arrow-resilience = { module = "io.arrow-kt:arrow-resilience", version.ref = "arrow" }
+bcrypt = { module = "at.favre.lib:bcrypt", version = "0.10.2" }
+config4k = { module = "io.github.config4k:config4k", version = "0.7.0" }
+exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
+exposed-dao = { module = "org.jetbrains.exposed:exposed-dao", version.ref = "exposed" }
+exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
+exposed-json = { module = "org.jetbrains.exposed:exposed-json", version.ref = "exposed" }
+exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposed" }
+flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
+flyway-database-postgres = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
+google-cloud-bigquery = { module = "com.google.cloud:google-cloud-bigquery", version = "2.47.0" }
+h2-database = { module = "com.h2database:h2", version.ref = "h2" }
+hikari-cp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
+janino = { module = "org.codehaus.janino:janino", version = "3.1.12" }
+kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version = "7.0.5" }
+kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.10.1" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.6.2" }
+kt-scheduler = { module = "com.github.Pool-Of-Tears:KtScheduler", version = "1.1.6" }
+ktor-client-apache = { module = "io.ktor:ktor-client-apache", version.ref = "ktor" }
+ktor-client-call-id = { module = "io.ktor:ktor-client-call-id", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-openapi = { module = "io.github.smiley4:ktor-openapi", version = "5.0.2" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json-jvm", version.ref = "ktor" }
+ktor-server-auth = { module = "io.ktor:ktor-server-auth-jvm", version.ref = "ktor" }
+ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt-jvm", version.ref = "ktor" }
+ktor-server-call-id = { module = "io.ktor:ktor-server-call-id-jvm", version.ref = "ktor" }
+ktor-server-call-logging = { module = "io.ktor:ktor-server-call-logging-jvm", version.ref = "ktor" }
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation-jvm", version.ref = "ktor" }
+ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
+ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
+ktor-server-metrics = { module = "io.ktor:ktor-server-metrics-jvm", version.ref = "ktor" }
+ktor-server-metrics-micrometer = { module = "io.ktor:ktor-server-metrics-micrometer-jvm", version.ref = "ktor" }
+ktor-server-netty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor" }
+ktor-server-sse = { module = "io.ktor:ktor-server-sse-jvm", version.ref = "ktor" }
+ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
+ktor-server-webjars = { module = "io.ktor:ktor-server-webjars-jvm", version.ref = "ktor" }
+ktor-server-websockets = { module = "io.ktor:ktor-server-websockets-jvm", version.ref = "ktor" }
+ktor-swagger-ui = { module = "io.github.smiley4:ktor-swagger-ui", version = "5.0.2" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+logback-core = { module = "ch.qos.logback:logback-core", version.ref = "logback" }
+logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version = "8.0" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheus" }
+otel-ktor3 = { module = "io.opentelemetry.instrumentation:opentelemetry-ktor-3.0", version.ref = "opentelemetry" }
+otel-logback-mdc = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0", version.ref = "opentelemetry" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
+simple-cache = { module = "com.ucasoft.ktor:ktor-simple-cache-jvm", version = "0.53.4" }
+simple-memory-cache = { module = "com.ucasoft.ktor:ktor-simple-memory-cache-jvm", version = "0.53.4" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+shadow = { id = "com.gradleup.shadow", version = "8.3.6" }

@@ -1,20 +1,10 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
-val kotlin_version: String by project
-val logback_version: String by project
-val exposed_version: String by project
-val h2_version: String by project
-val prometheus_version: String by project
-val hikari_version: String by project
-val postgres_version: String by project
-val flyway_version: String by project
-val opentelemetry_version: String by project
-
 plugins {
-    kotlin("jvm") version "2.1.20"
-    id("io.ktor.plugin") version "3.1.1"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.20"
-    id("com.gradleup.shadow") version "8.3.6"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.plugin.serialization)
+    alias(libs.plugins.ktor)
+    alias(libs.plugins.shadow)
 }
 
 group = "no.nav.nks_ai"
@@ -49,58 +39,57 @@ repositories {
 }
 
 dependencies {
-    implementation("at.favre.lib:bcrypt:0.10.2")
-    implementation("ch.qos.logback:logback-classic:$logback_version")
-    implementation("ch.qos.logback:logback-core:${logback_version}")
-    implementation("com.google.cloud:google-cloud-bigquery:2.47.0")
-    implementation("com.h2database:h2:$h2_version")
-    implementation("com.sksamuel.aedile:aedile-core:2.0.3")
-    implementation("com.ucasoft.ktor:ktor-simple-cache-jvm:0.53.4")
-    implementation("com.ucasoft.ktor:ktor-simple-memory-cache-jvm:0.53.4")
-    implementation("com.zaxxer:HikariCP:$hikari_version")
-    implementation("io.arrow-kt:arrow-core:2.0.1")
-    implementation("io.arrow-kt:arrow-resilience:2.0.1")
-    implementation("io.github.config4k:config4k:0.7.0")
-    implementation("io.github.oshai:kotlin-logging-jvm:7.0.5")
-    implementation("io.github.smiley4:ktor-swagger-ui:5.0.2")
-    implementation("io.github.smiley4:ktor-openapi:5.0.2")
-    implementation("io.ktor:ktor-client-apache")
-    implementation("io.ktor:ktor-client-content-negotiation")
-    implementation("io.ktor:ktor-client-call-id")
-    implementation("io.ktor:ktor-client-core")
-    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm")
-    implementation("io.ktor:ktor-server-auth-jvm")
-    implementation("io.ktor:ktor-server-auth-jwt-jvm")
-    implementation("io.ktor:ktor-server-call-id-jvm")
-    implementation("io.ktor:ktor-server-call-logging-jvm")
-    implementation("io.ktor:ktor-server-content-negotiation-jvm")
-    implementation("io.ktor:ktor-server-core-jvm")
-    implementation("io.ktor:ktor-server-metrics-jvm")
-    implementation("io.ktor:ktor-server-metrics-micrometer-jvm")
-    implementation("io.ktor:ktor-server-netty-jvm")
-    implementation("io.ktor:ktor-server-sse-jvm")
-    implementation("io.ktor:ktor-server-status-pages")
-    implementation("io.ktor:ktor-server-webjars-jvm")
-    implementation("io.ktor:ktor-server-websockets-jvm")
-    implementation("io.ktor:ktor-server-cors")
-    implementation("io.micrometer:micrometer-registry-prometheus:$prometheus_version")
-    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:2.10.0-alpha")
-    implementation("net.logstash.logback:logstash-logback-encoder:8.0")
-//    implementation("no.nav.security:token-validation-ktor-v2:5.0.5") // TODO waiting for ktor 3.0.0 support
-    implementation("org.codehaus.janino:janino:3.1.12")
-    implementation("org.flywaydb:flyway-core:$flyway_version")
-    implementation("org.flywaydb:flyway-database-postgresql:$flyway_version")
-    implementation("org.jetbrains.exposed:exposed-core:$exposed_version")
-    implementation("org.jetbrains.exposed:exposed-dao:$exposed_version")
-    implementation("org.jetbrains.exposed:exposed-jdbc:$exposed_version")
-    implementation("org.jetbrains.exposed:exposed-json:$exposed_version")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposed_version")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
-    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:$opentelemetry_version")
-    implementation("io.opentelemetry.instrumentation:opentelemetry-ktor-3.0:$opentelemetry_version")
-    implementation("org.postgresql:postgresql:$postgres_version")
-    implementation("com.github.Pool-Of-Tears:KtScheduler:1.1.6")
-    testImplementation("io.ktor:ktor-server-test-host-jvm")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+    implementation(libs.aedile.core)
+    implementation(libs.arrow.core)
+    implementation(libs.arrow.resilience)
+    implementation(libs.bcrypt)
+    implementation(libs.config4k)
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.dao)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.json)
+    implementation(libs.exposed.kotlin.datetime)
+    implementation(libs.flyway.core)
+    implementation(libs.flyway.database.postgres)
+    implementation(libs.google.cloud.bigquery)
+    implementation(libs.h2.database)
+    implementation(libs.hikari.cp)
+    implementation(libs.janino)
+    implementation(libs.kotlin.logging)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.datetime)
+    implementation(libs.kt.scheduler)
+    implementation(libs.ktor.client.apache)
+    implementation(libs.ktor.client.call.id)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.openapi)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.server.auth)
+    implementation(libs.ktor.server.auth.jwt)
+    implementation(libs.ktor.server.call.id)
+    implementation(libs.ktor.server.call.logging)
+    implementation(libs.ktor.server.content.negotiation)
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.cors)
+    implementation(libs.ktor.server.metrics)
+    implementation(libs.ktor.server.metrics.micrometer)
+    implementation(libs.ktor.server.netty)
+    implementation(libs.ktor.server.sse)
+    implementation(libs.ktor.server.status.pages)
+    implementation(libs.ktor.server.webjars)
+    implementation(libs.ktor.server.websockets)
+    implementation(libs.ktor.swagger.ui)
+    implementation(libs.logback.classic)
+    implementation(libs.logback.core)
+    implementation(libs.logstash.logback.encoder)
+    implementation(libs.micrometer.registry.prometheus)
+    implementation(libs.otel.ktor3)
+    implementation(libs.otel.logback.mdc)
+    implementation(libs.postgresql)
+    implementation(libs.simple.cache)
+    implementation(libs.simple.memory.cache)
+
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.ktor.server.test.host)
 }
