@@ -12,7 +12,7 @@ prometheus = "1.6.13"
 smiley4-ktor = "5.4.0"
 
 [libraries]
-aedile-core = { module = "com.sksamuel.aedile:aedile-core", version = "2.0.3" }
+aedile-core = { module = "com.sksamuel.aedile:aedile-core", version = "3.0.1" }
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
 arrow-resilience = { module = "io.arrow-kt:arrow-resilience", version.ref = "arrow" }
 bcrypt = { module = "at.favre.lib:bcrypt", version = "0.10.2" }

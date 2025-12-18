@@ -186,7 +186,7 @@ fun Route.sse(
     }
 }
 
-suspend fun <K, V, Err> Cache<K, V>.eitherGet(
+suspend fun <K : Any, V : Any, Err> Cache<K, V>.eitherGet(
     key: K,
     compute: suspend (K) -> Either<Err, V>
 ): Either<Err, V> = getOrNull(key)?.right()
