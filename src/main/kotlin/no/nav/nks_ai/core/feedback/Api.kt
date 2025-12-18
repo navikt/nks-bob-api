@@ -103,31 +103,6 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                     feedbackService.updateFeedback(feedbackId, updateFeedback)
                 }
             }
-            /*patch({
-                description = "Patch a feedback"
-                request {
-                    pathParameter<String>("id") {
-                        description = "ID of the feedback"
-                    }
-                    body<PatchFeedback> {
-                        description = "The updated feedback"
-                    }
-                }
-                response {
-                    HttpStatusCode.OK to {
-                        description = "The operation was successful"
-                        body<Feedback> {
-                            description = "The requested feedback"
-                        }
-                    }
-                }
-            }) {
-                val feedbackId = call.feedbackId()
-                    ?: return@patch call.respondError(ApplicationError.MissingFeedbackId())
-
-                val patchFeedback = call.receive<PatchFeedback>()
-                call.respondResult(feedbackService.patchFeedback(feedbackId, patchFeedback))
-            }*/
             delete({
                 description = "Delete a feedback"
                 request {
