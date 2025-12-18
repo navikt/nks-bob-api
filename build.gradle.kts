@@ -1,10 +1,7 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.plugin.serialization)
     alias(libs.plugins.ktor)
-    alias(libs.plugins.shadow)
 }
 
 group = "no.nav.nks_ai"
@@ -15,22 +12,10 @@ kotlin {
 }
 
 application {
-    mainClass.set("io.ktor.server.netty.EngineMain")
+    mainClass.set("no.nav.nks_ai.ApplicationKt")
 
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
-}
-
-tasks.jar {
-    manifest {
-        attributes(
-            "Main-Class" to "no.nav.nks_ai.ApplicationKt",
-        )
-    }
-}
-
-tasks.withType<ShadowJar> {
-    mergeServiceFiles()
 }
 
 repositories {
