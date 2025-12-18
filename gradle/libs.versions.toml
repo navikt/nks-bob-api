@@ -61,8 +61,6 @@ micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-p
 otel-ktor3 = { module = "io.opentelemetry.instrumentation:opentelemetry-ktor-3.0", version.ref = "opentelemetry" }
 otel-logback-mdc = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0", version.ref = "opentelemetry" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
-simple-cache = { module = "com.ucasoft.ktor:ktor-simple-cache-jvm", version = "0.53.4" }
-simple-memory-cache = { module = "com.ucasoft.ktor:ktor-simple-memory-cache-jvm", version = "0.53.4" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

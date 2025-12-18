@@ -21,7 +21,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.app.Config
 import no.nav.nks_ai.app.bq.BigQueryClient
-import no.nav.nks_ai.app.plugins.configureCache
 import no.nav.nks_ai.app.plugins.configureDatabases
 import no.nav.nks_ai.app.plugins.configureMonitoring
 import no.nav.nks_ai.app.plugins.configureOpenApi
@@ -61,7 +60,6 @@ fun Application.module() {
     configureSerialization()
     configureDatabases()
     configureMonitoring()
-    configureCache()
     configureSecurity()
     configureOpenApi()
 

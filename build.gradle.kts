@@ -71,8 +71,6 @@ dependencies {
     implementation(libs.otel.ktor3)
     implementation(libs.otel.logback.mdc)
     implementation(libs.postgresql)
-    implementation(libs.simple.cache)
-    implementation(libs.simple.memory.cache)
 
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ktor.server.test.host)

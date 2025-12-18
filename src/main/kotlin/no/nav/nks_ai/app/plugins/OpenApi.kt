@@ -1,6 +1,5 @@
 package no.nav.nks_ai.app.plugins
 
-import com.ucasoft.ktor.simpleCache.CacheOutputSelector
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -15,6 +14,5 @@ fun Application.configureOpenApi() {
 //            generator = SchemaGenerator.kotlinx()
         }
         autoDocumentResourcesRoutes = true
-        ignoredRouteSelectors = ignoredRouteSelectors + CacheOutputSelector::class
     }
 }
