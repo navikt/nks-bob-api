@@ -1,14 +1,14 @@
 [versions]
-arrow = "2.0.1"
-exposed = "0.60.0"
-flyway = "11.4.1"
-hikari = "6.2.1"
+arrow = "2.2.0"
+exposed = "0.61.0"
+flyway = "11.19.0"
+hikari = "7.0.2"
 kotlin = "2.2.21"
 ktor = "3.3.2"
-logback = "1.5.21"
-opentelemetry = "2.10.0-alpha"
+logback = "1.5.22"
+opentelemetry = "2.23.0-alpha"
 postgres = "42.7.8"
-prometheus = "1.6.13"
+prometheus = "1.12.0"
 smiley4-ktor = "5.4.0"
 
 [libraries]
@@ -27,9 +27,9 @@ flyway-database-postgres = { module = "org.flywaydb:flyway-database-postgresql",
 google-cloud-bigquery = { module = "com.google.cloud:google-cloud-bigquery", version = "2.57.1" }
 hikari-cp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
 janino = { module = "org.codehaus.janino:janino", version = "3.1.12" }
-kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version = "7.0.5" }
+kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version = "7.0.13" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.10.1" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.10.2" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.6.2" }
 kt-scheduler = { module = "com.github.Pool-Of-Tears:KtScheduler", version = "1.1.6" }
 ktor-client-apache = { module = "io.ktor:ktor-client-apache", version.ref = "ktor" }
@@ -56,7 +56,7 @@ ktor-server-websockets = { module = "io.ktor:ktor-server-websockets-jvm", versio
 ktor-swagger-ui = { module = "io.github.smiley4:ktor-swagger-ui", version.ref = "smiley4-ktor" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 logback-core = { module = "ch.qos.logback:logback-core", version.ref = "logback" }
-logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version = "8.0" }
+logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version = "9.0" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheus" }
 otel-ktor3 = { module = "io.opentelemetry.instrumentation:opentelemetry-ktor-3.0", version.ref = "opentelemetry" }
 otel-logback-mdc = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0", version.ref = "opentelemetry" }
