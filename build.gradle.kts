@@ -71,6 +71,7 @@ dependencies {
     implementation(libs.otel.ktor3)
     implementation(libs.otel.logback.mdc)
     implementation(libs.postgresql)
+    implementation(libs.prometheus.tracer)
 
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ktor.server.test.host)
