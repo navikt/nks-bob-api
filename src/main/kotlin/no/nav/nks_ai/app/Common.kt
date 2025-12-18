@@ -203,7 +203,7 @@ enum class Sort(val value: String) {
     companion object {
         private val labelToEnum = entries.associateBy { it.value }
 
-        val validValues = entries.toTypedArray().asList().map { it.value }.joinToString(", ")
+        val validValues = entries.toTypedArray().asList().joinToString(", ") { it.value }
 
         fun fromStringValue(value: String): ApplicationResult<Sort> = either {
             labelToEnum[value]
@@ -226,7 +226,7 @@ fun ApplicationCall.pagination(): ApplicationResult<Pagination> = either {
     val page = parameters.getInt("page", 0).bind()
     val size = parameters.getInt("size", 100).bind()
 
-    val sort = parameters.get("sort")
+    val sort = parameters["sort"]
         ?.let { Sort.fromStringValue(it).bind() }
         ?: Sort.CreatedAtDesc
 

@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.notification
 
 import io.ktor.server.application.ApplicationCall
+import java.util.*
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.KSerializer
@@ -11,7 +12,6 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import no.nav.nks_ai.app.toUUID
-import java.util.UUID
 
 object NotificationIdSerializer : KSerializer<NotificationId> {
     override fun deserialize(decoder: Decoder): NotificationId {
@@ -23,9 +23,9 @@ object NotificationIdSerializer : KSerializer<NotificationId> {
 
     override fun serialize(
         encoder: Encoder,
-        messageId: NotificationId
+        value: NotificationId
     ) {
-        encoder.encodeString(messageId.value.toString())
+        encoder.encodeString(value.value.toString())
     }
 }
 
