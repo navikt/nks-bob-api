@@ -1,6 +1,5 @@
 package no.nav.nks_ai.core.admin
 
-import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.routing.Route
@@ -11,56 +10,10 @@ import no.nav.nks_ai.core.conversation.Conversation
 import no.nav.nks_ai.core.conversation.ConversationSummary
 import no.nav.nks_ai.core.conversation.conversationId
 import no.nav.nks_ai.core.message.messageId
-import no.nav.nks_ai.core.user.NavIdent
 
 fun Route.adminRoutes(adminService: AdminService) {
     route("/admin") {
         route("/conversations") {
-            get({
-                description = "Get all conversations for a given user"
-                request {
-                    queryParameter<String>("navIdent") {
-                        description = "navIdent for the given user"
-                    }
-                }
-                response {
-                    HttpStatusCode.OK to {
-                        description = "A list the users conversations"
-                        body<List<Conversation>> {
-                            description = "A list of the users conversations"
-                        }
-                    }
-                }
-            }) {
-                call.respondEither {
-                    val navIdent = call.request.queryParameters["navIdent"]
-                        ?.let { NavIdent(it) }
-                        ?: raise(missingNavIdent())
-
-                    adminService.getAllConversations(navIdent)
-                }
-            }
-            delete({
-                description = "Delete all conversations for a given user"
-                request {
-                    queryParameter<String>("navIdent") {
-                        description = "navIdent for the given user"
-                    }
-                }
-                response {
-                    HttpStatusCode.NoContent to {
-                        description = "The operation was successful"
-                    }
-                }
-            }) {
-                call.respondEither(HttpStatusCode.NoContent) {
-                    val navIdent = call.request.queryParameters["navIdent"]
-                        ?.let { NavIdent(it) }
-                        ?: raise(missingNavIdent())
-
-                    adminService.deleteAllConversations(navIdent)
-                }
-            }
             get("/{id}", {
                 description = "Get conversation by id"
                 request {
@@ -82,33 +35,6 @@ fun Route.adminRoutes(adminService: AdminService) {
                         ?: raise(ApplicationError.MissingConversationId())
 
                     adminService.getConversation(conversationId)
-                }
-            }
-            delete("/{id}", {
-                description = "Delete a conversation with the given ID for the given user"
-                request {
-                    pathParameter<String>("id") {
-                        description = "The ID of the conversation"
-                    }
-                    queryParameter<String>("navIdent") {
-                        description = "navIdent for the given user"
-                    }
-                }
-                response {
-                    HttpStatusCode.NoContent to {
-                        description = "The operation was successful"
-                    }
-                }
-            }) {
-                call.respondEither(HttpStatusCode.NoContent) {
-                    val navIdent = call.request.queryParameters["navIdent"]
-                        ?.let { NavIdent(it) }
-                        ?: raise(missingNavIdent())
-
-                    val conversationId = call.conversationId()
-                        ?: raise(ApplicationError.MissingConversationId())
-
-                    adminService.deleteConversation(conversationId, navIdent)
                 }
             }
             get("/{id}/summary", {
@@ -209,7 +135,3 @@ fun Route.adminRoutes(adminService: AdminService) {
         }
     }
 }
-
-private fun missingNavIdent() = ApplicationError.BadRequest(
-    "This request does not contain the required query parameter \"navIdent\""
-)

@@ -73,11 +73,6 @@ object ConversationRepo {
             }
         }
 
-    suspend fun deleteAllConversations(navIdent: NavIdent): ApplicationResult<Unit> =
-        suspendTransaction {
-            ConversationDAO.findAllByNavIdent(navIdent).forEach { it.delete() }.right()
-        }
-
     suspend fun getConversation(conversationId: ConversationId, navIdent: NavIdent): ApplicationResult<Conversation> =
         suspendTransaction {
             either {

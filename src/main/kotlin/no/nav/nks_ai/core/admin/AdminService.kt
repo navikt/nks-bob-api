@@ -9,18 +9,8 @@ import no.nav.nks_ai.core.conversation.ConversationSummary
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.MessageRepo
-import no.nav.nks_ai.core.user.NavIdent
 
 class AdminService() {
-    suspend fun deleteAllConversations(navIdent: NavIdent) =
-        ConversationRepo.deleteAllConversations(navIdent)
-
-    suspend fun deleteConversation(conversationId: ConversationId, navIdent: NavIdent) =
-        ConversationRepo.deleteConversation(conversationId, navIdent)
-
-    suspend fun getAllConversations(navIdent: NavIdent): ApplicationResult<List<Conversation>> =
-        ConversationRepo.getAllConversations(navIdent)
-
     suspend fun getConversation(conversationId: ConversationId): ApplicationResult<Conversation> =
         ConversationRepo.getConversation(conversationId)
 
