@@ -24,6 +24,4 @@ COPY --from=build /workspace/build/install/no.nav.nks-bob-api/lib/no.nav.nks-bob
 ENV TZ="Europe/Oslo"
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-Xms256m", "-Xmx1024m", "-cp", "/app/lib/*:/app/app.jar", "no.nav.nks_ai.ApplicationKt"]
-# XX:InitialRAMPercentage=25.0
-# XX:MaxRAMPercentage=75.0
+ENTRYPOINT ["java", "-XX:InitialRAMPercentage=25.0", "-XX:MaxRAMPercentage=75.0", "-cp", "/app/lib/*:/app/app.jar", "no.nav.nks_ai.ApplicationKt"]
