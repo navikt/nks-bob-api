@@ -26,8 +26,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           dependency-graph: generate-and-submit
-      - name: Build artifacts
-        run: ./gradlew build
       - name: Bygg og publiser docker bilde
         uses: nais/docker-build-push@v0
         id: docker-build-push

@@ -29,9 +29,9 @@ object FeedbackIdSerializer : KSerializer<FeedbackId> {
 
     override fun serialize(
         encoder: Encoder,
-        feedbackId: FeedbackId
+        value: FeedbackId
     ) {
-        encoder.encodeString(feedbackId.value.toString())
+        encoder.encodeString(value.value.toString())
     }
 }
 
@@ -147,9 +147,9 @@ enum class FeedbackFilter(val value: String) {
 class ResolvedImportanceSerializer : KSerializer<ResolvedImportance> {
     override fun serialize(
         encoder: Encoder,
-        resolvedImportance: ResolvedImportance
+        value: ResolvedImportance
     ) {
-        encoder.encodeString(resolvedImportance.value)
+        encoder.encodeString(value.value)
     }
 
     override fun deserialize(decoder: Decoder): ResolvedImportance {
@@ -184,9 +184,9 @@ enum class ResolvedImportance(val value: String) {
 class ResolvedCategorySerializer : KSerializer<ResolvedCategory> {
     override fun serialize(
         encoder: Encoder,
-        resolvedCategory: ResolvedCategory
+        value: ResolvedCategory
     ) {
-        encoder.encodeString(resolvedCategory.value)
+        encoder.encodeString(value.value)
     }
 
     override fun deserialize(decoder: Decoder): ResolvedCategory {

@@ -21,7 +21,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.app.Config
 import no.nav.nks_ai.app.bq.BigQueryClient
-import no.nav.nks_ai.app.plugins.configureCache
 import no.nav.nks_ai.app.plugins.configureDatabases
 import no.nav.nks_ai.app.plugins.configureMonitoring
 import no.nav.nks_ai.app.plugins.configureOpenApi
@@ -35,8 +34,6 @@ import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.UploadStarredMessagesJob
 import no.nav.nks_ai.core.admin.AdminService
 import no.nav.nks_ai.core.admin.adminRoutes
-import no.nav.nks_ai.core.article.ArticleService
-import no.nav.nks_ai.core.article.articleRoutes
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.conversation.conversationRoutes
 import no.nav.nks_ai.core.conversation.streaming.conversationSse
@@ -56,12 +53,10 @@ fun main(args: Array<String>) {
     EngineMain.main(args)
 }
 
-@Suppress("unused")
 fun Application.module() {
     configureSerialization()
     configureDatabases()
     configureMonitoring()
-    configureCache()
     configureSecurity()
     configureOpenApi()
 
@@ -92,7 +87,6 @@ fun Application.module() {
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val adminService = AdminService()
     val userConfigService = UserConfigService()
-    val articleService = ArticleService(bigQueryClient)
     val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
     val notificationService = notificationService()
     val feedbackService = feedbackService(messageService)
@@ -108,7 +102,6 @@ fun Application.module() {
                 conversationSse(messageService, sendMessageService)
                 userConfigRoutes(userConfigService)
                 messageRoutes(messageService, feedbackService)
-                articleRoutes(articleService)
                 notificationUserRoutes(notificationService)
             }
             authenticate("AdminUser") {
