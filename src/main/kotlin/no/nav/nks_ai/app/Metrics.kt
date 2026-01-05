@@ -6,7 +6,6 @@ import io.prometheus.metrics.core.datapoints.Timer
 import io.prometheus.metrics.core.metrics.Counter
 import io.prometheus.metrics.core.metrics.Gauge
 import io.prometheus.metrics.core.metrics.Histogram
-import io.prometheus.metrics.model.snapshots.Labels
 import no.nav.nks_ai.core.feedback.ResolvedCategory
 import no.nav.nks_ai.core.feedback.ResolvedImportance
 
@@ -96,6 +95,7 @@ object MetricRegister {
         .name("${METRICS_NS}_answer_feedback_options")
         .help("Totalt antall valg på tilbakemeldinger")
         .labelNames("valg")
+        .withExemplars()
         .register(appMicrometerRegistry.prometheusRegistry)
 
     private val answerFeedbackComments: Counter = Counter.builder()
@@ -105,8 +105,8 @@ object MetricRegister {
 
     fun trackFeedback(options: List<String>, hasComment: Boolean) {
         answerFeedbacks.inc()
-        options.forEach { option ->
-            answerFeedbackOptions.incWithExemplar(Labels.of(option))
+        if (options.isNotEmpty()) {
+            answerFeedbackOptions.labelValues(*options.toTypedArray()).inc()
         }
         if (hasComment) {
             answerFeedbackComments.inc()
@@ -138,10 +138,10 @@ object MetricRegister {
         if (resolved) {
             answerFeedbacksResolved.inc()
             resolvedImportance?.let {
-                answerFeedbackResolvedImportance.incWithExemplar(Labels.of(it.value))
+                answerFeedbackResolvedImportance.labelValues(it.value).inc()
             }
             resolvedCategory?.let {
-                answerFeedbackResolvedCategory.incWithExemplar(Labels.of(it.value))
+                answerFeedbackResolvedCategory.labelValues(it.value).inc()
             }
         }
     }
