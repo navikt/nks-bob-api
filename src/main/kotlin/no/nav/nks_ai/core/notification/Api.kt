@@ -1,5 +1,6 @@
 package no.nav.nks_ai.core.notification
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
@@ -11,8 +12,13 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.nks_ai.app.ApplicationError
+import no.nav.nks_ai.app.getNavIdent
 import no.nav.nks_ai.app.respondError
 import no.nav.nks_ai.app.respondResult
+import no.nav.nks_ai.app.teamLogger
+
+private val logger = KotlinLogging.logger { }
+private val teamLogger = teamLogger(logger)
 
 fun Route.notificationUserRoutes(notificationService: NotificationService) {
     route("/notifications") {
@@ -103,6 +109,9 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
             }
         }) {
             val createNotification = call.receive<CreateNotification>()
+            val navIdent = call.getNavIdent()
+                ?: return@post call.respondError(ApplicationError.MissingNavIdent())
+            teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=CREATE resource=notification" }
 
             call.respondResult(notificationService.addNotification(createNotification))
         }
@@ -131,6 +140,9 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
                     ?: return@put call.respondError(ApplicationError.MissingNotificationId())
 
                 val createNotification = call.receive<CreateNotification>()
+                val navIdent = call.getNavIdent()
+                    ?: return@put call.respondError(ApplicationError.MissingNavIdent())
+                teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=UPDATE resource=notification/${notificationId.value}" }
 
                 call.respondResult(notificationService.updateNotification(notificationId, createNotification))
             }
@@ -157,6 +169,9 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
                     ?: return@patch call.respondError(ApplicationError.MissingNotificationId())
 
                 val patchNotification = call.receive<PatchNotification>()
+                val navIdent = call.getNavIdent()
+                    ?: return@patch call.respondError(ApplicationError.MissingNavIdent())
+                teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=PATCH resource=notification/${notificationId.value}" }
 
                 call.respondResult(notificationService.patchNotification(notificationId, patchNotification))
             }
@@ -175,6 +190,9 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
             }) {
                 val notificationId = call.notificationId()
                     ?: return@delete call.respondError(ApplicationError.MissingNotificationId())
+                val navIdent = call.getNavIdent()
+                    ?: return@delete call.respondError(ApplicationError.MissingNavIdent())
+                teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=DELETE resource=notification/${notificationId.value}" }
 
                 call.respondResult(notificationService.deleteNotification(notificationId))
             }
