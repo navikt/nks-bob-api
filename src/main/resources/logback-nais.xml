@@ -43,4 +43,7 @@
     <logger name="io.netty" level="INFO"/>
     <logger name="Exposed" level="INFO"/>
     <logger name="com.zaxxer.hikari" level="INFO"/>
+    <!-- Suppress noisy logs from Ktor plugins for internal endpoints -->
+    <logger name="io.ktor.server.plugins" level="WARN"/>
+    <logger name="io.ktor.routing" level="WARN"/>
 </included>
