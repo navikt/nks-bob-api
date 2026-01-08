@@ -1,5 +1,6 @@
 package no.nav.nks_ai.core.feedback
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.put
@@ -9,8 +10,13 @@ import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
 import no.nav.nks_ai.app.Page
 import no.nav.nks_ai.app.Sort
+import no.nav.nks_ai.app.navIdent
 import no.nav.nks_ai.app.pagination
 import no.nav.nks_ai.app.respondEither
+import no.nav.nks_ai.app.teamLogger
+
+private val logger = KotlinLogging.logger { }
+private val teamLogger = teamLogger(logger)
 
 fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
     route("/admin/feedbacks") {
@@ -50,6 +56,8 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                 val filters = call.queryParameters.getAll("filter")
                     ?.map { FeedbackFilter.fromFilterValue(it).bind() }
                     ?: emptyList()
+                val navIdent = call.navIdent().bind()
+                teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=LIST resource=feedbacks" }
 
                 feedbackService.getFilteredFeedbacks(filters, pagination)
             }
@@ -74,6 +82,9 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
             }) {
                 call.respondEither {
                     val feedbackId = call.feedbackId().bind()
+                    val navIdent = call.navIdent().bind()
+                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=feedback/${feedbackId.value}" }
+
                     feedbackService.getFeedback(feedbackId)
                 }
             }
@@ -99,6 +110,8 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                 call.respondEither {
                     val feedbackId = call.feedbackId().bind()
                     val updateFeedback = call.receive<UpdateFeedback>()
+                    val navIdent = call.navIdent().bind()
+                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=UPDATE resource=feedback/${feedbackId.value}" }
 
                     feedbackService.updateFeedback(feedbackId, updateFeedback)
                 }
@@ -118,6 +131,9 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
             }) {
                 call.respondEither(HttpStatusCode.NoContent) {
                     val feedbackId = call.feedbackId().bind()
+                    val navIdent = call.navIdent().bind()
+                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=DELETE resource=feedback/${feedbackId.value}" }
+
                     feedbackService.deleteFeedback(feedbackId)
                 }
             }

@@ -27,6 +27,8 @@ spec:
     outbound:
       rules:
         - application: nks-kbs
+        - application: logging
+          namespace: nais-system
   env:
     - name: NKS_KBS_URL
       value: http://nks-kbs
