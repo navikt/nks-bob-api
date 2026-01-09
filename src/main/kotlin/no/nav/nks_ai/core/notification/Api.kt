@@ -194,7 +194,7 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
                     ?: return@delete call.respondError(ApplicationError.MissingNavIdent())
                 teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=DELETE resource=notification/${notificationId.value}" }
 
-                call.respondResult(notificationService.deleteNotification(notificationId))
+                call.respondResult(HttpStatusCode.NoContent, notificationService.deleteNotification(notificationId))
             }
         }
     }
