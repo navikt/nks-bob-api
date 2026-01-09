@@ -105,8 +105,8 @@ object MetricRegister {
 
     fun trackFeedback(options: List<String>, hasComment: Boolean) {
         answerFeedbacks.inc()
-        if (options.isNotEmpty()) {
-            answerFeedbackOptions.labelValues(*options.toTypedArray()).inc()
+        options.forEach { option ->
+            answerFeedbackOptions.labelValues(option).inc()
         }
         if (hasComment) {
             answerFeedbackComments.inc()
