@@ -10,6 +10,7 @@ opentelemetry = "2.23.0-alpha"
 postgres = "42.7.8"
 prometheus = "1.16.0"
 smiley4-ktor = "5.4.0"
+testcontainers = "1.20.4"
 
 [libraries]
 aedile-core = { module = "com.sksamuel.aedile:aedile-core", version = "3.0.1" }
@@ -62,6 +63,8 @@ otel-ktor3 = { module = "io.opentelemetry.instrumentation:opentelemetry-ktor-3.0
 otel-logback-mdc = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0", version.ref = "opentelemetry" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
 prometheus-tracer = { module = "io.prometheus:prometheus-metrics-tracer-initializer", version = "1.4.3" }
+testcontainers-core = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
+testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
