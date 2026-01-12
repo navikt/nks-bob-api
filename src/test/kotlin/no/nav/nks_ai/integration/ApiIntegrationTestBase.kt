@@ -27,6 +27,12 @@ import no.nav.nks_ai.core.notification.notificationUserRoutes
 import no.nav.nks_ai.core.user.UserConfigService
 import no.nav.nks_ai.core.user.userConfigRoutes
 import no.nav.nks_ai.app.plugins.configureOpenApi
+import no.nav.nks_ai.core.conversation.conversationRoutes
+import no.nav.nks_ai.core.admin.AdminService
+import no.nav.nks_ai.core.admin.adminRoutes
+import no.nav.nks_ai.core.SendMessageService
+import no.nav.nks_ai.kbs.KbsClient
+import no.nav.nks_ai.auth.EntraClient
 
 /**
  * Base class for API integration tests.
@@ -57,16 +63,26 @@ abstract class ApiIntegrationTestBase : IntegrationTestBase() {
         val notificationService = notificationService()
         val feedbackService = feedbackService(messageService)
 
+        // Create mock KbsClient for testing (streaming tests are not supported in API tests)
+        val mockHttpClient = HttpClient()
+        val mockEntraClient = EntraClient("", "", "", mockHttpClient)
+        val mockKbsClient = KbsClient("http://mock", mockHttpClient, mockEntraClient, "mock-scope")
+        val sendMessageService = SendMessageService(conversationService, messageService, mockKbsClient)
+
+        val adminService = AdminService()
+
         routing {
             route("/api/v1") {
                 authenticate("test-auth") {
                     userConfigRoutes(userConfigService)
                     messageRoutes(messageService, feedbackService)
                     notificationUserRoutes(notificationService)
+                    conversationRoutes(conversationService, messageService, sendMessageService)
                 }
                 authenticate("test-auth-admin") {
                     notificationAdminRoutes(notificationService)
                     feedbackAdminRoutes(feedbackService)
+                    adminRoutes(adminService)
                 }
             }
             // OpenAPI spec endpoint (required for OpenAPI plugin to register routes)
