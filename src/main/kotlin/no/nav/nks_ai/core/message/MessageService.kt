@@ -108,7 +108,7 @@ class MessageService() {
 
     suspend fun getMessage(messageId: MessageId, navIdent: NavIdent): ApplicationResult<Message> =
         either {
-            ensure(isOwnedBy(messageId, navIdent).bind()) { ApplicationError.MissingAccess() }
+            ensure(isOwnedBy(messageId, navIdent).bind()) { ApplicationError.MessageNotFound(messageId) }
             getMessage(messageId).bind()
         }
 
