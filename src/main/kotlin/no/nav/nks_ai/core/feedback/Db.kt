@@ -21,6 +21,8 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNotNull
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
 import org.jetbrains.exposed.sql.compoundAnd
 
 internal object Feedbacks : BaseTable("feedbacks") {
@@ -133,6 +135,9 @@ object FeedbackRepo {
             FeedbackFilter.Internasjonalt,
             FeedbackFilter.Fellesrutinene ->
                 Feedbacks.domain eq FeedbackFilter.getDomain(filter).bind()
+
+            FeedbackFilter.Inactive -> Feedbacks.message.isNull()
+            FeedbackFilter.Active -> Feedbacks.message.isNotNull()
         }
     }
 

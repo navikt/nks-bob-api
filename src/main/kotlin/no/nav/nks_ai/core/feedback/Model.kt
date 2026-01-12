@@ -74,7 +74,9 @@ enum class FeedbackFilter(val value: String) {
     Uforetrygd("uforetrygd"),
     Arbeidsgiver("arbeidsgiver"),
     Internasjonalt("internasjonalt"),
-    Fellesrutinene("fellesrutinene");
+    Fellesrutinene("fellesrutinene"),
+    Inactive("inaktive"),
+    Active("aktive");
 
     companion object {
         private val labelToEnum = entries.associateBy { it.value }
