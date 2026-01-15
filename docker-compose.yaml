@@ -7,19 +7,13 @@ services:
       - POSTGRES_PASSWORD=bobtilfolket
       - POSTGRES_USER=nks_bob_api_user
       - POSTGRES_DB=nks_bob_api_db
-  mockServer:
-    image: mockserver/mockserver:latest
+  wiremock:
+    image: wiremock/wiremock:3.13.2
     ports:
-      - "1080:1080"
-    restart: on-failure
-    environment:
-      MOCKSERVER_WATCH_INITIALIZATION_JSON: "true"
-      MOCKSERVER_PROPERTY_FILE: /config/mockserver.properties
-      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/initializerJson.json
+      - "1080:8080"
     volumes:
-      - type: bind
-        source: ./mocks
-        target: /config
+      - ./mocks/wiremock/mappings:/home/wiremock/mappings
+      - ./mocks/wiremock/__files:/home/wiremock/__files
   bigQuery:
     image: ghcr.io/goccy/bigquery-emulator:latest
     platform: linux/x86_64
