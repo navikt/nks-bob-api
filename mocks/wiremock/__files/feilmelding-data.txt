@@ -1,0 +1,3 @@
+event: error
+data: {"type":"urn:nks-kbs:error:validation","status":500,"title":"Feil ved tolkning","detail":"En feil oppstod når vi prøvde å tolke svaret fra språkmodellen. Hvis dette er første gang kan man prøve å sende igjen da modellen burde klare å svare ut."}
+
