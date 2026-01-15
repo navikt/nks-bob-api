@@ -1,0 +1,39 @@
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"","citations":[]},"context":[],"follow_up":[],"tools":[]}
+
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"Hei","citations":[]},"context":[],"follow_up":[],"tools":[]}
+
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"Hei!","citations":[]},"context":[],"follow_up":[],"tools":[]}
+
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"Hei! Hvordan","citations":[]},"context":[],"follow_up":[],"tools":[]}
+
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"Hei! Hvordan kan","citations":[]},"context":[],"follow_up":[],"tools":[]}
+
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"Hei! Hvordan kan jeg","citations":[]},"context":[],"follow_up":[],"tools":[]}
+
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"Hei! Hvordan kan jeg hjelpe","citations":[]},"context":[],"follow_up":[],"tools":[]}
+
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"Hei! Hvordan kan jeg hjelpe deg","citations":[]},"context":[],"follow_up":[],"tools":[]}
+
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"Hei! Hvordan kan jeg hjelpe deg i","citations":[]},"context":[],"follow_up":[],"tools":[]}
+
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"Hei! Hvordan kan jeg hjelpe deg i dag","citations":[]},"context":[],"follow_up":[],"tools":[]}
+
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"Hei! Hvordan kan jeg hjelpe deg i dag?","citations":[]},"context":[],"follow_up":[],"tools":[]}
+
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"Hei! Hvordan kan jeg hjelpe deg i dag?","citations":[]},"context":[],"follow_up":[],"tools":[]}
+
+event: chat_chunk
+data: {"question":{"user":"Hei Bob :)","contextualized":null},"answer":{"text":"Hei! Hvordan kan jeg hjelpe deg i dag?","citations":[]},"context":[],"follow_up":["Hva er de viktigste dokumentene som trengs for å søke om arbeidsavklaringspenger?","Hvordan kan man klage på en avgjørelse fra Nav?","Hva er reglene for å kombinere sykepenger og arbeidsavklaringspenger?"],"tools":[]}
+
