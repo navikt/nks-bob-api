@@ -69,6 +69,7 @@ class MessageService() {
         pending: Boolean,
         userQuestion: String?,
         contextualizedQuestion: String?,
+        tools: List<String>,
     ) =
         MessageRepo.updateMessage(
             messageId = messageId,
@@ -82,6 +83,7 @@ class MessageService() {
             pending = pending,
             userQuestion = userQuestion,
             contextualizedQuestion = contextualizedQuestion,
+            tools = tools,
         )
 
     suspend fun markStarredMessageUploaded(messageId: MessageId) =

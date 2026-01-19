@@ -44,6 +44,7 @@ internal object Messages : BaseTable("messages") {
     val contextualizedQuestion = text("contextualized_question").nullable()
     val starred = bool("starred").clientDefault { false }
     val starredUploadedAt = datetime("starred_uploaded_at").nullable()
+    val tools = array<String>("tools").clientDefault { emptyList() }
 }
 
 internal class MessageDAO(id: EntityID<UUID>) : BaseEntity(id, Messages) {
@@ -63,6 +64,7 @@ internal class MessageDAO(id: EntityID<UUID>) : BaseEntity(id, Messages) {
     var contextualizedQuestion by Messages.contextualizedQuestion
     var starred by Messages.starred
     var starredUploadedAt by Messages.starredUploadedAt
+    var tools by Messages.tools
 }
 
 internal fun MessageDAO.toModel() = Message(
@@ -79,6 +81,7 @@ internal fun MessageDAO.toModel() = Message(
     userQuestion = userQuestion,
     contextualizedQuestion = contextualizedQuestion,
     starred = starred,
+    tools = tools,
 )
 
 object MessageRepo {
@@ -151,6 +154,7 @@ object MessageRepo {
         pending: Boolean,
         userQuestion: String?,
         contextualizedQuestion: String?,
+        tools: List<String>,
     ): ApplicationResult<Message> =
         suspendTransaction {
             either {
@@ -165,6 +169,7 @@ object MessageRepo {
                     it.pending = pending
                     it.userQuestion = userQuestion
                     it.contextualizedQuestion = contextualizedQuestion
+                    it.tools = tools
                 }?.toModel()
                     ?: raise(ApplicationError.MessageNotFound(messageId))
             }
