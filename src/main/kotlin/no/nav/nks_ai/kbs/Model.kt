@@ -50,6 +50,7 @@ sealed class KbsStreamResponse() {
         val context: List<KbsChatContext>,
         @SerialName("follow_up") val followUp: List<String> = emptyList(),
         val question: KbsChatQuestion,
+        val tools: List<String>,
     ) : KbsStreamResponse()
 
     @Serializable
