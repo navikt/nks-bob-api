@@ -1,0 +1,3 @@
+event: error
+data: {"type":"urn:nks-kbs:error:model","status":500,"title":"Feil med modellen","detail":"Språkmodellen likte ikke teksten som ble sendt inn."}
+
