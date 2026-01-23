@@ -78,10 +78,3 @@ dependencies {
     testImplementation(libs.testcontainers.core)
     testImplementation(libs.testcontainers.postgresql)
 }
-
-tasks.test {
-    // Configure Testcontainers for Colima compatibility
-    environment("TESTCONTAINERS_RYUK_DISABLED", "true")
-    environment("TESTCONTAINERS_CHECKS_DISABLE", "true")
-    environment("TESTCONTAINERS_REUSE_ENABLE", "true")
-}
