@@ -151,7 +151,8 @@ class MessageIntegrationTest : IntegrationTestBase() {
             followUp = listOf("Follow up 1", "Follow up 2"),
             pending = false,
             userQuestion = "What is the weather?",
-            contextualizedQuestion = "What is the weather in Oslo today?"
+            contextualizedQuestion = "What is the weather in Oslo today?",
+            tools = listOf("search_nav_information")
         )
 
         assertTrue(result.isRight())
