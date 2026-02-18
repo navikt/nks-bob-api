@@ -1,5 +1,6 @@
 package no.nav.nks_ai.core.feedback
 
+import arrow.core.right
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
@@ -8,6 +9,9 @@ import io.github.smiley4.ktoropenapi.route
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
+import kotlinx.datetime.LocalDateTime
+import kotlinx.serialization.Serializable
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.Page
 import no.nav.nks_ai.app.Sort
 import no.nav.nks_ai.app.navIdent
@@ -140,3 +144,54 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
         }
     }
 }
+
+fun Route.feedbackAdminBatchRoutes(feedbackService: FeedbackService) {
+    route("/admin/feedbacks_batch") {
+        put({
+            description = "Batch resolve (DateExpired) all unresolved feedbacks created before supplied date"
+            request {
+                queryParameter<String>("before") {
+                    description = "Resolve feedbacks created before this timestamp (ISO-8601 LocalDateTime, e.g. 2026-02-18T12:30:00)"
+                    required = true
+                }
+                queryParameter<String>("note") {
+                    description = "Resolve feedbacks with this note"
+                    required = true
+                }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    description = "Number of feedbacks updated"
+                    body<BatchResolveFeedbacksResponse> {
+                        description = "Result of the batch operation"
+                    }
+                }
+            }
+        }) {
+            call.respondEither<BatchResolveFeedbacksResponse> {
+                val beforeRaw = call.request.queryParameters["before"]
+                    ?: raise(ApplicationError.BadRequest("Missing required query parameter 'before'"))
+
+                val note = call.request.queryParameters["note"]
+                    ?: raise(ApplicationError.BadRequest("Missing required query parameter 'note'"))
+
+                val before = runCatching { LocalDateTime.parse(beforeRaw) }
+                    .getOrElse {
+                        raise(ApplicationError.BadRequest("Invalid 'before' value. Expected ISO-8601 LocalDateTime, got: $beforeRaw"))
+                    }
+
+                val navIdent = call.navIdent().bind()
+                teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=BATCH_RESOLVE resource=feedbacks before=$beforeRaw" }
+
+                val updated = feedbackService.batchResolveFeedbacksBefore(before, note).bind()
+                BatchResolveFeedbacksResponse(updated = updated, before = beforeRaw).right()
+            }
+        }
+    }
+}
+
+@Serializable
+data class BatchResolveFeedbacksResponse(
+    val updated: Int,
+    val before: String
+)

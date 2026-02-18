@@ -2,6 +2,7 @@ package no.nav.nks_ai.core.feedback
 
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.MetricRegister
@@ -33,6 +34,8 @@ interface FeedbackService {
     suspend fun updateFeedback(feedbackId: FeedbackId, feedback: UpdateFeedback): ApplicationResult<Feedback>
 
     suspend fun deleteFeedback(feedbackId: FeedbackId): ApplicationResult<Unit>
+
+    suspend fun batchResolveFeedbacksBefore(before: LocalDateTime, note: String): ApplicationResult<Int>
 }
 
 fun feedbackService(messageService: MessageService) = object : FeedbackService {
@@ -106,5 +109,8 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
 
     override suspend fun deleteFeedback(feedbackId: FeedbackId): ApplicationResult<Unit> =
         FeedbackRepo.deleteFeedback(feedbackId)
+
+    override suspend fun batchResolveFeedbacksBefore(before: LocalDateTime, note: String): ApplicationResult<Int> =
+        FeedbackRepo.batchResolveFeedbacksBefore(before, note)
 }
 

@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.feedback
 
 import arrow.core.raise.either
+import kotlinx.datetime.LocalDateTime
 import java.util.*
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
@@ -23,7 +24,9 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNotNull
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.compoundAnd
+import org.jetbrains.exposed.sql.update
 
 internal object Feedbacks : BaseTable("feedbacks") {
     val message = reference("message", Messages).nullable()
@@ -210,6 +213,21 @@ object FeedbackRepo {
             either {
                 FeedbackDAO.findById(feedbackId.value)?.delete()
                     ?: raise(ApplicationError.FeedbackNotFound(feedbackId))
+            }
+        }
+
+    // Batch resolves (active) feedbacks before date
+    suspend fun batchResolveFeedbacksBefore(before: LocalDateTime, note: String): ApplicationResult<Int> =
+        suspendTransaction {
+            either {
+                Feedbacks.update({
+                    (Feedbacks.resolved eq false) and (Feedbacks.createdAt less before) and (Feedbacks.message.isNotNull())
+                }) {
+                    it[resolved] = true
+                    it[resolvedCategory] = ResolvedCategory.DateExpired
+                    it[resolvedImportance] = null
+                    it[resolvedNote] = note
+                }
             }
         }
 }
