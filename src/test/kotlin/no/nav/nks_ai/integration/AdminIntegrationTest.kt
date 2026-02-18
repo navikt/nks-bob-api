@@ -35,6 +35,7 @@ class AdminIntegrationTest : ApiIntegrationTestBase() {
             NewConversation(title, null)
         ).getOrElse { throw AssertionError("Failed to create test conversation") }
 
+    // TODO import data with flyway scripts and mock kbs-responses with wiremock stubs from the mappings.
     private suspend fun createTestMessage(conversationId: no.nav.nks_ai.core.conversation.ConversationId, content: String) =
         MessageRepo.addMessage(
             conversationId = conversationId,
