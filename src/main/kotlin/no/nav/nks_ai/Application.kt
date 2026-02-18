@@ -38,6 +38,7 @@ import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.conversation.conversationRoutes
 import no.nav.nks_ai.core.conversation.streaming.conversationSse
 import no.nav.nks_ai.core.conversation.streaming.conversationWebsocket
+import no.nav.nks_ai.core.feedback.feedbackAdminBatchRoutes
 import no.nav.nks_ai.core.feedback.feedbackAdminRoutes
 import no.nav.nks_ai.core.feedback.feedbackService
 import no.nav.nks_ai.core.message.MessageService
@@ -108,6 +109,7 @@ fun Application.module() {
                 adminRoutes(adminService)
                 notificationAdminRoutes(notificationService)
                 feedbackAdminRoutes(feedbackService)
+                feedbackAdminBatchRoutes(feedbackService)
             }
         }
         route("/internal") {
