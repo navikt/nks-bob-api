@@ -66,6 +66,7 @@ object IgnoredWordRepo {
         }
     }
 
+    /*
     suspend fun getIgnoredWordsAggregations(): ApplicationResult<List<IgnoredWordAggregation>> = suspendTransaction {
         either {
             IgnoredWords.selectAll().groupBy(IgnoredWords.value).map { row ->
@@ -77,5 +78,7 @@ object IgnoredWordRepo {
             }
         }
     }
+
+     */
 }
 
