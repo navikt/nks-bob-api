@@ -1,0 +1,25 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "url": "/api/v1/stream/chat",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": "$.[?(@.question =~ /.*sak.*/)]"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive"
+    },
+    "bodyFileName": "sbt-data.txt",
+    "chunkedDribbleDelay": {
+      "numberOfChunks": 126,
+      "totalDuration": 1500
+    }
+  }
+}

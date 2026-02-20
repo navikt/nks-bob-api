@@ -1,5 +1,7 @@
 package no.nav.nks_ai.core.feedback
 
+import arrow.core.right
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.put
@@ -7,16 +9,25 @@ import io.github.smiley4.ktoropenapi.route
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
+import kotlinx.datetime.LocalDateTime
+import kotlinx.serialization.Serializable
+import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.Page
+import no.nav.nks_ai.app.Sort
+import no.nav.nks_ai.app.navIdent
 import no.nav.nks_ai.app.pagination
 import no.nav.nks_ai.app.respondEither
+import no.nav.nks_ai.app.teamLogger
+
+private val logger = KotlinLogging.logger { }
+private val teamLogger = teamLogger(logger)
 
 fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
     route("/admin/feedbacks") {
         get({
             description = "Get all feedbacks"
             request {
-                queryParameter<String>("filter") {
+                queryParameter<List<String>>("filter") {
                     description =
                         "Filter which feedbacks will be returned (${FeedbackFilter.validValues})"
                     required = false
@@ -27,6 +38,11 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                 }
                 queryParameter<Int>("size") {
                     description = "How many feedbacks to fetch (default = 100)"
+                    required = false
+                }
+                queryParameter<String>("sort") {
+                    description =
+                        "Sort order (default = ${Sort.CreatedAtDesc.value}). Valid values: ${Sort.validValues}"
                     required = false
                 }
             }
@@ -41,10 +57,13 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
         }) {
             call.respondEither {
                 val pagination = call.pagination().bind()
-                val filter = call.queryParameters["filter"]
-                    ?.let { FeedbackFilter.fromFilterValue(it).bind() }
+                val filters = call.queryParameters.getAll("filter")
+                    ?.map { FeedbackFilter.fromFilterValue(it).bind() }
+                    ?: emptyList()
+                val navIdent = call.navIdent().bind()
+                teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=LIST resource=feedbacks" }
 
-                feedbackService.getFilteredFeedbacks(filter, pagination)
+                feedbackService.getFilteredFeedbacks(filters, pagination)
             }
         }
 
@@ -67,6 +86,9 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
             }) {
                 call.respondEither {
                     val feedbackId = call.feedbackId().bind()
+                    val navIdent = call.navIdent().bind()
+                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=feedback/${feedbackId.value}" }
+
                     feedbackService.getFeedback(feedbackId)
                 }
             }
@@ -92,35 +114,12 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                 call.respondEither {
                     val feedbackId = call.feedbackId().bind()
                     val updateFeedback = call.receive<UpdateFeedback>()
+                    val navIdent = call.navIdent().bind()
+                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=UPDATE resource=feedback/${feedbackId.value}" }
 
                     feedbackService.updateFeedback(feedbackId, updateFeedback)
                 }
             }
-            /*patch({
-                description = "Patch a feedback"
-                request {
-                    pathParameter<String>("id") {
-                        description = "ID of the feedback"
-                    }
-                    body<PatchFeedback> {
-                        description = "The updated feedback"
-                    }
-                }
-                response {
-                    HttpStatusCode.OK to {
-                        description = "The operation was successful"
-                        body<Feedback> {
-                            description = "The requested feedback"
-                        }
-                    }
-                }
-            }) {
-                val feedbackId = call.feedbackId()
-                    ?: return@patch call.respondError(ApplicationError.MissingFeedbackId())
-
-                val patchFeedback = call.receive<PatchFeedback>()
-                call.respondResult(feedbackService.patchFeedback(feedbackId, patchFeedback))
-            }*/
             delete({
                 description = "Delete a feedback"
                 request {
@@ -136,9 +135,63 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
             }) {
                 call.respondEither(HttpStatusCode.NoContent) {
                     val feedbackId = call.feedbackId().bind()
+                    val navIdent = call.navIdent().bind()
+                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=DELETE resource=feedback/${feedbackId.value}" }
+
                     feedbackService.deleteFeedback(feedbackId)
                 }
             }
         }
     }
 }
+
+fun Route.feedbackAdminBatchRoutes(feedbackService: FeedbackService) {
+    route("/admin/feedbacks_batch") {
+        put({
+            description = "Batch resolve (DateExpired) all unresolved feedbacks created before supplied date"
+            request {
+                queryParameter<String>("before") {
+                    description = "Resolve feedbacks created before this timestamp (ISO-8601 LocalDateTime, e.g. 2026-02-18T12:30:00)"
+                    required = true
+                }
+                queryParameter<String>("note") {
+                    description = "Resolve feedbacks with this note"
+                    required = true
+                }
+            }
+            response {
+                HttpStatusCode.OK to {
+                    description = "Number of feedbacks updated"
+                    body<BatchResolveFeedbacksResponse> {
+                        description = "Result of the batch operation"
+                    }
+                }
+            }
+        }) {
+            call.respondEither<BatchResolveFeedbacksResponse> {
+                val beforeRaw = call.request.queryParameters["before"]
+                    ?: raise(ApplicationError.BadRequest("Missing required query parameter 'before'"))
+
+                val note = call.request.queryParameters["note"]
+                    ?: raise(ApplicationError.BadRequest("Missing required query parameter 'note'"))
+
+                val before = runCatching { LocalDateTime.parse(beforeRaw) }
+                    .getOrElse {
+                        raise(ApplicationError.BadRequest("Invalid 'before' value. Expected ISO-8601 LocalDateTime, got: $beforeRaw"))
+                    }
+
+                val navIdent = call.navIdent().bind()
+                teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=BATCH_RESOLVE resource=feedbacks before=$beforeRaw" }
+
+                val updated = feedbackService.batchResolveFeedbacksBefore(before, note).bind()
+                BatchResolveFeedbacksResponse(updated = updated, before = beforeRaw).right()
+            }
+        }
+    }
+}
+
+@Serializable
+data class BatchResolveFeedbacksResponse(
+    val updated: Int,
+    val before: String
+)

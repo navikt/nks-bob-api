@@ -4,6 +4,7 @@ import arrow.core.None
 import arrow.core.Option
 import arrow.core.raise.either
 import arrow.core.right
+import java.util.*
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.app.ApplicationError
@@ -18,10 +19,11 @@ import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.Conversations
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
-import java.util.UUID
 
 val jsonConfig = Json {
     ignoreUnknownKeys = true
@@ -42,6 +44,7 @@ internal object Messages : BaseTable("messages") {
     val contextualizedQuestion = text("contextualized_question").nullable()
     val starred = bool("starred").clientDefault { false }
     val starredUploadedAt = datetime("starred_uploaded_at").nullable()
+    val tools = array<String>("tools").clientDefault { emptyList() }
 }
 
 internal class MessageDAO(id: EntityID<UUID>) : BaseEntity(id, Messages) {
@@ -61,6 +64,7 @@ internal class MessageDAO(id: EntityID<UUID>) : BaseEntity(id, Messages) {
     var contextualizedQuestion by Messages.contextualizedQuestion
     var starred by Messages.starred
     var starredUploadedAt by Messages.starredUploadedAt
+    var tools by Messages.tools
 }
 
 internal fun MessageDAO.toModel() = Message(
@@ -77,6 +81,7 @@ internal fun MessageDAO.toModel() = Message(
     userQuestion = userQuestion,
     contextualizedQuestion = contextualizedQuestion,
     starred = starred,
+    tools = tools,
 )
 
 object MessageRepo {
@@ -149,6 +154,7 @@ object MessageRepo {
         pending: Boolean,
         userQuestion: String?,
         contextualizedQuestion: String?,
+        tools: List<String>,
     ): ApplicationResult<Message> =
         suspendTransaction {
             either {
@@ -163,6 +169,7 @@ object MessageRepo {
                     it.pending = pending
                     it.userQuestion = userQuestion
                     it.contextualizedQuestion = contextualizedQuestion
+                    it.tools = tools
                 }?.toModel()
                     ?: raise(ApplicationError.MessageNotFound(messageId))
             }
@@ -223,5 +230,23 @@ object MessageRepo {
                 MessageDAO.findById(messageId.value)?.conversation?.owner
                     ?: raise(ApplicationError.MessageNotFound(messageId))
             }
+        }
+
+    suspend fun deleteMessages(
+        messageIds: List<MessageId>,
+    ): ApplicationResult<Int> =
+        suspendTransaction {
+            Messages.deleteWhere {
+                Messages.id inList messageIds.map { it.value }
+            }.right()
+        }
+
+    suspend fun getMessagesCreatedBefore(
+        dateTime: LocalDateTime,
+    ): ApplicationResult<List<Message>> =
+        suspendTransaction {
+            MessageDAO.find {
+                Messages.createdAt.less(dateTime)
+            }.map { it.toModel() }.right()
         }
 }

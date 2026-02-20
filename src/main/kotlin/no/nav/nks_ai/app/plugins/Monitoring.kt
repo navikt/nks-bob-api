@@ -1,13 +1,21 @@
 package no.nav.nks_ai.app.plugins
 
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.metrics.micrometer.*
-import io.ktor.server.plugins.callid.*
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.metrics.micrometer.MicrometerMetrics
+import io.ktor.server.plugins.callid.CallId
+import io.ktor.server.plugins.callid.callIdMdc
 import io.ktor.server.plugins.calllogging.CallLogging
+import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.server.request.uri
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
 import no.nav.nks_ai.app.appMicrometerRegistry
 import org.slf4j.event.Level
 
@@ -27,6 +35,13 @@ fun Application.configureMonitoring() {
         level = Level.INFO
         filter { call -> call.request.path().startsWith("/api/v1") }
         callIdMdc("call-id")
+
+        // specify format manually to get control over terminal ANSI escape characters
+        format { call ->
+            val status = call.response.status()
+            val method = call.request.httpMethod.value
+            "$status: $method ${call.request.uri}"
+        }
     }
     install(CallId) {
         header("nav-call-id")

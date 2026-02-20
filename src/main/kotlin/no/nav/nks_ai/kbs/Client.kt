@@ -23,7 +23,6 @@ import no.nav.nks_ai.auth.EntraClient
 import no.nav.nks_ai.defaultJsonConfig
 import no.nav.nks_ai.kbs.KbsStreamResponse.KbsChatResponse
 import no.nav.nks_ai.kbs.KbsStreamResponse.StatusUpdateResponse
-import kotlin.String
 
 private val logger = KotlinLogging.logger {}
 
@@ -55,7 +54,7 @@ class KbsClient(
                 when (response.event) {
                     "chat_chunk" -> {
                         response.data?.let { data ->
-                            val chatResponse = defaultJsonConfig().decodeFromString<KbsChatResponse>(data)
+                            val chatResponse = defaultJsonConfig().decodeFromString<KbsChatResponse>(data.sanitize())
                             if (timer.isRunning && chatResponse.answer.text.isNotEmpty()) {
                                 timer.stop()
                             }
@@ -111,7 +110,7 @@ class KbsClient(
                 }
             }
         }
-    }.retry(2) { throwable ->
+    }.retry(3) { throwable ->
         if (throwable.cause is KbsValidationException) {
             logger.warn { "Error when receiving message from KBS. Retrying..." }
             return@retry true
@@ -139,3 +138,9 @@ class KbsClient(
         }
     }
 }
+
+private fun String.sanitize(): String = this
+    .replace("\\u0000f8", "ø")
+    .replace("\\u0000e5", "å")
+    .replace("\\u0000e6", "æ")
+    .replace("\\u0000", "")

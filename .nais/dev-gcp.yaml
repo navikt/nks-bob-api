@@ -6,6 +6,9 @@ metadata:
     team: nks-aiautomatisering
   name: nks-bob-api
   namespace: nks-aiautomatisering
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
 spec:
   envFrom:
   image: "{{ image }}"
@@ -24,9 +27,12 @@ spec:
     inbound:
       rules:
         - application: nks-bob-frontend
+        - application: nks-bob-frontend-lokal
     outbound:
       rules:
         - application: nks-kbs
+        - application: logging
+          namespace: nais-system
   env:
     - name: NKS_KBS_URL
       value: http://nks-kbs

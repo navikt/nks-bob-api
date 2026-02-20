@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.conversation
 
 import io.ktor.server.application.ApplicationCall
+import java.util.*
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.KSerializer
@@ -14,7 +15,6 @@ import no.nav.nks_ai.app.toUUID
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageRole
 import no.nav.nks_ai.core.message.NewMessage
-import java.util.UUID
 
 object ConversationIdSerializer : KSerializer<ConversationId> {
     override fun deserialize(decoder: Decoder): ConversationId {
@@ -26,9 +26,9 @@ object ConversationIdSerializer : KSerializer<ConversationId> {
 
     override fun serialize(
         encoder: Encoder,
-        conversationId: ConversationId
+        value: ConversationId
     ) {
-        encoder.encodeString(conversationId.value.toString())
+        encoder.encodeString(value.value.toString())
     }
 }
 
@@ -55,7 +55,8 @@ data class ConversationSummary(
     val createdAt: LocalDateTime,
     val messages: List<Message>,
 ) {
-    val summary: String = messages.map { message ->
+    @Suppress("unused") // used in serialization
+    val summary: String = messages.joinToString("\n") { message ->
         val from = when (message.messageRole) {
             MessageRole.AI -> "Bob"
             MessageRole.Human -> "Bruker"
@@ -67,7 +68,7 @@ data class ConversationSummary(
         }
 
         "${from}:\n${content}\n"
-    }.joinToString("\n")
+    }
 
     companion object {
         fun from(conversation: Conversation, messages: List<Message>) =

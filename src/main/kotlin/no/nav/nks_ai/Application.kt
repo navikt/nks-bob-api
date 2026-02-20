@@ -12,7 +12,7 @@ import io.ktor.client.plugins.sse.SSE
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.*
+import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.routing.route
@@ -21,7 +21,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.app.Config
 import no.nav.nks_ai.app.bq.BigQueryClient
-import no.nav.nks_ai.app.plugins.configureCache
 import no.nav.nks_ai.app.plugins.configureDatabases
 import no.nav.nks_ai.app.plugins.configureMonitoring
 import no.nav.nks_ai.app.plugins.configureOpenApi
@@ -35,12 +34,11 @@ import no.nav.nks_ai.core.SendMessageService
 import no.nav.nks_ai.core.UploadStarredMessagesJob
 import no.nav.nks_ai.core.admin.AdminService
 import no.nav.nks_ai.core.admin.adminRoutes
-import no.nav.nks_ai.core.article.ArticleService
-import no.nav.nks_ai.core.article.articleRoutes
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.conversation.conversationRoutes
 import no.nav.nks_ai.core.conversation.streaming.conversationSse
 import no.nav.nks_ai.core.conversation.streaming.conversationWebsocket
+import no.nav.nks_ai.core.feedback.feedbackAdminBatchRoutes
 import no.nav.nks_ai.core.feedback.feedbackAdminRoutes
 import no.nav.nks_ai.core.feedback.feedbackService
 import no.nav.nks_ai.core.message.MessageService
@@ -56,12 +54,10 @@ fun main(args: Array<String>) {
     EngineMain.main(args)
 }
 
-@Suppress("unused")
 fun Application.module() {
     configureSerialization()
     configureDatabases()
     configureMonitoring()
-    configureCache()
     configureSecurity()
     configureOpenApi()
 
@@ -92,12 +88,11 @@ fun Application.module() {
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val adminService = AdminService()
     val userConfigService = UserConfigService()
-    val articleService = ArticleService(bigQueryClient)
     val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
     val notificationService = notificationService()
     val feedbackService = feedbackService(messageService)
 
-    ConversationDeletionJob(conversationService, httpClient).start()
+    ConversationDeletionJob(conversationService, messageService, httpClient).start()
     UploadStarredMessagesJob(messageService, markMessageStarredService, httpClient).start()
 
     routing {
@@ -108,13 +103,13 @@ fun Application.module() {
                 conversationSse(messageService, sendMessageService)
                 userConfigRoutes(userConfigService)
                 messageRoutes(messageService, feedbackService)
-                articleRoutes(articleService)
                 notificationUserRoutes(notificationService)
             }
             authenticate("AdminUser") {
                 adminRoutes(adminService)
                 notificationAdminRoutes(notificationService)
                 feedbackAdminRoutes(feedbackService)
+                feedbackAdminBatchRoutes(feedbackService)
             }
         }
         route("/internal") {

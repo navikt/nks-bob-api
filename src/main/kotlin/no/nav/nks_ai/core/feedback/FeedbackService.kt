@@ -2,6 +2,7 @@ package no.nav.nks_ai.core.feedback
 
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.MetricRegister
@@ -17,7 +18,10 @@ interface FeedbackService {
 
     suspend fun getAllFeedbacks(pagination: Pagination): ApplicationResult<Page<Feedback>>
 
-    suspend fun getFilteredFeedbacks(filter: FeedbackFilter?, pagination: Pagination): ApplicationResult<Page<Feedback>>
+    suspend fun getFilteredFeedbacks(
+        filters: List<FeedbackFilter>,
+        pagination: Pagination
+    ): ApplicationResult<Page<Feedback>>
 
     suspend fun getFeedbacksForMessage(messageId: MessageId, navIdent: NavIdent): ApplicationResult<List<Feedback>>
 
@@ -30,6 +34,8 @@ interface FeedbackService {
     suspend fun updateFeedback(feedbackId: FeedbackId, feedback: UpdateFeedback): ApplicationResult<Feedback>
 
     suspend fun deleteFeedback(feedbackId: FeedbackId): ApplicationResult<Unit>
+
+    suspend fun batchResolveFeedbacksBefore(before: LocalDateTime, note: String): ApplicationResult<Int>
 }
 
 fun feedbackService(messageService: MessageService) = object : FeedbackService {
@@ -40,19 +46,13 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
         FeedbackRepo.getFeedbacks(pagination)
 
     override suspend fun getFilteredFeedbacks(
-        filter: FeedbackFilter?,
+        filters: List<FeedbackFilter>,
         pagination: Pagination
     ): ApplicationResult<Page<Feedback>> =
-        when (filter) {
-            FeedbackFilter.Unresolved -> FeedbackRepo.getUnresolvedFeedbacks(pagination)
-            FeedbackFilter.Resolved -> FeedbackRepo.getResolvedFeedbacks(pagination)
-            FeedbackFilter.NotRelevant -> FeedbackRepo.getNotRelevantFeedbacks(pagination)
-            FeedbackFilter.SomewhatImportant -> FeedbackRepo.getSomewhatImportantFeedbacks(pagination)
-            FeedbackFilter.Important -> FeedbackRepo.getImportantFeedbacks(pagination)
-            FeedbackFilter.VeryImportant -> FeedbackRepo.getVeryImportantFeedbacks(pagination)
-            FeedbackFilter.UserError -> FeedbackRepo.getUserErrorFeedbacks(pagination)
-            FeedbackFilter.AiError -> FeedbackRepo.getAiErrorFeedbacks(pagination)
-            null -> getAllFeedbacks(pagination)
+        if (filters.isEmpty()) {
+            getAllFeedbacks(pagination)
+        } else {
+            FeedbackRepo.getFeedbacksFilteredBy(filters, pagination)
         }
 
     override suspend fun getFeedbacksForMessage(
@@ -103,10 +103,14 @@ fun feedbackService(messageService: MessageService) = object : FeedbackService {
             resolvedImportance = feedback.resolvedImportance,
             resolvedCategory = feedback.resolvedCategory,
             resolvedNote = feedback.resolvedNote,
+            domain = feedback.domain,
         ).bind()
     }
 
     override suspend fun deleteFeedback(feedbackId: FeedbackId): ApplicationResult<Unit> =
         FeedbackRepo.deleteFeedback(feedbackId)
+
+    override suspend fun batchResolveFeedbacksBefore(before: LocalDateTime, note: String): ApplicationResult<Int> =
+        FeedbackRepo.batchResolveFeedbacksBefore(before, note)
 }
 

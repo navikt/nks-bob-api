@@ -1,6 +1,7 @@
 package no.nav.nks_ai.core.message
 
 import io.ktor.server.application.ApplicationCall
+import java.util.*
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.KSerializer
@@ -13,7 +14,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import no.nav.nks_ai.app.now
 import no.nav.nks_ai.app.toUUID
-import java.util.UUID
 
 object MessageIdSerializer : KSerializer<MessageId> {
     override fun deserialize(decoder: Decoder): MessageId {
@@ -25,9 +25,9 @@ object MessageIdSerializer : KSerializer<MessageId> {
 
     override fun serialize(
         encoder: Encoder,
-        messageId: MessageId
+        value: MessageId
     ) {
-        encoder.encodeString(messageId.value.toString())
+        encoder.encodeString(value.value.toString())
     }
 }
 
@@ -111,6 +111,7 @@ data class Message(
     val userQuestion: String?,
     val contextualizedQuestion: String?,
     val starred: Boolean,
+    val tools: List<String>,
 )
 
 fun Message.Companion.answerFrom(
@@ -122,6 +123,7 @@ fun Message.Companion.answerFrom(
     pending: Boolean = true,
     userQuestion: String?,
     contextualizedQuestion: String?,
+    tools: List<String>,
 ) =
     Message(
         id = messageId,
@@ -137,6 +139,7 @@ fun Message.Companion.answerFrom(
         userQuestion = userQuestion,
         contextualizedQuestion = contextualizedQuestion,
         starred = false,
+        tools = tools,
     )
 
 @Serializable

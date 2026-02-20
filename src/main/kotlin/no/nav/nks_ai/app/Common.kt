@@ -20,6 +20,7 @@ import io.ktor.server.routing.route
 import io.ktor.server.sse.SSE
 import io.ktor.server.sse.ServerSSESession
 import io.ktor.server.sse.sse
+import java.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
@@ -47,7 +48,6 @@ import org.jetbrains.exposed.sql.append
 import org.jetbrains.exposed.sql.exposedLogger
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import java.util.UUID
 
 suspend fun <T> suspendTransaction(block: Transaction.() -> ApplicationResult<T>): ApplicationResult<T> =
     Either.catch {
@@ -119,6 +119,19 @@ class BcryptVerifiedOp(
         }
 }
 
+infix fun Column<List<String>>.has(value: String): Op<Boolean> =
+    HasOp(this, value)
+
+class HasOp(
+    val column: Column<List<String>>,
+    val value: String
+) : Op<Boolean>(), ComplexExpression {
+    override fun toQueryBuilder(queryBuilder: QueryBuilder) =
+        queryBuilder {
+            append("'", value, "'", " = ANY(", column, ")")
+        }
+}
+
 fun LocalDateTime.Companion.now() =
     Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
 
@@ -173,7 +186,7 @@ fun Route.sse(
     }
 }
 
-suspend fun <K, V, Err> Cache<K, V>.eitherGet(
+suspend fun <K : Any, V : Any, Err> Cache<K, V>.eitherGet(
     key: K,
     compute: suspend (K) -> Either<Err, V>
 ): Either<Err, V> = getOrNull(key)?.right()
@@ -190,7 +203,7 @@ enum class Sort(val value: String) {
     companion object {
         private val labelToEnum = entries.associateBy { it.value }
 
-        val validValues = entries.toTypedArray().asList().map { it.value }.joinToString(", ")
+        val validValues = entries.toTypedArray().asList().joinToString(", ") { it.value }
 
         fun fromStringValue(value: String): ApplicationResult<Sort> = either {
             labelToEnum[value]
@@ -213,7 +226,7 @@ fun ApplicationCall.pagination(): ApplicationResult<Pagination> = either {
     val page = parameters.getInt("page", 0).bind()
     val size = parameters.getInt("size", 100).bind()
 
-    val sort = parameters.get("sort")
+    val sort = parameters["sort"]
         ?.let { Sort.fromStringValue(it).bind() }
         ?: Sort.CreatedAtDesc
 

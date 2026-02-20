@@ -119,6 +119,7 @@ class SendMessageService(
                             pending = false,
                             userQuestion = message.userQuestion,
                             contextualizedQuestion = message.contextualizedQuestion,
+                            tools = message.tools,
                         ).map {
                             send(
                                 ConversationEvent.PendingUpdated(
@@ -244,6 +245,7 @@ class SendMessageService(
                     pending = false,
                     userQuestion = message.userQuestion,
                     contextualizedQuestion = message.contextualizedQuestion,
+                    tools = message.tools,
                 ).map { emit(it) }.bind()
             }.mapLeft { error ->
                 MetricRegister.answerFailedReceive.inc()
@@ -296,6 +298,7 @@ private fun responseToMessage(
         followUp = response.followUp,
         userQuestion = response.question.user,
         contextualizedQuestion = response.question.contextualized,
+        tools = response.tools,
     )
 }
 
@@ -330,6 +333,7 @@ private fun responseToMessage(
                 followUp = response.followUp,
                 userQuestion = response.question.user,
                 contextualizedQuestion = response.question.contextualized,
+                tools = response.tools,
             )
         }
     }

@@ -2,6 +2,7 @@ package no.nav.nks_ai.core.conversation
 
 import arrow.core.raise.either
 import arrow.core.right
+import java.util.*
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
@@ -11,11 +12,16 @@ import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.bcryptVerified
 import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.app.truncate
+import no.nav.nks_ai.core.message.Messages
 import no.nav.nks_ai.core.user.NavIdent
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.SizedIterable
+import org.jetbrains.exposed.sql.SqlExpressionBuilder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.and
-import java.util.UUID
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.notExists
+import org.jetbrains.exposed.sql.selectAll
 
 internal object Conversations : BaseTable("conversations") {
     val title = varchar("title", 255)
@@ -67,11 +73,6 @@ object ConversationRepo {
             }
         }
 
-    suspend fun deleteAllConversations(navIdent: NavIdent): ApplicationResult<Unit> =
-        suspendTransaction {
-            ConversationDAO.findAllByNavIdent(navIdent).forEach { it.delete() }.right()
-        }
-
     suspend fun getConversation(conversationId: ConversationId, navIdent: NavIdent): ApplicationResult<Conversation> =
         suspendTransaction {
             either {
@@ -118,19 +119,26 @@ object ConversationRepo {
 
     suspend fun deleteConversations(
         conversationIds: List<ConversationId>,
-    ): ApplicationResult<Unit> =
+    ): ApplicationResult<Int> =
         suspendTransaction {
-            ConversationDAO.find {
+            Conversations.deleteWhere {
                 Conversations.id inList conversationIds.map { it.value }
-            }.forEach { it.delete() }.right()
+            }.right()
         }
 
-    suspend fun getConversationsCreatedBefore(
+    suspend fun getEmptyConversationsCreatedBefore(
         dateTime: LocalDateTime,
     ): ApplicationResult<List<Conversation>> =
         suspendTransaction {
-            ConversationDAO.find {
-                Conversations.createdAt.less(dateTime)
-            }.map { it.toModel() }.right()
+            val query = Conversations.selectAll().where {
+                with(SqlExpressionBuilder) {
+                    (Conversations.createdAt less dateTime) and notExists(
+                        Messages.select(Messages.conversation)
+                            .where { Messages.conversation eq Conversations.id }
+                    )
+                }
+            }
+
+            ConversationDAO.wrapRows(query).toList().map { it.toModel() }.right()
         }
 }

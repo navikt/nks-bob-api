@@ -4,11 +4,15 @@ import arrow.core.Some
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.some
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.user.NavIdent
+
+private val logger = KotlinLogging.logger { }
 
 class MessageService() {
     suspend fun addQuestion(
@@ -65,6 +69,7 @@ class MessageService() {
         pending: Boolean,
         userQuestion: String?,
         contextualizedQuestion: String?,
+        tools: List<String>,
     ) =
         MessageRepo.updateMessage(
             messageId = messageId,
@@ -78,6 +83,7 @@ class MessageService() {
             pending = pending,
             userQuestion = userQuestion,
             contextualizedQuestion = contextualizedQuestion,
+            tools = tools,
         )
 
     suspend fun markStarredMessageUploaded(messageId: MessageId) =
@@ -116,4 +122,16 @@ class MessageService() {
             messageId = messageId,
             starred = message.starred.some(),
         )
+
+    suspend fun deleteOldMessages(deleteBefore: LocalDateTime): ApplicationResult<Unit> = either {
+        val messages = MessageRepo.getMessagesCreatedBefore(deleteBefore).bind()
+        if (messages.isEmpty()) {
+            logger.info { "Found 0 messages older than $deleteBefore" }
+            return@either
+        }
+
+        logger.info { "Deleting ${messages.size} messages older than $deleteBefore" }
+        val deletedCount = MessageRepo.deleteMessages(messages.map { it.id }).bind()
+        logger.info { "$deletedCount messages deleted" }
+    }
 }

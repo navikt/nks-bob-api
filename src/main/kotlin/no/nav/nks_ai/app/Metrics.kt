@@ -1,11 +1,11 @@
 package no.nav.nks_ai.app
 
-import io.micrometer.prometheus.PrometheusConfig
-import io.micrometer.prometheus.PrometheusMeterRegistry
-import io.prometheus.client.Counter
-import io.prometheus.client.Gauge
-import io.prometheus.client.SimpleTimer
-import io.prometheus.client.Summary
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import io.prometheus.metrics.core.datapoints.Timer
+import io.prometheus.metrics.core.metrics.Counter
+import io.prometheus.metrics.core.metrics.Gauge
+import io.prometheus.metrics.core.metrics.Histogram
 import no.nav.nks_ai.core.feedback.ResolvedCategory
 import no.nav.nks_ai.core.feedback.ResolvedImportance
 
@@ -15,113 +15,116 @@ internal val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DE
 private const val METRICS_NS = "nksbobapi"
 
 object MetricRegister {
-    val conversationsCreated = Counter.Builder()
-        .name("${METRICS_NS}_conversations_created")
+    val conversationsCreated: Counter = Counter.builder()
+        .name("${METRICS_NS}_conversations")
         .help("Hvor mange samtaler som er blitt opprettet")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    val questionsCreated = Counter.Builder()
-        .name("${METRICS_NS}_questions_created")
+    val questionsCreated: Counter = Counter.builder()
+        .name("${METRICS_NS}_questions")
         .help("Hvor mange spørsmål som er blitt stilt")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    val answersCreated = Counter.Builder()
-        .name("${METRICS_NS}_answers_created")
+    val answersCreated: Counter = Counter.builder()
+        .name("${METRICS_NS}_answers")
         .help("Hvor mange svar som er blitt opprettet")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    val answersLiked = Counter.Builder()
+    val answersLiked: Counter = Counter.builder()
         .name("${METRICS_NS}_answers_liked")
         .help("Hvor mange svar som har fått tommel opp")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    val answersDisliked = Counter.Builder()
+    val answersDisliked: Counter = Counter.builder()
         .name("${METRICS_NS}_answers_disliked")
         .help("Hvor mange svar som har fått tommel ned")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    val conversationsLiked = Counter.Builder()
+    val conversationsLiked: Counter = Counter.builder()
         .name("${METRICS_NS}_conversations_liked")
         .help("Hvor mange samtaler som har fått tommel opp")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    val conversationsDisliked = Counter.Builder()
+    val conversationsDisliked: Counter = Counter.builder()
         .name("${METRICS_NS}_conversations_disliked")
         .help("Hvor mange samtaler som har fått tommel ned")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    val sseConnections = Gauge.Builder()
+    val sseConnections: Gauge = Gauge.builder()
         .name("${METRICS_NS}_sse_connections")
         .help("Hvor mange aktive SSE-tilkoblinger")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    val websocketConnections = Gauge.Builder()
+    val websocketConnections: Gauge = Gauge.builder()
         .name("${METRICS_NS}_websocket_connections")
         .help("Hvor mange aktive websocket-tilkoblinger")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    val sharedMessageFlows = Gauge.Builder()
+    val sharedMessageFlows: Gauge = Gauge.builder()
         .name("${METRICS_NS}_shared_message_flows")
         .help("Hvor mange aktive shared message flows")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    private val answerFirstContentReceivedSummary = Summary.Builder()
+    private val answerFirstContentReceivedSummary: Histogram = Histogram.builder()
         .name("${METRICS_NS}_answer_first_content_received")
         .help("Hvor lang tid fra spørsmål er stilt til første del av innholdet i svaret mottas")
+        .classicExponentialUpperBounds(0.5, 2.0, 12)
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    fun answerFirstContentReceived(): Timer = Timer(answerFirstContentReceivedSummary)
+    fun answerFirstContentReceived(): ManualTimer = ManualTimer(answerFirstContentReceivedSummary)
 
-    private val answerFinishedReceivedSummary = Summary.Builder()
+    private val answerFinishedReceivedSummary: Histogram = Histogram.builder()
         .name("${METRICS_NS}_answer_finished_received")
         .help("Hvor lang tid fra spørsmål er stilt til hele svaret er mottatt")
+        .classicExponentialUpperBounds(0.25, 2.0, 12)
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    fun answerFinishedReceived(): Timer = Timer(answerFinishedReceivedSummary)
+    fun answerFinishedReceived(): ManualTimer = ManualTimer(answerFinishedReceivedSummary)
 
-    val answerFailedReceive = Counter.Builder()
+    val answerFailedReceive: Counter = Counter.builder()
         .name("${METRICS_NS}_answers_failed_receive")
         .help("Hvor mange svar som har feilet underveis når de mottas fra KBS")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    private val answerFeedbacks = Counter.Builder()
+    private val answerFeedbacks: Counter = Counter.builder()
         .name("${METRICS_NS}_answer_feedbacks")
         .help("Hvor mange tilbakemeldinger som har kommet på svar")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    private val answerFeedbackOptions = Counter.Builder()
+    private val answerFeedbackOptions: Counter = Counter.builder()
         .name("${METRICS_NS}_answer_feedback_options")
         .help("Totalt antall valg på tilbakemeldinger")
         .labelNames("valg")
+        .withExemplars()
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    private val answerFeedbackComments = Counter.Builder()
+    private val answerFeedbackComments: Counter = Counter.builder()
         .name("${METRICS_NS}_answer_feedback_comments")
         .help("Totalt antall kommentarer på tilbakemeldinger")
         .register(appMicrometerRegistry.prometheusRegistry)
 
     fun trackFeedback(options: List<String>, hasComment: Boolean) {
         answerFeedbacks.inc()
-        options.forEach { option ->
-            answerFeedbackOptions.labels(option).inc()
+        if (options.isNotEmpty()) {
+            answerFeedbackOptions.labelValues(*options.toTypedArray()).inc()
         }
         if (hasComment) {
             answerFeedbackComments.inc()
         }
     }
 
-    private val answerFeedbacksResolved = Counter.Builder()
+    private val answerFeedbacksResolved: Counter = Counter.builder()
         .name("${METRICS_NS}_answer_feedbacks_resolved")
         .help("Hvor mange tilbakemeldinger som har blitt ferdigstilt")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    private val answerFeedbackResolvedImportance = Counter.Builder()
+    private val answerFeedbackResolvedImportance: Counter = Counter.builder()
         .name("${METRICS_NS}_answer_feedback_resolved_importance")
         .help("Totalt antall viktighet på tilbakemeldinger")
         .labelNames("viktighet")
         .register(appMicrometerRegistry.prometheusRegistry)
 
-    private val answerFeedbackResolvedCategory = Counter.Builder()
+    private val answerFeedbackResolvedCategory: Counter = Counter.builder()
         .name("${METRICS_NS}_answer_feedback_resolved_category")
         .help("Totalt antall valg på tilbakemeldinger")
         .labelNames("kategori")
@@ -134,33 +137,31 @@ object MetricRegister {
     ) {
         if (resolved) {
             answerFeedbacksResolved.inc()
-        }
-        resolvedImportance?.let {
-            answerFeedbackResolvedImportance.labels(it.value).inc()
-        }
-        resolvedCategory?.let {
-            answerFeedbackResolvedCategory.labels(it.value).inc()
+            resolvedImportance?.let {
+                answerFeedbackResolvedImportance.labelValues(it.value).inc()
+            }
+            resolvedCategory?.let {
+                answerFeedbackResolvedCategory.labelValues(it.value).inc()
+            }
         }
     }
 }
 
-class Timer {
-    private val summary: Summary
-    private val timer: SimpleTimer
+class ManualTimer {
+    private val histogram: Histogram
+    private val timer: Timer
     var isRunning: Boolean
         private set
 
-    constructor(summary: Summary) {
-        this.summary = summary
-        this.timer = SimpleTimer()
+    constructor(histogram: Histogram) {
+        this.histogram = histogram
         this.isRunning = true
-
-        summary.startTimer()
+        this.timer = histogram.startTimer()
     }
 
     fun stop() {
         if (isRunning) {
-            summary.observe(timer.elapsedSeconds())
+            timer.observeDuration()
             isRunning = false
         }
     }

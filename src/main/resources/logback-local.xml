@@ -1,0 +1,38 @@
+<included scan="true" scanPeriod="30 seconds">
+    <property name="LOGGER_PATTERN"
+              value="%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %X{call-id} %highlight(%-5level) %logger{36} - %msg%n"/>
+    <appender name="team-logs" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%highlight(TEAM_LOGS) - ${LOGGER_PATTERN}</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator class="ch.qos.logback.classic.boolex.OnMarkerEvaluator">
+                <marker>TEAM_LOGS</marker>
+            </evaluator>
+            <OnMatch>ACCEPT</OnMatch>
+            <OnMismatch>DENY</OnMismatch>
+        </filter>
+    </appender>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOGGER_PATTERN}</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator class="ch.qos.logback.classic.boolex.OnMarkerEvaluator">
+                <marker>TEAM_LOGS</marker>
+            </evaluator>
+            <OnMatch>DENY</OnMatch>
+            <OnMismatch>ACCEPT</OnMismatch>
+        </filter>
+    </appender>
+    <root level="debug">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="team-logs"/>
+    </root>
+    <logger name="team-logs-logger" level="INFO" additivity="false">
+        <appender-ref ref="team-logs"/>
+    </logger>
+    <logger name="org.eclipse.jetty" level="INFO"/>
+    <logger name="io.netty" level="INFO"/>
+    <logger name="Exposed" level="INFO"/>
+</included>

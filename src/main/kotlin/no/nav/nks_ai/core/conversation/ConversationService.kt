@@ -2,11 +2,8 @@ package no.nav.nks_ai.core.conversation
 
 import arrow.core.raise.either
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.datetime.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationResult
-import no.nav.nks_ai.app.Config
 import no.nav.nks_ai.app.MetricRegister
 import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.MessageRepo
@@ -45,19 +42,16 @@ class ConversationService(
     suspend fun updateConversation(id: ConversationId, navIdent: NavIdent, conversation: UpdateConversation) =
         ConversationRepo.updateConversation(id, navIdent, conversation)
 
-    suspend fun deleteOldConversations(): ApplicationResult<Unit> = either {
-        val deleteBefore = Clock.System.now()
-            .minus(Config.conversationsMaxAge)
-            .toLocalDateTime(TimeZone.currentSystemDefault())
-
-        val conversations = ConversationRepo.getConversationsCreatedBefore(deleteBefore).bind()
+    suspend fun deleteOldConversations(deleteBefore: LocalDateTime): ApplicationResult<Unit> = either {
+        val conversations = ConversationRepo.getEmptyConversationsCreatedBefore(deleteBefore).bind()
         if (conversations.isEmpty()) {
-            logger.info { "Found 0 conversations older than $deleteBefore." }
+            logger.info { "Found 0 conversations older than $deleteBefore" }
             return@either
         }
 
         logger.info { "Deleting ${conversations.size} conversations older than $deleteBefore" }
-        ConversationRepo.deleteConversations(conversations.map { it.id }).bind()
+        val deletedCount = ConversationRepo.deleteConversations(conversations.map { it.id }).bind()
+        logger.info { "$deletedCount conversations deleted" }
     }
 }
 

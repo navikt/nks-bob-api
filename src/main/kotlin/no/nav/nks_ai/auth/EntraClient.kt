@@ -1,6 +1,8 @@
 package no.nav.nks_ai.auth
 
-import com.sksamuel.aedile.core.cacheBuilder
+import com.github.benmanes.caffeine.cache.Caffeine
+import com.sksamuel.aedile.core.asCache
+import com.sksamuel.aedile.core.expireAfterWrite
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -9,9 +11,9 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.Parameters
 import io.ktor.http.isSuccess
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlin.time.Duration.Companion.minutes
 
 private val logger = KotlinLogging.logger { }
 
@@ -21,15 +23,15 @@ class EntraClient(
     private val clientSecret: String,
     private val httpClient: HttpClient,
 ) {
-    val tokenCache = cacheBuilder<String, EntraTokenResponse> {
-        expireAfterWrite = 55.minutes
-    }.build()
+    val tokenCache = Caffeine.newBuilder()
+        .expireAfterWrite(55.minutes)
+        .asCache<String, EntraTokenResponse>()
 
     suspend fun getMachineToken(scope: String): String = createMachineToken(scope).accessToken
 
     private suspend fun createMachineToken(
         scope: String
-    ): EntraTokenResponse = tokenCache.get(scope) { // TODO usikker på om den faktisk lagrer til cache.
+    ): EntraTokenResponse = tokenCache.get(scope) {
         logger.debug { "Fetching machine token for scope $scope" }
         val response = httpClient.post(entraTokenUrl) {
             setBody(
