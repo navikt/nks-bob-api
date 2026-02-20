@@ -1,5 +1,5 @@
 # ---------- build stage ----------
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:25-jdk AS build
 WORKDIR /workspace
 
 # Copy gradle wrapper and build files first for better caching
@@ -15,7 +15,7 @@ COPY src src
 RUN ./gradlew installDist --no-daemon
 
 # ---------- runtime stage ----------
-FROM gcr.io/distroless/java21-debian13:nonroot
+FROM gcr.io/distroless/java25-debian13:nonroot
 WORKDIR /app
 
 COPY --from=build /workspace/build/install/no.nav.nks-bob-api/lib/ /app/lib/
