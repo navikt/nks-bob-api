@@ -15,7 +15,7 @@ COPY src src
 RUN ./gradlew installDist --no-daemon
 
 # ---------- runtime stage ----------
-FROM gcr.io/distroless/java21-debian12:nonroot
+FROM gcr.io/distroless/java21-debian13:nonroot
 WORKDIR /app
 
 COPY --from=build /workspace/build/install/no.nav.nks-bob-api/lib/ /app/lib/
