@@ -2,13 +2,16 @@ package no.nav.nks_ai.core.feedback
 
 import arrow.core.right
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.github.smiley4.ktoropenapi.delete
-import io.github.smiley4.ktoropenapi.get
-import io.github.smiley4.ktoropenapi.put
-import io.github.smiley4.ktoropenapi.route
 import io.ktor.http.HttpStatusCode
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.openapi.describe
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
+import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.app.ApplicationError
@@ -22,39 +25,10 @@ import no.nav.nks_ai.app.teamLogger
 private val logger = KotlinLogging.logger { }
 private val teamLogger = teamLogger(logger)
 
+@OptIn(ExperimentalKtorApi::class)
 fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
     route("/admin/feedbacks") {
-        get({
-            description = "Get all feedbacks"
-            request {
-                queryParameter<List<String>>("filter") {
-                    description =
-                        "Filter which feedbacks will be returned (${FeedbackFilter.validValues})"
-                    required = false
-                }
-                queryParameter<Int>("page") {
-                    description = "Which page to fetch (default = 0)"
-                    required = false
-                }
-                queryParameter<Int>("size") {
-                    description = "How many feedbacks to fetch (default = 100)"
-                    required = false
-                }
-                queryParameter<String>("sort") {
-                    description =
-                        "Sort order (default = ${Sort.CreatedAtDesc.value}). Valid values: ${Sort.validValues}"
-                    required = false
-                }
-            }
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<Page<Feedback>> {
-                        description = "All feedbacks"
-                    }
-                }
-            }
-        }) {
+        get {
             call.respondEither {
                 val pagination = call.pagination().bind()
                 val filters = call.queryParameters.getAll("filter")
@@ -65,25 +39,42 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
 
                 feedbackService.getFilteredFeedbacks(filters, pagination)
             }
+        }.describe {
+            summary = "Get all feedbacks"
+            parameters {
+                query("filter") {
+                    schema = jsonSchema<List<String>>()
+                    description =
+                        "Filter which feedbacks will be returned (${FeedbackFilter.validValues})"
+                    required = false
+                }
+                query("page") {
+                    schema = jsonSchema<Int>()
+                    description = "Which page to fetch (default = 0)"
+                    required = false
+                }
+                query("size") {
+                    schema = jsonSchema<Int>()
+                    description = "How many feedbacks to fetch (default = 100)"
+                    required = false
+                }
+                query("sort") {
+                    schema = jsonSchema<String>()
+                    description =
+                        "Sort order (default = ${Sort.CreatedAtDesc.value}). Valid values: ${Sort.validValues}"
+                    required = false
+                }
+            }
+            responses {
+                HttpStatusCode.OK {
+                    schema = jsonSchema<Page<Feedback>>()
+                    description = "All feedbacks"
+                }
+            }
         }
 
         route("/{id}") {
-            get({
-                description = "Get a feedback"
-                request {
-                    pathParameter<String>("id") {
-                        description = "ID of the feedback"
-                    }
-                }
-                response {
-                    HttpStatusCode.OK to {
-                        description = "The operation was successful"
-                        body<Feedback> {
-                            description = "The requested feedback"
-                        }
-                    }
-                }
-            }) {
+            get {
                 call.respondEither {
                     val feedbackId = call.feedbackId().bind()
                     val navIdent = call.navIdent().bind()
@@ -91,26 +82,22 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
 
                     feedbackService.getFeedback(feedbackId)
                 }
-            }
-            put({
-                description = "Update a feedback"
-                request {
-                    pathParameter<String>("id") {
+            }.describe {
+                description = "Get a feedback"
+                parameters {
+                    path("id") {
+                        schema = jsonSchema<String>()
                         description = "ID of the feedback"
                     }
-                    body<UpdateFeedback> {
-                        description = "The updated feedback"
+                }
+                responses {
+                    HttpStatusCode.OK {
+                        schema = jsonSchema<Feedback>()
+                        description = "The requested feedback"
                     }
                 }
-                response {
-                    HttpStatusCode.OK to {
-                        description = "The operation was successful"
-                        body<Feedback> {
-                            description = "The requested feedback"
-                        }
-                    }
-                }
-            }) {
+            }
+            put {
                 call.respondEither {
                     val feedbackId = call.feedbackId().bind()
                     val updateFeedback = call.receive<UpdateFeedback>()
@@ -119,20 +106,26 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
 
                     feedbackService.updateFeedback(feedbackId, updateFeedback)
                 }
-            }
-            delete({
-                description = "Delete a feedback"
-                request {
-                    pathParameter<String>("id") {
+            }.describe {
+                description = "Update a feedback"
+                parameters {
+                    path("id") {
+                        schema = jsonSchema<String>()
                         description = "ID of the feedback"
                     }
                 }
-                response {
-                    HttpStatusCode.NoContent to {
-                        description = "The operation was successful"
+                requestBody {
+                    schema = jsonSchema<UpdateFeedback>()
+                    description = "The updated feedback"
+                }
+                responses {
+                    HttpStatusCode.OK {
+                        schema = jsonSchema<Feedback>()
+                        description = "The requested feedback"
                     }
                 }
-            }) {
+            }
+            delete {
                 call.respondEither(HttpStatusCode.NoContent) {
                     val feedbackId = call.feedbackId().bind()
                     val navIdent = call.navIdent().bind()
@@ -140,34 +133,28 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
 
                     feedbackService.deleteFeedback(feedbackId)
                 }
+            }.describe {
+                description = "Delete a feedback"
+                parameters {
+                    path("id") {
+                        schema = jsonSchema<String>()
+                        description = "ID of the feedback"
+                    }
+                }
+                responses {
+                    HttpStatusCode.NoContent {
+                        description = "The operation was successful"
+                    }
+                }
             }
         }
     }
 }
 
+@OptIn(ExperimentalKtorApi::class)
 fun Route.feedbackAdminBatchRoutes(feedbackService: FeedbackService) {
     route("/admin/feedbacks_batch") {
-        put({
-            description = "Batch resolve (DateExpired) all unresolved feedbacks created before supplied date"
-            request {
-                queryParameter<String>("before") {
-                    description = "Resolve feedbacks created before this timestamp (ISO-8601 LocalDateTime, e.g. 2026-02-18T12:30:00)"
-                    required = true
-                }
-                queryParameter<String>("note") {
-                    description = "Resolve feedbacks with this note"
-                    required = true
-                }
-            }
-            response {
-                HttpStatusCode.OK to {
-                    description = "Number of feedbacks updated"
-                    body<BatchResolveFeedbacksResponse> {
-                        description = "Result of the batch operation"
-                    }
-                }
-            }
-        }) {
+        put {
             call.respondEither<BatchResolveFeedbacksResponse> {
                 val beforeRaw = call.request.queryParameters["before"]
                     ?: raise(ApplicationError.BadRequest("Missing required query parameter 'before'"))
@@ -185,6 +172,27 @@ fun Route.feedbackAdminBatchRoutes(feedbackService: FeedbackService) {
 
                 val updated = feedbackService.batchResolveFeedbacksBefore(before, note).bind()
                 BatchResolveFeedbacksResponse(updated = updated, before = beforeRaw).right()
+            }
+        }.describe {
+            description = "Batch resolve (DateExpired) all unresolved feedbacks created before supplied date"
+            parameters {
+                query("before") {
+                    schema = jsonSchema<String>()
+                    description =
+                        "Resolve feedbacks created before this timestamp (ISO-8601 LocalDateTime, e.g. 2026-02-18T12:30:00)"
+                    required = true
+                }
+                query("note") {
+                    schema = jsonSchema<String>()
+                    description = "Resolve feedbacks with this note"
+                    required = true
+                }
+            }
+            responses {
+                HttpStatusCode.OK {
+                    schema = jsonSchema<BatchResolveFeedbacksResponse>()
+                    description = "Result of the batch operation"
+                }
             }
         }
     }
