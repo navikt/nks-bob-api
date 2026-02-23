@@ -8,7 +8,7 @@ group = "no.nav.nks_ai"
 version = "0.0.1"
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 application {
