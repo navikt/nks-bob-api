@@ -20,38 +20,37 @@ import io.ktor.server.routing.route
 import io.ktor.server.sse.SSE
 import io.ktor.server.sse.ServerSSESession
 import io.ktor.server.sse.sse
-import java.util.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.core.user.NavIdent
-import org.jetbrains.exposed.dao.EntityChangeType
-import org.jetbrains.exposed.dao.EntityHook
-import org.jetbrains.exposed.dao.UUIDEntity
-import org.jetbrains.exposed.dao.UUIDEntityClass
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.UUIDTable
-import org.jetbrains.exposed.dao.toEntity
-import org.jetbrains.exposed.sql.Column
-import org.jetbrains.exposed.sql.ComplexExpression
-import org.jetbrains.exposed.sql.Expression
-import org.jetbrains.exposed.sql.ExpressionWithColumnType
-import org.jetbrains.exposed.sql.Op
-import org.jetbrains.exposed.sql.QueryBuilder
-import org.jetbrains.exposed.sql.SizedIterable
-import org.jetbrains.exposed.sql.SortOrder
-import org.jetbrains.exposed.sql.Transaction
-import org.jetbrains.exposed.sql.append
-import org.jetbrains.exposed.sql.exposedLogger
-import org.jetbrains.exposed.sql.kotlin.datetime.datetime
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.ComplexExpression
+import org.jetbrains.exposed.v1.core.Expression
+import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
+import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.QueryBuilder
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.Transaction
+import org.jetbrains.exposed.v1.core.append
+import org.jetbrains.exposed.v1.core.asLiteral
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable
+import org.jetbrains.exposed.v1.core.exposedLogger
+import org.jetbrains.exposed.v1.dao.EntityChangeType
+import org.jetbrains.exposed.v1.dao.EntityHook
+import org.jetbrains.exposed.v1.dao.java.UUIDEntity
+import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
+import org.jetbrains.exposed.v1.dao.toEntity
+import org.jetbrains.exposed.v1.datetime.datetime
+import org.jetbrains.exposed.v1.jdbc.SizedIterable
+import java.util.*
 
 suspend fun <T> suspendTransaction(block: Transaction.() -> ApplicationResult<T>): ApplicationResult<T> =
     Either.catch {
-        newSuspendedTransaction(Dispatchers.IO, statement = block)
+        org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction(statement = block)
     }.mapLeft { throwable ->
         ApplicationError.InternalServerError(
             throwable.message ?: "Database error",
@@ -107,7 +106,7 @@ abstract class BaseEntityClass<out E : BaseEntity>(
 }
 
 infix fun <T> ExpressionWithColumnType<T>.bcryptVerified(t: NavIdent): Op<Boolean> =
-    BcryptVerifiedOp(this, Expression.build { asLiteral(t.plaintext.value) })
+    BcryptVerifiedOp(this, asLiteral(t.plaintext.value))
 
 class BcryptVerifiedOp(
     val expr1: Expression<*>,

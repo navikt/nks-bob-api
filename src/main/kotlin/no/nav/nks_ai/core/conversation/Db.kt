@@ -2,7 +2,6 @@ package no.nav.nks_ai.core.conversation
 
 import arrow.core.raise.either
 import arrow.core.right
-import java.util.*
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ApplicationResult
@@ -14,14 +13,17 @@ import no.nav.nks_ai.app.suspendTransaction
 import no.nav.nks_ai.app.truncate
 import no.nav.nks_ai.core.message.Messages
 import no.nav.nks_ai.core.user.NavIdent
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.sql.SizedIterable
-import org.jetbrains.exposed.sql.SqlExpressionBuilder
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.notExists
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.less
+import org.jetbrains.exposed.v1.core.notExists
+import org.jetbrains.exposed.v1.jdbc.SizedIterable
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import java.util.*
 
 internal object Conversations : BaseTable("conversations") {
     val title = varchar("title", 255)
@@ -131,12 +133,10 @@ object ConversationRepo {
     ): ApplicationResult<List<Conversation>> =
         suspendTransaction {
             val query = Conversations.selectAll().where {
-                with(SqlExpressionBuilder) {
-                    (Conversations.createdAt less dateTime) and notExists(
-                        Messages.select(Messages.conversation)
-                            .where { Messages.conversation eq Conversations.id }
-                    )
-                }
+                (Conversations.createdAt less dateTime) and notExists(
+                    Messages.select(Messages.conversation)
+                        .where { Messages.conversation eq Conversations.id }
+                )
             }
 
             ConversationDAO.wrapRows(query).toList().map { it.toModel() }.right()

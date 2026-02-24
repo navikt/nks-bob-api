@@ -9,7 +9,8 @@ import no.nav.nks_ai.app.BaseEntity
 import no.nav.nks_ai.app.BaseEntityClass
 import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.suspendTransaction
-import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.eq
 import java.util.UUID
 
 internal object UserConfigs : BaseTable("user_configs") {
