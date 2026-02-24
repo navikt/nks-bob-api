@@ -118,7 +118,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 }
                 responses {
                     HttpStatusCode.OK {
-                        jsonSchema<Conversation>()
+                        schema = jsonSchema<Conversation>()
                         description = "The conversation which the message belongs to"
                     }
                 }

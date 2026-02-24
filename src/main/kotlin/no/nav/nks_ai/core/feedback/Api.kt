@@ -40,7 +40,7 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                 feedbackService.getFilteredFeedbacks(filters, pagination)
             }
         }.describe {
-            summary = "Get all feedbacks"
+            description = "Get all feedbacks"
             parameters {
                 query("filter") {
                     schema = jsonSchema<List<String>>()
