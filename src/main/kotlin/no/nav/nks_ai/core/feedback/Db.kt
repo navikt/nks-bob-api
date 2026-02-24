@@ -86,7 +86,7 @@ object FeedbackRepo {
         suspendTransaction {
             either {
                 Page(
-                    data = FeedbackDAO.find(op)
+                    data = FeedbackDAO.find { op }
                         .paginated(pagination, Feedbacks)
                         .map(FeedbackDAO::toModel),
                     total = FeedbackDAO.find(op).count()

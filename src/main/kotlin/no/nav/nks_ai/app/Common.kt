@@ -106,7 +106,7 @@ abstract class BaseEntityClass<out E : BaseEntity>(
 }
 
 infix fun <T> ExpressionWithColumnType<T>.bcryptVerified(t: NavIdent): Op<Boolean> =
-    BcryptVerifiedOp(this,  asLiteral(t.plaintext.value))
+    BcryptVerifiedOp(this, asLiteral(t.plaintext.value))
 
 class BcryptVerifiedOp(
     val expr1: Expression<*>,
