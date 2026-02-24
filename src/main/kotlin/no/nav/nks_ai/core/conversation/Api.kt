@@ -2,15 +2,18 @@ package no.nav.nks_ai.core.conversation
 
 import arrow.core.raise.either
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.github.smiley4.ktoropenapi.delete
-import io.github.smiley4.ktoropenapi.get
-import io.github.smiley4.ktoropenapi.post
-import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.HttpStatusCode
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.openapi.describe
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import io.ktor.server.routing.route
+import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.emitAll
@@ -28,44 +31,28 @@ import no.nav.nks_ai.core.message.NewMessage
 
 private val logger = KotlinLogging.logger { }
 
+@OptIn(ExperimentalKtorApi::class)
 fun Route.conversationRoutes(
     conversationService: ConversationService,
     messageService: MessageService,
     sendMessageService: SendMessageService
 ) {
     route("/conversations") {
-        get({
-            description = "Get all of your conversations"
-            response {
-                HttpStatusCode.OK to {
-                    description = "A list of your conversations"
-                    body<List<Conversation>> {
-                        description = "A list of your conversations"
-                    }
-                }
-            }
-        }) {
+        get {
             val navIdent = call.getNavIdent()
                 ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
             call.respondResult(conversationService.getAllConversations(navIdent))
+        }.describe {
+            description = "Get all of your conversations"
+            responses {
+                HttpStatusCode.OK {
+                    schema = jsonSchema<List<Conversation>>()
+                    description = "A list of your conversations"
+                }
+            }
         }
-        post({
-            description = "Create a new conversation"
-            request {
-                body<NewConversation> {
-                    description = "The conversation to be created"
-                }
-            }
-            response {
-                HttpStatusCode.Created to {
-                    description = "The conversation was created"
-                    body<Conversation> {
-                        description = "The conversation that got created"
-                    }
-                }
-            }
-        }) {
+        post {
             coroutineScope {
                 val newConversation = call.receive<NewConversation>()
 
@@ -97,23 +84,20 @@ fun Route.conversationRoutes(
                     call.respond(HttpStatusCode.Created, conversation)
                 }.onLeft { call.respondError(it) }
             }
+        }.describe {
+            description = "Create a new conversation"
+            requestBody {
+                schema = jsonSchema<NewConversation>()
+                description = "The conversation to be created"
+            }
+            responses {
+                HttpStatusCode.Created {
+                    schema = jsonSchema<Conversation>()
+                    description = "The conversation that got created"
+                }
+            }
         }
-        get("/{id}", {
-            description = "Get a conversation with the given ID"
-            request {
-                pathParameter<String>("id") {
-                    description = "The ID of the conversation"
-                }
-            }
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<Conversation> {
-                        description = "The conversation requested"
-                    }
-                }
-            }
-        }) {
+        get("/{id}") {
             val conversationId = call.conversationId()
                 ?: return@get call.respondError(ApplicationError.MissingConversationId())
 
@@ -121,20 +105,22 @@ fun Route.conversationRoutes(
                 ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
             call.respondResult(conversationService.getConversation(conversationId, navIdent))
-        }
-        delete("/{id}", {
-            description = "Delete a conversation with the given ID"
-            request {
-                pathParameter<String>("id") {
+        }.describe {
+            description = "Get a conversation with the given ID"
+            parameters {
+                path("id") {
+                    schema = jsonSchema<String>()
                     description = "The ID of the conversation"
                 }
             }
-            response {
-                HttpStatusCode.NoContent to {
-                    description = "The operation was successful"
+            responses {
+                HttpStatusCode.OK {
+                    schema = jsonSchema<Conversation>()
+                    description = "The conversation requested"
                 }
             }
-        }) {
+        }
+        delete("/{id}") {
             val conversationId = call.conversationId()
                 ?: return@delete call.respondError(ApplicationError.MissingConversationId())
 
@@ -145,26 +131,21 @@ fun Route.conversationRoutes(
                 HttpStatusCode.NoContent,
                 conversationService.deleteConversation(conversationId, navIdent)
             )
-        }
-        put("/{id}", {
-            description = "Update a conversation with the given ID"
-            request {
-                pathParameter<String>("id") {
+        }.describe {
+            description = "Delete a conversation with the given ID"
+            parameters {
+                path("id") {
+                    schema = jsonSchema<String>()
                     description = "The ID of the conversation"
                 }
-                body<UpdateConversation> {
-                    description = "The conversation request to update"
-                }
             }
-            response {
-                HttpStatusCode.OK to {
+            responses {
+                HttpStatusCode.NoContent {
                     description = "The operation was successful"
-                    body<Conversation> {
-                        description = "The updated conversation"
-                    }
                 }
             }
-        }) {
+        }
+        put("/{id}") {
             val conversationId = call.conversationId()
                 ?: return@put call.respondError(ApplicationError.MissingConversationId())
 
@@ -174,23 +155,26 @@ fun Route.conversationRoutes(
                 ?: return@put call.respondError(ApplicationError.MissingNavIdent())
 
             call.respondResult(conversationService.updateConversation(conversationId, navIdent, conversation))
-        }
-        get("/{id}/messages", {
-            description = "Get all messages for a given conversation"
-            request {
-                pathParameter<String>("id") {
+        }.describe {
+            description = "Update a conversation with the given ID"
+            requestBody {
+                schema = jsonSchema<UpdateConversation>()
+                description = "The conversation request to update"
+            }
+            parameters {
+                path("id") {
+                    schema = jsonSchema<String>()
                     description = "The ID of the conversation"
                 }
             }
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<List<Message>> {
-                        description = "The messages in the conversation"
-                    }
+            responses {
+                HttpStatusCode.OK {
+                    schema = jsonSchema<Conversation>()
+                    description = "The updated conversation"
                 }
             }
-        }) {
+        }
+        get("/{id}/messages") {
             val conversationId = call.conversationId()
                 ?: return@get call.respondError(ApplicationError.MissingConversationId())
 
@@ -198,23 +182,22 @@ fun Route.conversationRoutes(
                 ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
             call.respondResult(conversationService.getConversationMessages(conversationId, navIdent))
-        }
-        post("/{id}/messages", {
-            description = "Add a new message to the conversation"
-            request {
-                pathParameter<String>("id") {
+        }.describe {
+            description = "Get all messages for a given conversation"
+            parameters {
+                path("id") {
+                    schema = jsonSchema<String>()
                     description = "The ID of the conversation"
                 }
-                body<NewMessage> {
-                    description = "The new message for the conversation"
+            }
+            responses {
+                HttpStatusCode.OK {
+                    schema = jsonSchema<List<Message>>()
+                    description = "The messages in the conversation"
                 }
             }
-            response {
-                HttpStatusCode.Accepted to {
-                    description = "The operation will be processed"
-                }
-            }
-        }) {
+        }
+        post("/{id}/messages") {
             val conversationId = call.conversationId()
                 ?: return@post call.respondError(ApplicationError.MissingConversationId())
 
@@ -242,26 +225,25 @@ fun Route.conversationRoutes(
 
                 call.respond(HttpStatusCode.Accepted)
             }
+        }.describe {
+            description = "Add a new message to the conversation"
+            requestBody {
+                schema = jsonSchema<NewMessage>()
+                description = "The new message for the conversation"
+            }
+            parameters {
+                path("id") {
+                    schema = jsonSchema<String>()
+                    description = "The ID of the conversation"
+                }
+            }
+            responses {
+                HttpStatusCode.Accepted {
+                    description = "The operation will be processed"
+                }
+            }
         }
-        post("/{id}/feedback", {
-            description = "Create a new feedback for a conversation"
-            request {
-                pathParameter<String>("id") {
-                    description = "ID of the conversation"
-                }
-                body<ConversationFeedback> {
-                    description = "The feedback to be created"
-                }
-            }
-            response {
-                HttpStatusCode.Created to {
-                    description = "The feedback was created"
-                    body<ConversationFeedback> {
-                        description = "The feedback that got created"
-                    }
-                }
-            }
-        }) {
+        post("/{id}/feedback") {
             val conversationId = call.conversationId()
                 ?: return@post call.respondError(ApplicationError.MissingConversationId())
 
@@ -281,6 +263,24 @@ fun Route.conversationRoutes(
 
                 call.respond(HttpStatusCode.Created, ConversationFeedback(feedback.liked))
             }.onLeft { call.respondError(it) }
+        }.describe {
+            description = "Create a new feedback for a conversation"
+            requestBody {
+                schema = jsonSchema<ConversationFeedback>()
+                description = "The feedback to be created"
+            }
+            parameters {
+                path("id") {
+                    schema = jsonSchema<String>()
+                    description = "ID of the conversation"
+                }
+            }
+            responses {
+                HttpStatusCode.Created {
+                    schema = jsonSchema<ConversationFeedback>()
+                    description = "The feedback that got created"
+                }
+            }
         }
     }
 }

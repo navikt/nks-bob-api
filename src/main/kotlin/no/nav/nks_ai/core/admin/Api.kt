@@ -1,10 +1,13 @@
 package no.nav.nks_ai.core.admin
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.github.smiley4.ktoropenapi.get
 import io.ktor.http.HttpStatusCode
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.openapi.describe
 import io.ktor.server.routing.route
+import io.ktor.utils.io.ExperimentalKtorApi
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.navIdent
 import no.nav.nks_ai.app.respondEither
@@ -12,30 +15,17 @@ import no.nav.nks_ai.app.teamLogger
 import no.nav.nks_ai.core.conversation.Conversation
 import no.nav.nks_ai.core.conversation.ConversationSummary
 import no.nav.nks_ai.core.conversation.conversationId
+import no.nav.nks_ai.core.message.Message
 import no.nav.nks_ai.core.message.messageId
 
 private val logger = KotlinLogging.logger { }
 private val teamLogger = teamLogger(logger)
 
+@OptIn(ExperimentalKtorApi::class)
 fun Route.adminRoutes(adminService: AdminService) {
     route("/admin") {
         route("/conversations") {
-            get("/{id}", {
-                description = "Get conversation by id"
-                request {
-                    pathParameter<String>("id") {
-                        description = "The ID of the conversation"
-                    }
-                }
-                response {
-                    HttpStatusCode.OK to {
-                        description = "The requested conversation"
-                        body<Conversation> {
-                            description = "The requested conversation"
-                        }
-                    }
-                }
-            }) {
+            get("/{id}") {
                 call.respondEither {
                     val conversationId = call.conversationId()
                         ?: raise(ApplicationError.MissingConversationId())
@@ -44,23 +34,22 @@ fun Route.adminRoutes(adminService: AdminService) {
 
                     adminService.getConversation(conversationId)
                 }
-            }
-            get("/{id}/summary", {
-                description = "Get conversation summary for the given conversation ID"
-                request {
-                    pathParameter<String>("id") {
+            }.describe {
+                description = "Get conversation by id"
+                parameters {
+                    path("id") {
+                        schema = jsonSchema<String>()
                         description = "The ID of the conversation"
                     }
                 }
-                response {
-                    HttpStatusCode.OK to {
-                        description = "The operation was successful"
-                        body<ConversationSummary>() {
-                            description = "Conversation summary"
-                        }
+                responses {
+                    HttpStatusCode.OK {
+                        schema = jsonSchema<Conversation>()
+                        description = "The requested conversation"
                     }
                 }
-            }) {
+            }
+            get("/{id}/summary") {
                 call.respondEither {
                     val conversationId = call.conversationId()
                         ?: raise(ApplicationError.MissingConversationId())
@@ -69,23 +58,22 @@ fun Route.adminRoutes(adminService: AdminService) {
 
                     adminService.getConversationSummary(conversationId)
                 }
-            }
-            get("/{id}/messages", {
-                description = "Get all messages for the given conversation ID"
-                request {
-                    pathParameter<String>("id") {
+            }.describe {
+                description = "Get conversation summary for the given conversation ID"
+                parameters {
+                    path("id") {
+                        schema = jsonSchema<String>()
                         description = "The ID of the conversation"
                     }
                 }
-                response {
-                    HttpStatusCode.OK to {
-                        description = "The operation was successful"
-                        body<ConversationSummary>() {
-                            description = "Conversation messages"
-                        }
+                responses {
+                    HttpStatusCode.OK {
+                        schema = jsonSchema<ConversationSummary>()
+                        description = "Conversation summary"
                     }
                 }
-            }) {
+            }
+            get("/{id}/messages") {
                 call.respondEither {
                     val conversationId = call.conversationId()
                         ?: raise(ApplicationError.MissingConversationId())
@@ -94,25 +82,24 @@ fun Route.adminRoutes(adminService: AdminService) {
 
                     adminService.getConversationMessages(conversationId)
                 }
+            }.describe {
+                description = "Get all messages for the given conversation ID"
+                parameters {
+                    path("id") {
+                        schema = jsonSchema<String>()
+                        description = "The ID of the conversation"
+                    }
+                }
+                responses {
+                    HttpStatusCode.OK {
+                        schema = jsonSchema<List<Message>>()
+                        description = "Conversation messages"
+                    }
+                }
             }
         }
         route("/messages") {
-            get("/{id}/conversation", {
-                description = "Get the conversation for the given message ID"
-                request {
-                    pathParameter<String>("id") {
-                        description = "ID of the message"
-                    }
-                }
-                response {
-                    HttpStatusCode.OK to {
-                        description = "The operation was successful"
-                        body<Conversation> {
-                            description = "The conversation which the message belongs to"
-                        }
-                    }
-                }
-            }) {
+            get("/{id}/conversation") {
                 call.respondEither {
                     val messageId = call.messageId()
                         ?: raise(ApplicationError.MissingMessageId())
@@ -121,23 +108,22 @@ fun Route.adminRoutes(adminService: AdminService) {
 
                     adminService.getConversationFromMessageId(messageId)
                 }
+            }.describe {
+                description = "Get the conversation for the given message ID"
+                parameters {
+                    path("id") {
+                        schema = jsonSchema<String>()
+                        description = "ID of the message"
+                    }
+                }
+                responses {
+                    HttpStatusCode.OK {
+                        schema = jsonSchema<Conversation>()
+                        description = "The conversation which the message belongs to"
+                    }
+                }
             }
-            get("/{id}/conversation/summary", {
-                description = "Get conversation summary for the given message ID"
-                request {
-                    pathParameter<String>("id") {
-                        description = "The ID of the message"
-                    }
-                }
-                response {
-                    HttpStatusCode.OK to {
-                        description = "The operation was successful"
-                        body<ConversationSummary> {
-                            description = "Conversation summary"
-                        }
-                    }
-                }
-            }) {
+            get("/{id}/conversation/summary") {
                 call.respondEither {
                     val messageId = call.messageId()
                         ?: raise(ApplicationError.MissingMessageId())
@@ -146,6 +132,20 @@ fun Route.adminRoutes(adminService: AdminService) {
 
                     val conversation = adminService.getConversationFromMessageId(messageId).bind()
                     adminService.getConversationSummary(conversation.id)
+                }
+            }.describe {
+                description = "Get conversation summary for the given message ID"
+                parameters {
+                    path("id") {
+                        schema = jsonSchema<String>()
+                        description = "The ID of the message"
+                    }
+                }
+                responses {
+                    HttpStatusCode.OK {
+                        schema = jsonSchema<ConversationSummary>()
+                        description = "Conversation summary"
+                    }
                 }
             }
         }

@@ -1,7 +1,5 @@
 package no.nav.nks_ai
 
-import io.github.smiley4.ktoropenapi.openApi
-import io.github.smiley4.ktorswaggerui.swaggerUI
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.apache.Apache
@@ -11,19 +9,22 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.sse.SSE
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
+import io.ktor.openapi.OpenApiInfo
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.EngineMain
+import io.ktor.server.plugins.swagger.swaggerUI
+import io.ktor.server.routing.openapi.OpenApiDocSource
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import io.ktor.server.routing.routingRoot
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.app.Config
 import no.nav.nks_ai.app.bq.BigQueryClient
 import no.nav.nks_ai.app.plugins.configureDatabases
 import no.nav.nks_ai.app.plugins.configureMonitoring
-import no.nav.nks_ai.app.plugins.configureOpenApi
 import no.nav.nks_ai.app.plugins.configureSecurity
 import no.nav.nks_ai.app.plugins.configureSerialization
 import no.nav.nks_ai.app.plugins.healthRoutes
@@ -59,7 +60,6 @@ fun Application.module() {
     configureDatabases()
     configureMonitoring()
     configureSecurity()
-    configureOpenApi()
 
     val httpClient = defaultHttpClient {}
 
@@ -115,10 +115,14 @@ fun Application.module() {
         route("/internal") {
             healthRoutes()
         }
-        route("/swagger-ui") {
-            swaggerUI("/swagger-ui/api.json")
-            route("/api.json") {
-                openApi()
+        swaggerUI("/swagger-ui") {
+            info = OpenApiInfo(
+                version = "0.0.1",
+                title = "NKS Bob API",
+                description = "API for Nav Kontaktsenters chatbot Bob."
+            )
+            source = OpenApiDocSource.Routing {
+                routingRoot.descendants()
             }
         }
     }

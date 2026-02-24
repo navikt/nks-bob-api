@@ -1,12 +1,15 @@
 package no.nav.nks_ai.core.message
 
-import io.github.smiley4.ktoropenapi.get
-import io.github.smiley4.ktoropenapi.post
-import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.HttpStatusCode
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.openapi.describe
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import io.ktor.server.routing.route
+import io.ktor.utils.io.ExperimentalKtorApi
 import no.nav.nks_ai.app.ApplicationError
 import no.nav.nks_ai.app.ErrorResponse
 import no.nav.nks_ai.app.getNavIdent
@@ -16,27 +19,13 @@ import no.nav.nks_ai.core.feedback.CreateFeedback
 import no.nav.nks_ai.core.feedback.Feedback
 import no.nav.nks_ai.core.feedback.FeedbackService
 
+@OptIn(ExperimentalKtorApi::class)
 fun Route.messageRoutes(
     messageService: MessageService,
     feedbackService: FeedbackService,
 ) {
     route("/messages") {
-        get("/{id}", {
-            description = "Get a message with the given ID"
-            request {
-                pathParameter<String>("id") {
-                    description = "ID of the message"
-                }
-            }
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<Message> {
-                        description = "The message requested"
-                    }
-                }
-            }
-        }) {
+        get("/{id}") {
             val navIdent = call.getNavIdent()
                 ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
@@ -44,53 +33,48 @@ fun Route.messageRoutes(
                 ?: return@get call.respondError(ApplicationError.MissingMessageId())
 
             call.respondResult(messageService.getMessage(messageId, navIdent))
-        }
-        put("/{id}", {
-            description = "Update a message"
-            request {
-                pathParameter<String>("id") {
+        }.describe {
+            description = "Get a message with the given ID"
+            parameters {
+                path("id") {
+                    schema = jsonSchema<String>()
                     description = "ID of the message"
                 }
-                body<UpdateMessage> {
-                    description = "The updated message"
+            }
+            responses {
+                HttpStatusCode.OK {
+                    schema = jsonSchema<Message>()
+                    description = "The message requested"
                 }
             }
-            response {
-                HttpStatusCode.OK to {
-                    description = "The operation was successful"
-                    body<Message> {
-                        description = "The message requested"
-                    }
-                }
-            }
-        }) {
+        }
+        put("/{id}") {
             val messageId = call.messageId()
                 ?: return@put call.respondError(ApplicationError.MissingMessageId())
 
             val message = call.receive<UpdateMessage>()
 
             call.respondResult(messageService.updateMessage(messageId, message))
-        }
-        get("/{id}/feedback", {
-            description = "Get the feedback for a message"
-            request {
-                pathParameter<String>("id") {
+        }.describe {
+            description = "Update a message"
+            requestBody {
+                schema = jsonSchema<UpdateMessage>()
+                description = "The updated message"
+            }
+            parameters {
+                path("id") {
+                    schema = jsonSchema<String>()
                     description = "ID of the message"
                 }
             }
-            response {
-                HttpStatusCode.OK to {
-                    description = "The feedback for the message"
-                    body<Feedback> {
-                        description = "The feedback for the message"
-                    }
-                }
-                HttpStatusCode.NotFound to {
-                    description = "Message or feedback does not exist"
-                    body<ErrorResponse>()
+            responses {
+                HttpStatusCode.OK {
+                    schema = jsonSchema<Message>()
+                    description = "The message requested"
                 }
             }
-        }) {
+        }
+        get("/{id}/feedback") {
             val navIdent = call.getNavIdent()
                 ?: return@get call.respondError(ApplicationError.MissingNavIdent())
 
@@ -98,26 +82,27 @@ fun Route.messageRoutes(
                 ?: return@get call.respondError(ApplicationError.MissingMessageId())
 
             call.respondResult(feedbackService.getFeedbacksForMessage(messageId, navIdent))
-        }
-        post("/{id}/feedback", {
-            description = "Create a new feedback for a message"
-            request {
-                pathParameter<String>("id") {
+        }.describe {
+            description = "Get the feedback for a message"
+            parameters {
+                path("id") {
+                    schema = jsonSchema<String>()
                     description = "ID of the message"
                 }
-                body<CreateFeedback> {
-                    description = "The feedback to be created"
+            }
+            responses {
+                HttpStatusCode.OK {
+                    schema = jsonSchema<List<Feedback>>()
+                    description = "The feedbacks for the message"
+
+                }
+                HttpStatusCode.NotFound {
+                    schema = jsonSchema<ErrorResponse>()
+                    description = "Message or feedback does not exist"
                 }
             }
-            response {
-                HttpStatusCode.Created to {
-                    description = "The feedback was created"
-                    body<Feedback> {
-                        description = "The feedback that got created"
-                    }
-                }
-            }
-        }) {
+        }
+        post("/{id}/feedback") {
             val navIdent = call.getNavIdent()
                 ?: return@post call.respondError(ApplicationError.MissingNavIdent())
 
@@ -129,6 +114,24 @@ fun Route.messageRoutes(
                 HttpStatusCode.Created,
                 feedbackService.addFeedback(messageId, navIdent, feedback)
             )
+        }.describe {
+            description = "Create a new feedback for a message"
+            requestBody {
+                schema = jsonSchema<CreateFeedback>()
+                description = "The feedback to be created"
+            }
+            parameters {
+                path("id") {
+                    schema = jsonSchema<String>()
+                    description = "ID of the message"
+                }
+            }
+            responses {
+                HttpStatusCode.Created {
+                    schema = jsonSchema<Feedback>()
+                    description = "The feedback that got created"
+                }
+            }
         }
     }
 }
