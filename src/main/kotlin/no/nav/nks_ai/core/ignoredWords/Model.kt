@@ -16,36 +16,36 @@ import no.nav.nks_ai.app.toUUID
 import no.nav.nks_ai.core.conversation.ConversationId
 import java.util.*
 
-object IgnoredWordsIdSerializer : KSerializer<IgnoredWordsId> {
-    override fun deserialize(decoder: Decoder): IgnoredWordsId {
-        return decoder.decodeString().toUUID().toIgnoredWordsId()
+object IgnoredWordIdSerializer : KSerializer<IgnoredWordId> {
+    override fun deserialize(decoder: Decoder): IgnoredWordId {
+        return decoder.decodeString().toUUID().toIgnoredWordId()
     }
 
     override val descriptor: SerialDescriptor
-        get() = PrimitiveSerialDescriptor("IgnoredWordsId", PrimitiveKind.STRING)
+        get() = PrimitiveSerialDescriptor("IgnoredWordId", PrimitiveKind.STRING)
 
     override fun serialize(
         encoder: Encoder,
-        value: IgnoredWordsId
+        value: IgnoredWordId
     ) {
         encoder.encodeString(value.value.toString())
     }
 }
 
-@Serializable(IgnoredWordsIdSerializer::class)
+@Serializable(IgnoredWordIdSerializer::class)
 @JvmInline
-value class IgnoredWordsId(@Contextual val value: UUID)
+value class IgnoredWordId(@Contextual val value: UUID)
 
-fun UUID.toIgnoredWordsId() = IgnoredWordsId(this)
+fun UUID.toIgnoredWordId() = IgnoredWordId(this)
 
-fun ApplicationCall.ignoredWordsId(name: String = "id"): ApplicationResult<IgnoredWordsId> = either {
-    parameters[name]?.toUUID()?.toIgnoredWordsId()
+fun ApplicationCall.ignoredWordId(name: String = "id"): ApplicationResult<IgnoredWordId> = either {
+    parameters[name]?.toUUID()?.toIgnoredWordId()
         ?: raise(ApplicationError.MissingIgnoredWordsId())
 }
 
 @Serializable
 data class IgnoredWord(
-    val id: IgnoredWordsId,
+    val id: IgnoredWordId,
     val value: String,
     val validationType: String,
     val conversationId: ConversationId?
@@ -61,5 +61,6 @@ data class NewIgnoredWord(
 @Serializable
 data class IgnoredWordAggregation(
     val value: String,
+    val validationType: String,
     val count: Int
 )

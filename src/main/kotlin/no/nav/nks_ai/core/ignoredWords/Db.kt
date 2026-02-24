@@ -6,8 +6,10 @@ import no.nav.nks_ai.core.conversation.ConversationDAO
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.Conversations
 import no.nav.nks_ai.core.conversation.toConversationId
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.v1.core.alias
+import org.jetbrains.exposed.v1.core.count
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.jdbc.select
 import java.util.*
 
 internal object IgnoredWords : BaseTable("ignored_words") {
@@ -25,17 +27,29 @@ internal class IgnoredWordsDAO(id: EntityID<UUID>) : BaseEntity(id, IgnoredWords
 }
 
 internal fun IgnoredWordsDAO.toModel() = IgnoredWord(
-    id = id.value.toIgnoredWordsId(),
+    id = id.value.toIgnoredWordId(),
     conversationId = conversation?.id?.value?.toConversationId(),
     value = value,
     validationType = validationType,
 )
 
 object IgnoredWordRepo {
-    suspend fun getIgnoredWord(id: IgnoredWordsId): ApplicationResult<IgnoredWord> =
+    suspend fun getIgnoredWord(id: IgnoredWordId): ApplicationResult<IgnoredWord> =
         suspendTransaction {
             either {
                 IgnoredWordsDAO.findById(id.value)?.toModel() ?: raise(ApplicationError.IgnoredWordNotFound(id))
+            }
+        }
+
+    suspend fun getAllIgnoredWords(pagination: Pagination): ApplicationResult<Page<IgnoredWord>> =
+        suspendTransaction {
+            either {
+                Page(
+                    data = IgnoredWordsDAO.all()
+                        .paginated(pagination, IgnoredWords)
+                        .map(IgnoredWordsDAO::toModel),
+                    total = IgnoredWordsDAO.all().count()
+                )
             }
         }
 
@@ -60,7 +74,8 @@ object IgnoredWordRepo {
                 }.toModel()
             }
         }
-    suspend fun deleteIgnoredWord(id: IgnoredWordsId): ApplicationResult<Unit> = suspendTransaction {
+
+    suspend fun deleteIgnoredWord(id: IgnoredWordId): ApplicationResult<Unit> = suspendTransaction {
         either {
             IgnoredWordsDAO.findById(id.value)?.delete() ?: raise(ApplicationError.IgnoredWordNotFound(id))
         }
@@ -68,13 +83,18 @@ object IgnoredWordRepo {
 
     suspend fun getIgnoredWordsAggregations(): ApplicationResult<List<IgnoredWordAggregation>> = suspendTransaction {
         either {
-            IgnoredWords.selectAll().groupBy(IgnoredWords.value).map { row ->
-                row.
-                IgnoredWordAggregation(value, words.size)
-            }
-            IgnoredWordsDAO.all().map { it.toModel() }.groupBy { it.value }.map { (value, words) ->
-                IgnoredWordAggregation(value, words.size)
-            }
+            IgnoredWords.select(
+                IgnoredWords.value,
+                IgnoredWords.validationType,
+                IgnoredWords.value.count().alias("count")
+            ).groupBy(IgnoredWords.value, IgnoredWords.validationType)
+                .map { row ->
+                    IgnoredWordAggregation(
+                        row[IgnoredWords.value],
+                        row[IgnoredWords.validationType],
+                        row[IgnoredWords.value.count().alias("count")].toInt()
+                    )
+                }
         }
     }
 }

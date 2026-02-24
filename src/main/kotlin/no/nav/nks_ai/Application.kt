@@ -42,6 +42,9 @@ import no.nav.nks_ai.core.conversation.streaming.conversationWebsocket
 import no.nav.nks_ai.core.feedback.feedbackAdminBatchRoutes
 import no.nav.nks_ai.core.feedback.feedbackAdminRoutes
 import no.nav.nks_ai.core.feedback.feedbackService
+import no.nav.nks_ai.core.ignoredWords.ignoredWordsAdminRoutes
+import no.nav.nks_ai.core.ignoredWords.ignoredWordsRoutes
+import no.nav.nks_ai.core.ignoredWords.ignoredWordsService
 import no.nav.nks_ai.core.message.MessageService
 import no.nav.nks_ai.core.message.messageRoutes
 import no.nav.nks_ai.core.notification.notificationAdminRoutes
@@ -91,6 +94,7 @@ fun Application.module() {
     val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
     val notificationService = notificationService()
     val feedbackService = feedbackService(messageService)
+    val ignoredWordsService = ignoredWordsService()
 
     ConversationDeletionJob(conversationService, messageService, httpClient).start()
     UploadStarredMessagesJob(messageService, markMessageStarredService, httpClient).start()
@@ -104,12 +108,14 @@ fun Application.module() {
                 userConfigRoutes(userConfigService)
                 messageRoutes(messageService, feedbackService)
                 notificationUserRoutes(notificationService)
+                ignoredWordsRoutes(ignoredWordsService)
             }
             authenticate("AdminUser") {
                 adminRoutes(adminService)
                 notificationAdminRoutes(notificationService)
                 feedbackAdminRoutes(feedbackService)
                 feedbackAdminBatchRoutes(feedbackService)
+                ignoredWordsAdminRoutes(ignoredWordsService)
             }
         }
         route("/internal") {

@@ -1,6 +1,5 @@
 package no.nav.nks_ai.core.ignoredWords
 
-import arrow.core.raise.context.bind
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import no.nav.nks_ai.app.ApplicationError
@@ -11,34 +10,30 @@ import no.nav.nks_ai.core.conversation.ConversationRepo
 import no.nav.nks_ai.core.user.NavIdent
 
 interface IgnoredWordsService {
-    suspend fun getIgnoredWord(id: IgnoredWordsId): ApplicationResult<IgnoredWord>
+    suspend fun getIgnoredWord(id: IgnoredWordId): ApplicationResult<IgnoredWord>
 
-    suspend fun getAllIgnoredWords(pagination: Pagination): ApplicationResult<Page<IgnoredWordAggregation>>
+    suspend fun getAllIgnoredWords(pagination: Pagination): ApplicationResult<Page<IgnoredWord>>
 
-    /*
-    suspend fun getFilteredIgnoredWords(
-        filters: List<FeedbackFilter>,
-        pagination: Pagination
-    ): ApplicationResult<Page<Feedback>>
-     */
+    suspend fun getAllIgnoredWordsAggregated(): ApplicationResult<List<IgnoredWordAggregation>>
 
     suspend fun addIgnoredWord(
         navIdent: NavIdent,
         newIgnoredWord: NewIgnoredWord,
     ): ApplicationResult<IgnoredWord>
 
-    suspend fun deleteIgnoredWord(id: IgnoredWordsId): ApplicationResult<Unit>
+    suspend fun deleteIgnoredWord(id: IgnoredWordId): ApplicationResult<Unit>
 
 }
 
 fun ignoredWordsService() = object : IgnoredWordsService {
-    override suspend fun getIgnoredWord(id: IgnoredWordsId): ApplicationResult<IgnoredWord> {
-        return IgnoredWordRepo.getIgnoredWord(id)
-    }
+    override suspend fun getIgnoredWord(id: IgnoredWordId): ApplicationResult<IgnoredWord> =
+        IgnoredWordRepo.getIgnoredWord(id)
 
-    override suspend fun getAllIgnoredWords(pagination: Pagination): ApplicationResult<Page<IgnoredWordAggregation>> {
-        TODO("Not yet implemented")
-    }
+    override suspend fun getAllIgnoredWords(pagination: Pagination): ApplicationResult<Page<IgnoredWord>> =
+        IgnoredWordRepo.getAllIgnoredWords(pagination)
+
+    override suspend fun getAllIgnoredWordsAggregated(): ApplicationResult<List<IgnoredWordAggregation>> =
+        IgnoredWordRepo.getIgnoredWordsAggregations()
 
     override suspend fun addIgnoredWord(
         navIdent: NavIdent,
@@ -56,7 +51,7 @@ fun ignoredWordsService() = object : IgnoredWordsService {
         ).bind()
     }
 
-    override suspend fun deleteIgnoredWord(id: IgnoredWordsId): ApplicationResult<Unit> {
+    override suspend fun deleteIgnoredWord(id: IgnoredWordId): ApplicationResult<Unit> {
         return IgnoredWordRepo.deleteIgnoredWord(id)
     }
 

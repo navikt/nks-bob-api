@@ -9,7 +9,7 @@ import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.feedback.FeedbackId
-import no.nav.nks_ai.core.ignoredWords.IgnoredWordsId
+import no.nav.nks_ai.core.ignoredWords.IgnoredWordId
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.notification.NotificationId
 
@@ -113,7 +113,7 @@ sealed class ApplicationError(
             ?: "Feedback not found"
     )
 
-    class IgnoredWordNotFound(id: IgnoredWordsId?) : ApplicationError(
+    class IgnoredWordNotFound(id: IgnoredWordId?) : ApplicationError(
         code = HttpStatusCode.NotFound,
         message = "Ignored word not found",
         description = id
