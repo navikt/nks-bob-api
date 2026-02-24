@@ -10,9 +10,10 @@ import no.nav.nks_ai.app.BaseEntity
 import no.nav.nks_ai.app.BaseEntityClass
 import no.nav.nks_ai.app.BaseTable
 import no.nav.nks_ai.app.suspendTransaction
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.sql.kotlin.datetime.datetime
-import java.util.UUID
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.datetime.datetime
+import java.util.*
 
 internal object Notifications : BaseTable("notifications") {
     val expiresAt = datetime("expires_at").nullable()

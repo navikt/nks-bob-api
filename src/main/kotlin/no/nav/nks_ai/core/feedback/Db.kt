@@ -18,15 +18,15 @@ import no.nav.nks_ai.core.message.MessageDAO
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.message.Messages
 import no.nav.nks_ai.core.message.toMessageId
-import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.sql.Op
-import org.jetbrains.exposed.sql.SqlExpressionBuilder
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNotNull
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.compoundAnd
-import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.compoundAnd
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.isNotNull
+import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.less
+import org.jetbrains.exposed.v1.jdbc.update
 
 internal object Feedbacks : BaseTable("feedbacks") {
     val message = reference("message", Messages).nullable()
@@ -81,7 +81,7 @@ object FeedbackRepo {
 
     private suspend fun getFilteredFeedbacks(
         pagination: Pagination,
-        op: SqlExpressionBuilder.() -> Op<Boolean>
+        op: Op<Boolean>
     ): ApplicationResult<Page<Feedback>> =
         suspendTransaction {
             either {
@@ -99,7 +99,7 @@ object FeedbackRepo {
         pagination: Pagination
     ): ApplicationResult<Page<Feedback>> = either {
         val op = filters.map { getFilterExpression(it).bind() }.compoundAnd()
-        getFilteredFeedbacks(pagination) { op }.bind()
+        getFilteredFeedbacks(pagination, op).bind()
     }
 
     private fun getFilterExpression(filter: FeedbackFilter): ApplicationResult<Op<Boolean>> = either {
