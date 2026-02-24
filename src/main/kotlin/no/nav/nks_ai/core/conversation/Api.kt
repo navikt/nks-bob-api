@@ -2,9 +2,7 @@ package no.nav.nks_ai.core.conversation
 
 import arrow.core.raise.either
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.request.request
 import io.ktor.http.HttpStatusCode
-import io.ktor.openapi.ReferenceOr.Companion.schema
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -12,7 +10,6 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.openapi.describe
-import io.ktor.server.routing.param
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
