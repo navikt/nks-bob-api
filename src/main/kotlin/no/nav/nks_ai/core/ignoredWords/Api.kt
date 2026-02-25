@@ -116,7 +116,7 @@ fun Route.ignoredWordsAdminRoutes(ignoredWordsService: IgnoredWordsService) {
                 }
                 query("size") {
                     schema = jsonSchema<Int>()
-                    description = "How many ignored words to fetch (default = 100)"
+                    description = "How many ignored word aggregations to fetch (default = 100)"
                     required = false
                 }
             }
