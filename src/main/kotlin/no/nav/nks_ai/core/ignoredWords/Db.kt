@@ -6,6 +6,7 @@ import no.nav.nks_ai.core.conversation.ConversationDAO
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.conversation.Conversations
 import no.nav.nks_ai.core.conversation.toConversationId
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.count
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
@@ -81,21 +82,34 @@ object IgnoredWordRepo {
         }
     }
 
-    suspend fun getIgnoredWordsAggregations(): ApplicationResult<List<IgnoredWordAggregation>> = suspendTransaction {
-        either {
-            IgnoredWords.select(
-                IgnoredWords.value,
-                IgnoredWords.validationType,
-                IgnoredWords.value.count().alias("count")
-            ).groupBy(IgnoredWords.value, IgnoredWords.validationType)
-                .map { row ->
-                    IgnoredWordAggregation(
-                        row[IgnoredWords.value],
-                        row[IgnoredWords.validationType],
-                        row[IgnoredWords.value.count().alias("count")].toInt()
-                    )
-                }
+    suspend fun getIgnoredWordsAggregations(pagination: Pagination): ApplicationResult<Page<IgnoredWordAggregation>> =
+        suspendTransaction {
+            either {
+                val countAlias = IgnoredWords.value.count().alias("count")
+                val query = IgnoredWords.select(
+                    IgnoredWords.value,
+                    IgnoredWords.validationType,
+                    countAlias
+                ).groupBy(IgnoredWords.value, IgnoredWords.validationType)
+
+                val total = query.count()
+                val data = query
+                    .orderBy(countAlias to SortOrder.DESC)
+                    .limit(pagination.size)
+                    .offset((pagination.size * pagination.page).toLong())
+                    .map { row ->
+                        IgnoredWordAggregation(
+                            row[IgnoredWords.value],
+                            row[IgnoredWords.validationType],
+                            row[countAlias].toInt()
+                        )
+                    }
+
+                Page(
+                    data = data,
+                    total = total,
+                )
+            }
         }
-    }
 }
 
