@@ -23,7 +23,10 @@ class AdminService() {
         }
 
     suspend fun getConversationMessages(conversationId: ConversationId): ApplicationResult<List<Message>> =
-        MessageRepo.getMessagesByConversation(conversationId)
+        either {
+            ConversationRepo.getConversation(conversationId).bind()
+            MessageRepo.getMessagesByConversation(conversationId).bind()
+        }
 
     suspend fun getConversationFromMessageId(messageId: MessageId): ApplicationResult<Conversation> =
         either {
