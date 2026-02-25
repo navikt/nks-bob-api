@@ -9,6 +9,7 @@ import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.core.conversation.ConversationId
 import no.nav.nks_ai.core.feedback.FeedbackId
+import no.nav.nks_ai.core.ignoredWords.IgnoredWordId
 import no.nav.nks_ai.core.message.MessageId
 import no.nav.nks_ai.core.notification.NotificationId
 
@@ -68,6 +69,10 @@ sealed class ApplicationError(
         "This request does not contain the required feedback id path parameter"
     )
 
+    class MissingIgnoredWordsId() : BadRequest(
+        "This request does not contain the required ignored word id path parameter"
+    )
+
     class SerializationError(description: String) : BadRequest(description)
 
     class MessageNotFound(messageId: MessageId?) : ApplicationError(
@@ -106,6 +111,14 @@ sealed class ApplicationError(
         description = feedbackId
             ?.let { "Feedback with id ${feedbackId.value} was not found" }
             ?: "Feedback not found"
+    )
+
+    class IgnoredWordNotFound(id: IgnoredWordId?) : ApplicationError(
+        code = HttpStatusCode.NotFound,
+        message = "Ignored word not found",
+        description = id
+            ?.let { "Ignored word with id ${id.value} was not found" }
+            ?: "Ignored word not found"
     )
 
     class InvalidInput(message: String?, description: String?) : ApplicationError(

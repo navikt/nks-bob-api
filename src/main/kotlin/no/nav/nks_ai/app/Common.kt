@@ -20,7 +20,6 @@ import io.ktor.server.routing.route
 import io.ktor.server.sse.SSE
 import io.ktor.server.sse.ServerSSESession
 import io.ktor.server.sse.sse
-import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -47,6 +46,7 @@ import org.jetbrains.exposed.v1.dao.toEntity
 import org.jetbrains.exposed.v1.datetime.datetime
 import org.jetbrains.exposed.v1.jdbc.SizedIterable
 import java.util.*
+import kotlin.time.Clock
 
 suspend fun <T> suspendTransaction(block: Transaction.() -> ApplicationResult<T>): ApplicationResult<T> =
     Either.catch {
