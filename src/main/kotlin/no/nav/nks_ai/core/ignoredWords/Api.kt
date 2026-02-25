@@ -99,13 +99,27 @@ fun Route.ignoredWordsAdminRoutes(ignoredWordsService: IgnoredWordsService) {
         }
         get("/aggregate") {
             call.respondEither {
+                val pagination = call.pagination().bind()
+
                 val navIdent = call.navIdent().bind()
                 teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=ignored-words/aggregate" }
 
-                ignoredWordsService.getAllIgnoredWordsAggregated()
+                ignoredWordsService.getAllIgnoredWordsAggregated(pagination)
             }
         }.describe {
             description = "Get all ignored words aggregated"
+            parameters {
+                query("page") {
+                    schema = jsonSchema<Int>()
+                    description = "Which page to fetch (default = 0)"
+                    required = false
+                }
+                query("size") {
+                    schema = jsonSchema<Int>()
+                    description = "How many ignored words to fetch (default = 100)"
+                    required = false
+                }
+            }
             responses {
                 HttpStatusCode.OK {
                     schema = jsonSchema<List<IgnoredWordAggregation>>()

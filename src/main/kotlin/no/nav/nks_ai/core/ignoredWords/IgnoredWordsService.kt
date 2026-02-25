@@ -14,7 +14,7 @@ interface IgnoredWordsService {
 
     suspend fun getAllIgnoredWords(pagination: Pagination): ApplicationResult<Page<IgnoredWord>>
 
-    suspend fun getAllIgnoredWordsAggregated(): ApplicationResult<List<IgnoredWordAggregation>>
+    suspend fun getAllIgnoredWordsAggregated(pagination: Pagination): ApplicationResult<Page<IgnoredWordAggregation>>
 
     suspend fun addIgnoredWord(
         navIdent: NavIdent,
@@ -32,8 +32,8 @@ fun ignoredWordsService() = object : IgnoredWordsService {
     override suspend fun getAllIgnoredWords(pagination: Pagination): ApplicationResult<Page<IgnoredWord>> =
         IgnoredWordRepo.getAllIgnoredWords(pagination)
 
-    override suspend fun getAllIgnoredWordsAggregated(): ApplicationResult<List<IgnoredWordAggregation>> =
-        IgnoredWordRepo.getIgnoredWordsAggregations()
+    override suspend fun getAllIgnoredWordsAggregated(pagination: Pagination): ApplicationResult<Page<IgnoredWordAggregation>> =
+        IgnoredWordRepo.getIgnoredWordsAggregations(pagination)
 
     override suspend fun addIgnoredWord(
         navIdent: NavIdent,
