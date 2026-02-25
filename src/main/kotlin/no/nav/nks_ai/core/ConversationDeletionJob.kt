@@ -5,13 +5,13 @@ import dev.starry.ktscheduler.scheduler.KtScheduler
 import dev.starry.ktscheduler.triggers.DailyTrigger
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import no.nav.nks_ai.app.Config
 import no.nav.nks_ai.app.isLeader
 import no.nav.nks_ai.core.conversation.ConversationService
 import no.nav.nks_ai.core.message.MessageService
+import kotlin.time.Clock
 
 private val logger = KotlinLogging.logger { }
 
