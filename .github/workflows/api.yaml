@@ -58,7 +58,7 @@ jobs:
         env:
           IMAGE: ${{ needs.build.outputs.image }}
           CLUSTER: dev-gcp
-          RESOURCE: .nais/dev-gcp.yaml
+          RESOURCE: api/.nais/dev-gcp.yaml
           VAR: ingress=nks-bob-api.ansatt.dev.nav.no
       - name: Deploy production
         uses: nais/deploy/actions/deploy@v2
@@ -66,6 +66,6 @@ jobs:
         env:
           IMAGE: ${{ needs.build.outputs.image }}
           CLUSTER: prod-gcp
-          RESOURCE: .nais/prod-gcp.yaml
+          RESOURCE: api/.nais/prod-gcp.yaml
           VAR: ingress=nks-bob-api.ansatt.nav.no
 
