@@ -45,6 +45,8 @@ import no.nav.nks_ai.api.core.feedback.feedbackService
 import no.nav.nks_ai.api.core.ignoredWords.ignoredWordsAdminRoutes
 import no.nav.nks_ai.api.core.ignoredWords.ignoredWordsRoutes
 import no.nav.nks_ai.api.core.ignoredWords.ignoredWordsService
+import no.nav.nks_ai.api.core.jobs.jobService
+import no.nav.nks_ai.api.core.jobs.jobsRoutes
 import no.nav.nks_ai.api.core.message.MessageService
 import no.nav.nks_ai.api.core.message.messageRoutes
 import no.nav.nks_ai.api.core.notification.notificationAdminRoutes
@@ -99,9 +101,7 @@ fun Application.module() {
     val notificationService = notificationService()
     val feedbackService = feedbackService(messageService)
     val ignoredWordsService = ignoredWordsService()
-
-    ConversationDeletionJob(conversationService, messageService, httpClient).start()
-    UploadStarredMessagesJob(messageService, markMessageStarredService, httpClient).start()
+    val jobService = jobService(messageService, conversationService, markMessageStarredService)
 
     routing {
         route("/api/v1") {
@@ -120,6 +120,9 @@ fun Application.module() {
                 feedbackAdminRoutes(feedbackService)
                 feedbackAdminBatchRoutes(feedbackService)
                 ignoredWordsAdminRoutes(ignoredWordsService)
+            }
+            authenticate("MachineToken") {
+                jobsRoutes(jobService)
             }
         }
         route("/internal") {
