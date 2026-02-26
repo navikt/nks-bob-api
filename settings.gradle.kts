@@ -5,3 +5,4 @@ plugins {
 rootProject.name = "no.nav.nks-bob-api"
 
 include("api")
+include("shared")

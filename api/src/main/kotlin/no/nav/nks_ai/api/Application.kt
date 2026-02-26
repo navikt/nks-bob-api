@@ -1,5 +1,6 @@
 package no.nav.nks_ai.api
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.apache.Apache
@@ -28,7 +29,6 @@ import no.nav.nks_ai.api.app.plugins.configureMonitoring
 import no.nav.nks_ai.api.app.plugins.configureSecurity
 import no.nav.nks_ai.api.app.plugins.configureSerialization
 import no.nav.nks_ai.api.app.plugins.healthRoutes
-import no.nav.nks_ai.api.auth.EntraClient
 import no.nav.nks_ai.api.core.ConversationDeletionJob
 import no.nav.nks_ai.api.core.MarkMessageStarredService
 import no.nav.nks_ai.api.core.SendMessageService
@@ -53,10 +53,13 @@ import no.nav.nks_ai.api.core.notification.notificationUserRoutes
 import no.nav.nks_ai.api.core.user.UserConfigService
 import no.nav.nks_ai.api.core.user.userConfigRoutes
 import no.nav.nks_ai.api.kbs.KbsClient
+import no.nav.nks_ai.shared.auth.EntraClient
 
 fun main(args: Array<String>) {
     EngineMain.main(args)
 }
+
+val logger = KotlinLogging.logger { }
 
 fun Application.module() {
     configureSerialization()
@@ -75,6 +78,7 @@ fun Application.module() {
         clientId = Config.jwt.clientId,
         clientSecret = Config.jwt.clientSecret,
         httpClient = httpClient,
+        logger = logger,
     )
 
     val kbsClient = KbsClient(

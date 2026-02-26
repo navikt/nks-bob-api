@@ -6,12 +6,12 @@ import arrow.core.raise.either
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
-import kotlinx.serialization.Serializable
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.feedback.FeedbackId
 import no.nav.nks_ai.api.core.ignoredWords.IgnoredWordId
 import no.nav.nks_ai.api.core.message.MessageId
 import no.nav.nks_ai.api.core.notification.NotificationId
+import no.nav.nks_ai.shared.ErrorResponse
 
 sealed class ApplicationError(
     val code: HttpStatusCode,
@@ -170,13 +170,6 @@ suspend inline fun <reified T : Any> ApplicationCall.respondEither(
     val result = block()
     respondResult(statusCode, result).bind()
 }
-
-@Serializable
-data class ErrorResponse(
-    val code: Int,
-    val message: String,
-    val description: String
-)
 
 class InvalidUuidException() : Throwable(message = "Invalid UUID")
 

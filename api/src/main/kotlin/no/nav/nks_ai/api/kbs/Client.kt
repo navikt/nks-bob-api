@@ -19,8 +19,8 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.retry
 import kotlinx.serialization.SerializationException
 import no.nav.nks_ai.api.app.MetricRegister
-import no.nav.nks_ai.api.auth.EntraClient
 import no.nav.nks_ai.api.defaultJsonConfig
+import no.nav.nks_ai.shared.auth.EntraClient
 
 private val logger = KotlinLogging.logger {}
 
