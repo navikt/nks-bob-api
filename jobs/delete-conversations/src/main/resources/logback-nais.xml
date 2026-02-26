@@ -1,0 +1,12 @@
+<included scan="true" scanPeriod="30 seconds">
+    <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>call-id</includeMdcKeyName>
+            <includeMdcKeyName>trace_id</includeMdcKeyName>
+            <includeMdcKeyName>span_id</includeMdcKeyName>
+        </encoder>
+    </appender>
+    <root level="debug">
+        <appender-ref ref="stdout_json"/>
+    </root>
+</included>
