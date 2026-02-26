@@ -13,7 +13,7 @@ on:
       - api.yaml
       - api/**
 jobs:
-  build:
+  build-api:
     name: Build
     runs-on: ubuntu-latest
     permissions:
@@ -34,18 +34,18 @@ jobs:
           dependency-graph: generate-and-submit
       - name: Bygg og publiser docker bilde
         uses: nais/docker-build-push@v0
-        id: docker-build-push
+        id: docker-build-push-api
         with:
           dockerfile: api/Dockerfile
           team: nks-aiautomatisering
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
     outputs:
-      image: ${{ steps.docker-build-push.outputs.image }}
+      image: ${{ steps.docker-build-push-api.outputs.image }}
 
   deploy:
     name: Deploy
-    needs: build
+    needs: build-api
     runs-on: ubuntu-latest
     permissions:
       packages: "write"
@@ -56,7 +56,7 @@ jobs:
       - name: Deploy development
         uses: nais/deploy/actions/deploy@v2
         env:
-          IMAGE: ${{ needs.build.outputs.image }}
+          IMAGE: ${{ needs.build-api.outputs.image }}
           CLUSTER: dev-gcp
           RESOURCE: api/.nais/dev-gcp.yaml
           VAR: ingress=nks-bob-api.ansatt.dev.nav.no

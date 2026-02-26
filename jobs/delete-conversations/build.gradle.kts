@@ -35,5 +35,4 @@ dependencies {
     implementation(libs.logback.classic)
     implementation(libs.logback.core)
     implementation(libs.logstash.logback.encoder)
-    implementation("io.ktor:ktor-client-auth:3.4.0")
 }

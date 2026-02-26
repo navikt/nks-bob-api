@@ -41,7 +41,8 @@ jobs:
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
     outputs:
-      delete-conversations-image: ${{ steps.docker-build-push.outputs.image }}
+#      image: ${{ steps.docker-build-push.outputs.image }}
+      tag: ${{ steps.docker-build-push.outputs.tag }}
 
   deploy:
     name: Deploy
@@ -56,9 +57,10 @@ jobs:
       - name: Deploy development
         uses: nais/deploy/actions/deploy@v2
         env:
-          IMAGE: ${{ needs.build.outputs.delete-conversations-image }}
+          #IMAGE: ${{ needs.build-delete-conversations.outputs.image }}
           CLUSTER: dev-gcp
           RESOURCE: jobs/delete-conversations/.nais/dev-gcp.yaml
+          VAR: image=europe-north1-docker.pkg.dev/nais-management-233d/nks-aiautomatisering/delete-conversations:${{ needs.build.outputs.tag }}
 #      - name: Deploy production
 #        uses: nais/deploy/actions/deploy@v2
 #        if: github.ref == 'refs/heads/main'
