@@ -11,13 +11,13 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
 import no.nav.nks_ai.api.app.ApplicationError
-import no.nav.nks_ai.api.app.ErrorResponse
 import no.nav.nks_ai.api.app.getNavIdent
 import no.nav.nks_ai.api.app.respondError
 import no.nav.nks_ai.api.app.respondResult
 import no.nav.nks_ai.api.core.feedback.CreateFeedback
 import no.nav.nks_ai.api.core.feedback.Feedback
 import no.nav.nks_ai.api.core.feedback.FeedbackService
+import no.nav.nks_ai.shared.ErrorResponse
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.messageRoutes(

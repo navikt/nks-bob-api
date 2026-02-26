@@ -24,6 +24,7 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":shared"))
     implementation(libs.aedile.core)
     implementation(libs.arrow.core)
     implementation(libs.arrow.resilience)
