@@ -1,0 +1,33 @@
+apiVersion: nais.io/v1
+kind: Naisjob
+metadata:
+  labels:
+    team: nks-aiautomatisering
+  name: nks-bob-api-delete-old-conversations
+  namespace: nks-aiautomatisering
+spec:
+  env:
+    - name: NKS_BOB_API_URL
+      value: http://nks-bob-api
+    - name: NKS_BOB_API_SCOPE
+      value: api://dev-gcp.nks-aiautomatisering.nks-bob-api/.default
+  image: "{{ image }}"
+  schedule: "0 3 * * *" # kl. 03:00 hver natt
+  timeZone: Europe/Oslo
+  concurrencyPolicy: Forbid # Forhindre at to jobber kjører samtidig
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  accessPolicy:
+    outbound:
+      rules:
+        - application: nks-bob-api
+  azure:
+    application:
+      tenant: nav.no
+      enabled: true
+  observability:
+    logging:
+      destinations:
+        - id: loki

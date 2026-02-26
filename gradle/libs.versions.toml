@@ -32,6 +32,7 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.6.2" }
 kt-scheduler = { module = "com.github.Pool-Of-Tears:KtScheduler", version = "1.1.6" }
 ktor-client-apache = { module = "io.ktor:ktor-client-apache", version.ref = "ktor" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-call-id = { module = "io.ktor:ktor-client-call-id", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
