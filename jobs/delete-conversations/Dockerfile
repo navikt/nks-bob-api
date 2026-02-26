@@ -5,7 +5,7 @@ WORKDIR /workspace
 # Copy gradle wrapper and build files first for better caching
 COPY gradlew gradlew
 COPY gradle gradle
-COPY settings.gradle.kts api/build.gradle.kts gradle.properties ./
+COPY settings.gradle.kts jobs/delete-conversations/build.gradle.kts gradle.properties ./
 COPY gradle/libs.versions.toml ./
 RUN ./gradlew --version
 
@@ -25,4 +25,4 @@ COPY --from=build /workspace/jobs/delete-conversations/build/libs/delete-convers
 
 ENV TZ="Europe/Oslo"
 
-ENTRYPOINT ["java", "-XX:InitialRAMPercentage=25.0", "-XX:MaxRAMPercentage=75.0", "-cp", "/app/lib/*:/app/app.jar", "no.nav.nks_ai.delete-convervsations.MainKt"]
+ENTRYPOINT ["java", "-XX:InitialRAMPercentage=25.0", "-XX:MaxRAMPercentage=75.0", "-cp", "/app/lib/*:/app/app.jar", "no.nav.nks_ai.delete_conversations.MainKt"]
