@@ -1,19 +1,19 @@
-name: Build and deploy Api
+name: Build and deploy delete conversations job
 on:
   push:
     branches:
       - main
     paths:
-      - api.yaml
-      - api/**
+      - delete-conversations.yaml
+      - jobs/delete-conversations/**
   pull_request:
     branches:
       - main
     paths:
-      - api.yaml
-      - api/**
+      - delete-conversations.yaml
+      - jobs/delete-conversations/**
 jobs:
-  build-api:
+  build:
     name: Build
     runs-on: ubuntu-latest
     permissions:
@@ -34,18 +34,19 @@ jobs:
           dependency-graph: generate-and-submit
       - name: Bygg og publiser docker bilde
         uses: nais/docker-build-push@v0
-        id: docker-build-push-api
+        id: docker-build-push
         with:
-          dockerfile: api/Dockerfile
+          dockerfile: jobs/delete-conversations/Dockerfile
           team: nks-aiautomatisering
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
     outputs:
-      image: ${{ steps.docker-build-push-api.outputs.image }}
+#      image: ${{ steps.docker-build-push.outputs.image }}
+      tag: ${{ steps.docker-build-push.outputs.tag }}
 
   deploy:
     name: Deploy
-    needs: build-api
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       packages: "write"
@@ -56,16 +57,15 @@ jobs:
       - name: Deploy development
         uses: nais/deploy/actions/deploy@v2
         env:
-          IMAGE: ${{ needs.build-api.outputs.image }}
+          #IMAGE: ${{ needs.build-delete-conversations.outputs.image }}
           CLUSTER: dev-gcp
-          RESOURCE: api/.nais/dev-gcp.yaml
-          VAR: ingress=nks-bob-api.ansatt.dev.nav.no
-      - name: Deploy production
-        uses: nais/deploy/actions/deploy@v2
-        if: github.ref == 'refs/heads/main'
-        env:
-          IMAGE: ${{ needs.build.outputs.image }}
-          CLUSTER: prod-gcp
-          RESOURCE: api/.nais/prod-gcp.yaml
-          VAR: ingress=nks-bob-api.ansatt.nav.no
+          RESOURCE: jobs/delete-conversations/.nais/dev-gcp.yaml
+          VAR: image=europe-north1-docker.pkg.dev/nais-management-233d/nks-aiautomatisering/delete-conversations:${{ needs.build.outputs.tag }}
+#      - name: Deploy production
+#        uses: nais/deploy/actions/deploy@v2
+#        if: github.ref == 'refs/heads/main'
+#        env:
+#          IMAGE: ${{ needs.build.outputs.image }}
+#          CLUSTER: prod-gcp
+#          RESOURCE: jobs/delete-conversations/.nais/prod-gcp.yaml
 

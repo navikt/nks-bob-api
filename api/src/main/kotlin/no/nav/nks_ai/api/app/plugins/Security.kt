@@ -82,6 +82,23 @@ fun Application.configureSecurity() {
                 call.respondError(ApplicationError.Unauthorized())
             }
         }
+        jwt("MachineToken") {
+            verifier(jwkProvider, Config.issuers.head.issuer_name) {
+                logger.debug { "Verifying machine jwt" }
+                withAudience(Config.issuers.head.accepted_audience)
+                withIssuer(Config.issuers.head.issuer_name)
+            }
+
+            validate { credentials ->
+                logger.debug { "Validating machine jwt" }
+                JWTPrincipal(credentials.payload)
+            }
+
+            challenge { _, _ ->
+                logger.debug { "Machine jwt is invalid" }
+                call.respondError(ApplicationError.Unauthorized())
+            }
+        }
     }
     install(CORS) {
         anyHost()
