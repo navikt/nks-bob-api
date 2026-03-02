@@ -29,10 +29,8 @@ import no.nav.nks_ai.api.app.plugins.configureMonitoring
 import no.nav.nks_ai.api.app.plugins.configureSecurity
 import no.nav.nks_ai.api.app.plugins.configureSerialization
 import no.nav.nks_ai.api.app.plugins.healthRoutes
-import no.nav.nks_ai.api.core.ConversationDeletionJob
 import no.nav.nks_ai.api.core.MarkMessageStarredService
 import no.nav.nks_ai.api.core.SendMessageService
-import no.nav.nks_ai.api.core.UploadStarredMessagesJob
 import no.nav.nks_ai.api.core.admin.AdminService
 import no.nav.nks_ai.api.core.admin.adminRoutes
 import no.nav.nks_ai.api.core.conversation.ConversationService
@@ -55,6 +53,7 @@ import no.nav.nks_ai.api.core.notification.notificationUserRoutes
 import no.nav.nks_ai.api.core.user.UserConfigService
 import no.nav.nks_ai.api.core.user.userConfigRoutes
 import no.nav.nks_ai.api.kbs.KbsClient
+import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationSseV2
 import no.nav.nks_ai.shared.auth.EntraClient
 
 fun main(args: Array<String>) {
@@ -90,11 +89,20 @@ fun Application.module() {
         scope = Config.kbs.scope,
     )
 
+    val kbsClientV2 = no.nav.nks_ai.api.v2.kbs.KbsClient(
+        sseClient = sseClient,
+        entraClient = entraClient,
+        baseUrl = Config.kbs.url,
+        scope = Config.kbs.scope,
+    )
+
     val bigQueryClient = BigQueryClient()
 
     val conversationService = ConversationService()
     val messageService = MessageService()
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
+    val sendMessageServiceV2 =
+        no.nav.nks_ai.api.v2.core.SendMessageService(conversationService, messageService, kbsClientV2)
     val adminService = AdminService()
     val userConfigService = UserConfigService()
     val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
@@ -123,6 +131,11 @@ fun Application.module() {
             }
             authenticate("MachineToken") {
                 jobsRoutes(jobService)
+            }
+        }
+        route("/api/v2") {
+            authenticate {
+                conversationSseV2(messageService, sendMessageServiceV2)
             }
         }
         route("/internal") {
