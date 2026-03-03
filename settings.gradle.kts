@@ -7,3 +7,4 @@ rootProject.name = "no.nav.nks-bob-api"
 include("api")
 include("shared")
 include("jobs:delete-conversations")
+include("jobs:upload-starred-messages")
