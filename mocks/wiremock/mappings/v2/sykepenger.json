@@ -5,7 +5,7 @@
     "url": "/api/v2/stream/chat",
     "bodyPatterns": [
       {
-        "matchesJsonPath": "$.[?(@.question =~ /.*dagpenger.*/)]"
+        "matchesJsonPath": "$.[?(@.question =~ /.*sykepenger.*/)]"
       }
     ]
   },
@@ -16,10 +16,10 @@
       "Cache-Control": "no-cache",
       "Connection": "keep-alive"
     },
-    "bodyFileName": "v2/dagpenger-data.txt",
+    "bodyFileName": "v2/sykepenger-data.txt",
     "chunkedDribbleDelay": {
-      "numberOfChunks": 8,
-      "totalDuration": 5000
+      "numberOfChunks": 16,
+      "totalDuration": 8000
     }
   }
 }
