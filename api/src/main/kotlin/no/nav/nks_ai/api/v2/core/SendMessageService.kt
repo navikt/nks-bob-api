@@ -40,7 +40,6 @@ import no.nav.nks_ai.api.core.user.NavIdent
 import no.nav.nks_ai.api.kbs.KbsChatMessage
 import no.nav.nks_ai.api.kbs.KbsErrorResponse
 import no.nav.nks_ai.api.kbs.fromMessage
-import no.nav.nks_ai.api.kbs.toModel
 import no.nav.nks_ai.api.v2.core.conversation.streaming.ConversationEvent
 import no.nav.nks_ai.api.v2.kbs.KbsClient
 import no.nav.nks_ai.api.v2.kbs.KbsStreamResponse
@@ -114,7 +113,7 @@ class SendMessageService(
                 .filterNotNull()
                 .onEach { event -> send(event) }
                 .collectLatest { event ->
-                    delay(1.seconds)
+                    delay(3.seconds)
                     when (event) {
                         is ConversationEvent.NewMessage -> {
                             event.message.some()
