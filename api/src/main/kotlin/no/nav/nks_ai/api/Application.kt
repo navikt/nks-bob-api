@@ -1,10 +1,10 @@
 package no.nav.nks_ai.api
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.HttpClient
-import io.ktor.client.HttpClientConfig
-import io.ktor.client.engine.apache.Apache
-import io.ktor.client.engine.apache.ApacheEngineConfig
+import io.ktor.client.*
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.cio.CIOEngineConfig
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.callid.CallId
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.sse.SSE
@@ -162,13 +162,13 @@ fun defaultJsonConfig(
 }
 
 private fun defaultHttpClient(
-    block: HttpClientConfig<ApacheEngineConfig>.() -> Unit = {}
+    block: HttpClientConfig<CIOEngineConfig>.() -> Unit = {}
 ): HttpClient =
-    HttpClient(Apache) {
-        engine {
-            socketTimeout = Config.HTTP_CLIENT_TIMEOUT_MS
-            connectTimeout = Config.HTTP_CLIENT_TIMEOUT_MS
-            connectionRequestTimeout = Config.HTTP_CLIENT_TIMEOUT_MS * 2
+    HttpClient(CIO) {
+        install(HttpTimeout) {
+            socketTimeoutMillis = Config.HTTP_CLIENT_TIMEOUT_MS.toLong()
+            connectTimeoutMillis = Config.HTTP_CLIENT_TIMEOUT_MS.toLong()
+            requestTimeoutMillis = Config.HTTP_CLIENT_TIMEOUT_MS.toLong() * 2
         }
         install(ContentNegotiation) {
             json(defaultJsonConfig())
