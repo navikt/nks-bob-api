@@ -1,9 +1,7 @@
 package no.nav.nks_ai.api.v2.core
 
-import arrow.core.Some
 import arrow.core.left
 import arrow.core.none
-import arrow.core.raise.context.bind
 import arrow.core.raise.either
 import arrow.core.some
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -12,23 +10,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.runningFold
-import kotlinx.coroutines.flow.runningReduce
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.conversation.ConversationService
-import no.nav.nks_ai.api.core.message.Context
 import no.nav.nks_ai.api.core.message.Message
 import no.nav.nks_ai.api.core.message.MessageError
 import no.nav.nks_ai.api.core.message.MessageId
@@ -44,7 +35,6 @@ import no.nav.nks_ai.api.v2.core.conversation.streaming.ConversationEvent
 import no.nav.nks_ai.api.v2.kbs.KbsClient
 import no.nav.nks_ai.api.v2.kbs.KbsStreamResponse
 import no.nav.nks_ai.api.v2.kbs.toModel
-import kotlin.collections.map
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger { }
@@ -78,36 +68,34 @@ class SendMessageService(
                 messageHistory = history,
             )
                 .runningFold(none<ConversationEvent>()) { prev, result ->
-                    result.map { response ->
-                        when (response) {
-                            is KbsStreamResponse.KbsTokenChunkResponse -> {
-                                return@runningFold ConversationEvent.ContentUpdated(messageId, response.chunk).some()
-                            }
+                     result.fold(
+                        ifRight = { response ->
+                            when (response) {
+                                is KbsStreamResponse.KbsTokenChunkResponse -> {
+                                    ConversationEvent.ContentUpdated(messageId, response.chunk).some()
+                                }
 
-                            is KbsStreamResponse.StatusUpdateResponse -> {
-                                return@runningFold ConversationEvent.StatusUpdate(messageId, response.text).some()
-                            }
+                                is KbsStreamResponse.StatusUpdateResponse -> {
+                                    ConversationEvent.StatusUpdate(messageId, response.text).some()
+                                }
 
-                            is KbsStreamResponse.KbsChatResponse -> {
-                                responseToMessage(response, messageId).let { message ->
-                                    prev.onNone {
-                                        return@runningFold ConversationEvent.NewMessage(messageId, message).some()
-                                    }
-                                    prev.onSome {
-                                        return@runningFold ConversationEvent.MessageUpdated(messageId, message)
-                                            .some()
+                                is KbsStreamResponse.KbsChatResponse -> {
+                                    responseToMessage(response, messageId).let { message ->
+                                        prev.fold(
+                                            ifEmpty = { ConversationEvent.NewMessage(messageId, message).some() },
+                                            ifSome = { ConversationEvent.MessageUpdated(messageId, message).some() }
+                                        )
                                     }
                                 }
                             }
-                        }
-                    }.mapLeft { errorResponse ->
-                        handleError(errorResponse, messageId)
-                            .map { message ->
-                                return@runningFold ConversationEvent.ErrorsUpdated(messageId, message.errors).some()
-                            }
-                    }
-
-                    return@runningFold none()
+                        },
+                        ifLeft = { errorResponse ->
+                            handleError(errorResponse, messageId).bind()
+                                .let { message ->
+                                    ConversationEvent.ErrorsUpdated(messageId, message.errors).some()
+                                }
+                        },
+                    )
                 }
                 .map { it.getOrNull() }
                 .filterNotNull()
@@ -143,12 +131,7 @@ class SendMessageService(
                     }
                 }
         }.catch { throwable ->
-            handleError(throwable, messageId)
-                .onRight { message ->
-                    emit(
-                        ConversationEvent.ErrorsUpdated(messageId, message.errors)
-                    )
-                }
+            emit(ConversationEvent.ErrorsUpdated(messageId, handleError(throwable, messageId).bind().errors))
         }.onCompletion { timer.stop() }
     }
 
@@ -211,7 +194,7 @@ private fun responseToMessage(
         }.flatten()
 
     // TODO source Id
-    val context = response.context.map {(sourceId, ctx) -> ctx.toModel() }
+    val context = response.context.map { (sourceId, ctx) -> ctx.toModel() }
 
     // TODO migration needed
     val tools = emptyList<String>()
