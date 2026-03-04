@@ -1,4 +1,4 @@
-package no.nav.nks_ai.api.kbs
+package no.nav.nks_ai.api.v2.kbs
 
 import arrow.core.Either
 import arrow.core.left
@@ -20,6 +20,10 @@ import kotlinx.coroutines.flow.retry
 import kotlinx.serialization.SerializationException
 import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.defaultJsonConfig
+import no.nav.nks_ai.api.kbs.KbsChatMessage
+import no.nav.nks_ai.api.kbs.KbsChatRequest
+import no.nav.nks_ai.api.kbs.KbsErrorResponse
+import no.nav.nks_ai.api.kbs.KbsValidationException
 import no.nav.nks_ai.shared.auth.EntraClient
 
 private val logger = KotlinLogging.logger {}
@@ -33,10 +37,13 @@ class KbsClient(
     fun sendQuestionStream(
         question: String,
         messageHistory: List<KbsChatMessage>,
+        // TODO maybe change to
+        //   ApplicationResult<Flow<KbsStreamResponse>>
+        //   and add KbsErrors to KbsStreamResponse?
     ): Flow<Either<KbsErrorResponse, KbsStreamResponse>> = channelFlow {
         val token = entraClient.getMachineToken(scope)
 
-        sseClient.sse("$baseUrl/api/v1/stream/chat", {
+        sseClient.sse("$baseUrl/api/v2/stream/chat", {
             method = HttpMethod.Post
             header(HttpHeaders.Authorization, "Bearer $token")
             header(HttpHeaders.ContentType, ContentType.Application.Json)
@@ -50,10 +57,21 @@ class KbsClient(
             val timer = MetricRegister.answerFirstContentReceived()
             incoming.collect { response ->
                 when (response.event) {
+                    "token_chunk" -> {
+                        response.data?.let { data ->
+                            val chatResponse = defaultJsonConfig().decodeFromString<KbsStreamResponse.KbsTokenChunkResponse>(data)
+                            if (timer.isRunning && chatResponse.chunk.isNotEmpty()) {
+                                timer.stop()
+                            }
+
+                            send(chatResponse.right())
+                        }
+                    }
+
                     "chat_chunk" -> {
                         response.data?.let { data ->
-                            val chatResponse = defaultJsonConfig().decodeFromString<KbsStreamResponse.KbsChatResponse>(data.sanitize())
-                            if (timer.isRunning && chatResponse.answer.text.isNotEmpty()) {
+                            val chatResponse = defaultJsonConfig().decodeFromString<KbsStreamResponse.KbsChatResponse>(data)
+                            if (timer.isRunning && chatResponse.answer.isNotEmpty()) {
                                 timer.stop()
                             }
 
@@ -136,9 +154,3 @@ class KbsClient(
         }
     }
 }
-
-private fun String.sanitize(): String = this
-    .replace("\\u0000f8", "ø")
-    .replace("\\u0000e5", "å")
-    .replace("\\u0000e6", "æ")
-    .replace("\\u0000", "")

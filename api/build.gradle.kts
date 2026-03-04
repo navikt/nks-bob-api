@@ -24,6 +24,7 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":shared"))
     implementation(libs.aedile.core)
     implementation(libs.arrow.core)
     implementation(libs.arrow.resilience)
@@ -42,9 +43,8 @@ dependencies {
     implementation(libs.kotlin.logging)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.datetime)
-    implementation(libs.kt.scheduler)
-    implementation(libs.ktor.client.apache)
     implementation(libs.ktor.client.call.id)
+    implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.kotlinx.json)

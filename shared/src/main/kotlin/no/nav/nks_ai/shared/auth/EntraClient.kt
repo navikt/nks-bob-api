@@ -1,12 +1,13 @@
-package no.nav.nks_ai.api.auth
+package no.nav.nks_ai.shared.auth
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
 import com.sksamuel.aedile.core.expireAfterWrite
-import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.oshai.kotlinlogging.KLogger
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.Parameters
@@ -15,13 +16,12 @@ import kotlin.time.Duration.Companion.minutes
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-private val logger = KotlinLogging.logger { }
-
 class EntraClient(
     private val entraTokenUrl: String,
     private val clientId: String,
     private val clientSecret: String,
     private val httpClient: HttpClient,
+    private val logger: KLogger
 ) {
     val tokenCache = Caffeine.newBuilder()
         .expireAfterWrite(55.minutes)

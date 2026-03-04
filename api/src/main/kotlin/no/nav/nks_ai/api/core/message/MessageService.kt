@@ -3,6 +3,7 @@ package no.nav.nks_ai.api.core.message
 import arrow.core.Some
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import arrow.core.right
 import arrow.core.some
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.LocalDateTime
@@ -123,15 +124,17 @@ class MessageService() {
             starred = message.starred.some(),
         )
 
-    suspend fun deleteOldMessages(deleteBefore: LocalDateTime): ApplicationResult<Unit> = either {
+    suspend fun deleteOldMessages(deleteBefore: LocalDateTime): ApplicationResult<Int> = either {
         val messages = MessageRepo.getMessagesCreatedBefore(deleteBefore).bind()
         if (messages.isEmpty()) {
             logger.info { "Found 0 messages older than $deleteBefore" }
-            return@either
+            return@either 0
         }
 
         logger.info { "Deleting ${messages.size} messages older than $deleteBefore" }
         val deletedCount = MessageRepo.deleteMessages(messages.map { it.id }).bind()
         logger.info { "$deletedCount messages deleted" }
+
+        deletedCount
     }
 }
