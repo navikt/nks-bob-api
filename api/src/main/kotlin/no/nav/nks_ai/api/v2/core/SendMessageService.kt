@@ -5,16 +5,12 @@ import arrow.core.none
 import arrow.core.raise.either
 import arrow.core.some
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.runningFold
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.MetricRegister
@@ -35,7 +31,6 @@ import no.nav.nks_ai.api.v2.core.conversation.streaming.ConversationEvent
 import no.nav.nks_ai.api.v2.kbs.KbsClient
 import no.nav.nks_ai.api.v2.kbs.KbsStreamResponse
 import no.nav.nks_ai.api.v2.kbs.toModel
-import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger { }
 
@@ -63,28 +58,26 @@ class SendMessageService(
         channelFlow {
             send(ConversationEvent.NewMessage(messageId, initialAnswer))
 
+            var latestMessage: Message? = null
             kbsClient.sendQuestionStream(
                 question = question.content,
                 messageHistory = history,
             )
-                .runningFold(none<ConversationEvent>()) { prev, result ->
-                     result.fold(
+                .map { result ->
+                    result.fold(
                         ifRight = { response ->
                             when (response) {
                                 is KbsStreamResponse.KbsTokenChunkResponse -> {
-                                    ConversationEvent.ContentUpdated(messageId, response.chunk).some()
+                                    ConversationEvent.ContentUpdated(messageId, response.chunk)
                                 }
 
                                 is KbsStreamResponse.StatusUpdateResponse -> {
-                                    ConversationEvent.StatusUpdate(messageId, response.text).some()
+                                    ConversationEvent.StatusUpdate(messageId, response.text)
                                 }
 
                                 is KbsStreamResponse.KbsChatResponse -> {
                                     responseToMessage(response, messageId).let { message ->
-                                        prev.fold(
-                                            ifEmpty = { ConversationEvent.NewMessage(messageId, message).some() },
-                                            ifSome = { ConversationEvent.MessageUpdated(messageId, message).some() }
-                                        )
+                                        ConversationEvent.MessageUpdated(messageId, message)
                                     }
                                 }
                             }
@@ -92,16 +85,12 @@ class SendMessageService(
                         ifLeft = { errorResponse ->
                             handleError(errorResponse, messageId).bind()
                                 .let { message ->
-                                    ConversationEvent.ErrorsUpdated(messageId, message.errors).some()
+                                    ConversationEvent.ErrorsUpdated(messageId, message.errors)
                                 }
                         },
                     )
                 }
-                .map { it.getOrNull() }
-                .filterNotNull()
-                .onEach { event -> send(event) }
-                .collectLatest { event ->
-                    delay(3.seconds)
+                .onEach { event ->
                     when (event) {
                         is ConversationEvent.NewMessage -> {
                             event.message.some()
@@ -114,14 +103,17 @@ class SendMessageService(
                         else -> {
                             none()
                         }
-                    }.onSome { message ->
+                    }.onSome { message -> latestMessage = message }
+                }
+                .onCompletion {
+                    latestMessage?.let { message ->
                         messageService.updateAnswer(
-                            messageId = message.id,
+                            messageId = messageId,
+                            pending = false,
                             messageContent = message.content,
                             citations = message.citations.map { NewCitation(it.text, it.sourceId) },
                             context = message.context,
                             followUp = message.followUp,
-                            pending = false,
                             userQuestion = message.userQuestion,
                             contextualizedQuestion = message.contextualizedQuestion,
                             tools = message.tools,
@@ -129,7 +121,7 @@ class SendMessageService(
                             send(ConversationEvent.PendingUpdated(message.id, message, false))
                         }
                     }
-                }
+                }.collect { event -> send(event) }
         }.catch { throwable ->
             emit(ConversationEvent.ErrorsUpdated(messageId, handleError(throwable, messageId).bind().errors))
         }.onCompletion { timer.stop() }
@@ -182,7 +174,7 @@ class SendMessageService(
 
 }
 
-private fun responseToMessage(
+fun responseToMessage(
     response: KbsStreamResponse.KbsChatResponse,
     messageId: MessageId,
 ): Message {
