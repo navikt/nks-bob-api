@@ -6,12 +6,14 @@ on:
     paths:
       - api.yaml
       - api/**
+      - .nais/**
   pull_request:
     branches:
       - main
     paths:
       - api.yaml
       - api/**
+      - .nais/**
 jobs:
   build:
     name: Build
