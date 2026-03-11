@@ -4,13 +4,13 @@ on:
     branches:
       - main
     paths:
-      - delete-conversations.yaml
+      - .github/workflows/delete-conversations.yaml
       - jobs/delete-conversations/**
   pull_request:
     branches:
       - main
     paths:
-      - delete-conversations.yaml
+      - .github/workflows/delete-conversations.yaml
       - jobs/delete-conversations/**
 jobs:
   build:
