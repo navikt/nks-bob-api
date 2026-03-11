@@ -12,7 +12,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import no.nav.nks_ai.shared.DeleteOldConversationsSummary
 import no.nav.nks_ai.shared.ErrorResponse
 import no.nav.nks_ai.shared.UploadStarredMessagesSummary
 import no.nav.nks_ai.shared.auth.EntraClient
