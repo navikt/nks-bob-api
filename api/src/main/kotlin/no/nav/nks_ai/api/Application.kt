@@ -29,10 +29,8 @@ import no.nav.nks_ai.api.app.plugins.configureMonitoring
 import no.nav.nks_ai.api.app.plugins.configureSecurity
 import no.nav.nks_ai.api.app.plugins.configureSerialization
 import no.nav.nks_ai.api.app.plugins.healthRoutes
-import no.nav.nks_ai.api.core.ConversationDeletionJob
 import no.nav.nks_ai.api.core.MarkMessageStarredService
 import no.nav.nks_ai.api.core.SendMessageService
-import no.nav.nks_ai.api.core.UploadStarredMessagesJob
 import no.nav.nks_ai.api.core.admin.AdminService
 import no.nav.nks_ai.api.core.admin.adminRoutes
 import no.nav.nks_ai.api.core.conversation.ConversationService
