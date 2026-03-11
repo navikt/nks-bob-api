@@ -87,6 +87,7 @@ fun Application.configureSecurity() {
                 logger.debug { "Verifying machine jwt" }
                 withAudience(Config.issuers.head.accepted_audience)
                 withIssuer(Config.issuers.head.issuer_name)
+                withClaim("idtyp", "app")
             }
 
             validate { credentials ->
