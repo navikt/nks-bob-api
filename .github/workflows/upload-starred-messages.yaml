@@ -66,12 +66,10 @@ jobs:
           IMAGE: ${{ needs.build.outputs.image }}
           CLUSTER: dev-gcp
           RESOURCE: jobs/upload-starred-messages/.nais/dev-gcp.yaml
-#          VAR: image=europe-north1-docker.pkg.dev/nais-management-233d/nks-aiautomatisering/upload-starred-messages:${{ needs.build.outputs.tag }}
-#      - name: Deploy production
-#        uses: nais/deploy/actions/deploy@v2
-#        if: github.ref == 'refs/heads/main'
-#        env:
-#          IMAGE: ${{ needs.build.outputs.image }}
-#          CLUSTER: prod-gcp
-#          RESOURCE: jobs/upload-starred-messages/.nais/prod-gcp.yaml
-
+      - name: Deploy production
+        uses: nais/deploy/actions/deploy@v2
+        if: github.ref == 'refs/heads/main'
+        env:
+          IMAGE: ${{ needs.build.outputs.image }}
+          CLUSTER: prod-gcp
+          RESOURCE: jobs/upload-starred-messages/.nais/prod-gcp.yaml
