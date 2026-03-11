@@ -4,13 +4,13 @@ on:
     branches:
       - main
     paths:
-      - upload-starred-messages.yaml
+      - .github/workflows/upload-starred-messages.yaml
       - jobs/upload-starred-messages/**
   pull_request:
     branches:
       - main
     paths:
-      - upload-starred-messages.yaml
+      - .github/workflows/upload-starred-messages.yaml
       - jobs/upload-starred-messages/**
 jobs:
   build:
