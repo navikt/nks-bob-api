@@ -19,4 +19,5 @@ dependencies {
     implementation(libs.aedile.core)
     implementation(libs.kotlin.logging)
     implementation(libs.ktor.client.core)
+    implementation(libs.ktor.serialization.kotlinx.json)
 }
