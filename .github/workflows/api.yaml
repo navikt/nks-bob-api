@@ -6,14 +6,18 @@ on:
     paths:
       - .github/workflows/api.yaml
       - api/**
-      - .nais/**
+      - shared/**
+      - settings.gradle.kts
+      - gradle/libs.versions.toml
   pull_request:
     branches:
       - main
     paths:
       - .github/workflows/api.yaml
       - api/**
-      - .nais/**
+      - shared/**
+      - settings.gradle.kts
+      - gradle/libs.versions.toml
 jobs:
   build:
     name: Build
