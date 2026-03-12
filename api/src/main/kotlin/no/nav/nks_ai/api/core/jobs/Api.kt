@@ -1,6 +1,5 @@
 package no.nav.nks_ai.api.core.jobs
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.routing.Route
@@ -11,8 +10,6 @@ import io.ktor.utils.io.ExperimentalKtorApi
 import no.nav.nks_ai.api.app.respondEither
 import no.nav.nks_ai.shared.DeleteOldConversationsSummary
 import no.nav.nks_ai.shared.UploadStarredMessagesSummary
-
-val logger = KotlinLogging.logger {}
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.jobsRoutes(jobService: JobService) {

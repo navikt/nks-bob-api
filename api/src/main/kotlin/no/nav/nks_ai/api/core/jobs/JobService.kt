@@ -2,6 +2,7 @@ package no.nav.nks_ai.api.core.jobs
 
 import arrow.core.raise.either
 import arrow.core.separateEither
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import no.nav.nks_ai.api.app.ApplicationResult
@@ -13,6 +14,8 @@ import no.nav.nks_ai.api.core.message.MessageService
 import no.nav.nks_ai.shared.DeleteOldConversationsSummary
 import no.nav.nks_ai.shared.UploadStarredMessagesSummary
 import kotlin.time.Clock
+
+private val logger = KotlinLogging.logger {}
 
 interface JobService {
     suspend fun deleteOldConversations(): ApplicationResult<DeleteOldConversationsSummary>
