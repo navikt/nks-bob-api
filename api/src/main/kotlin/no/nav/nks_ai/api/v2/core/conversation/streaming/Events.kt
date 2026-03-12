@@ -44,6 +44,20 @@ sealed class ConversationEvent {
     ) : ConversationEvent()
 
     @Serializable
+    @SerialName("CitationsUpdated")
+    data class CitationsUpdated(
+        val id: MessageId,
+        val citations: List<Citation>,
+    ) : ConversationEvent()
+
+    @Serializable
+    @SerialName("ContextUpdated")
+    data class ContextUpdated(
+        val id: MessageId,
+        val context: List<Context>,
+    ) : ConversationEvent()
+
+    @Serializable
     @SerialName("PendingUpdated")
     data class PendingUpdated(
         val id: MessageId,
@@ -72,4 +86,44 @@ sealed class ConversationEvent {
 
     @Serializable
     class NoOp : ConversationEvent()
+}
+
+fun Message.diff(message: Message): ConversationEvent {
+    if (this.id != message.id) {
+        return ConversationEvent.NewMessage(
+            id = message.id,
+            message = message
+        )
+    }
+
+    if (this.content != message.content) {
+        return ConversationEvent.ContentUpdated(
+            id = message.id,
+            content = message.content.removePrefix(this.content)
+        )
+    }
+
+    if (this.citations != message.citations) {
+        return ConversationEvent.CitationsUpdated(
+            id = message.id,
+            citations = message.citations
+        )
+    }
+
+    if (this.context != message.context) {
+        return ConversationEvent.ContextUpdated(
+            id = message.id,
+            context = message.context
+        )
+    }
+
+    if (this.pending != message.pending) {
+        return ConversationEvent.PendingUpdated(
+            id = message.id,
+            message = message,
+            pending = message.pending,
+        )
+    }
+
+    return ConversationEvent.NoOp()
 }
