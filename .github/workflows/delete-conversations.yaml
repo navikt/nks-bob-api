@@ -1,11 +1,11 @@
-name: Build and deploy Api
+name: Build and deploy delete conversations job
 on:
   push:
     branches:
       - main
     paths:
-      - .github/workflows/api.yaml
-      - api/**
+      - .github/workflows/delete-conversations.yaml
+      - jobs/delete-conversations/**
       - shared/**
       - settings.gradle.kts
       - gradle/libs.versions.toml
@@ -13,8 +13,8 @@ on:
     branches:
       - main
     paths:
-      - .github/workflows/api.yaml
-      - api/**
+      - .github/workflows/delete-conversations.yaml
+      - jobs/delete-conversations/**
       - shared/**
       - settings.gradle.kts
       - gradle/libs.versions.toml
@@ -42,8 +42,9 @@ jobs:
         uses: nais/docker-build-push@v0
         id: docker-build-push
         with:
-          dockerfile: api/Dockerfile
+          dockerfile: jobs/delete-conversations/Dockerfile
           team: nks-aiautomatisering
+          image_suffix: delete-conversations
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
     outputs:
@@ -64,14 +65,11 @@ jobs:
         env:
           IMAGE: ${{ needs.build.outputs.image }}
           CLUSTER: dev-gcp
-          RESOURCE: api/.nais/dev-gcp.yaml
-          VAR: ingress=nks-bob-api.ansatt.dev.nav.no
+          RESOURCE: jobs/delete-conversations/.nais/dev-gcp.yaml
       - name: Deploy production
         uses: nais/deploy/actions/deploy@v2
         if: github.ref == 'refs/heads/main'
         env:
           IMAGE: ${{ needs.build.outputs.image }}
           CLUSTER: prod-gcp
-          RESOURCE: api/.nais/prod-gcp.yaml
-          VAR: ingress=nks-bob-api.ansatt.nav.no
-
+          RESOURCE: jobs/delete-conversations/.nais/prod-gcp.yaml

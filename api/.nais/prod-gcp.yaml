@@ -6,28 +6,26 @@ metadata:
     team: nks-aiautomatisering
   name: nks-bob-api
   namespace: nks-aiautomatisering
-  annotations:
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
 spec:
   envFrom:
   image: "{{ image }}"
   port: 8080
   replicas:
-    max: 2
-    min: 1
+    max: 6
+    min: 3
   leaderElection: true
   resources:
     limits:
-      memory: 1024Mi
+      memory: 2048Mi
     requests:
-      cpu: 125m
-      memory: 512Mi
+      cpu: 350m
+      memory: 1536Mi
   accessPolicy:
     inbound:
       rules:
         - application: nks-bob-frontend
-        - application: nks-bob-frontend-lokal
+        - application: nks-bob-api-delete-old-conversations
+        - application: nks-bob-api-upload-starred-messages
     outbound:
       rules:
         - application: nks-kbs
@@ -37,26 +35,26 @@ spec:
     - name: NKS_KBS_URL
       value: http://nks-kbs
     - name: NKS_KBS_SCOPE
-      value: api://dev-gcp.nks-aiautomatisering.nks-kbs/.default
+      value: api://prod-gcp.nks-aiautomatisering.nks-kbs/.default
     - name: AZURE_LOGIN_URL
       value: https://login.microsoftonline.com/navno.onmicrosoft.com/oauth2/v2.0
     - name: NKS_BOB_API_SCOPE
-      value: api://dev-gcp.nks-aiautomatisering.nks-bob-api/.default
+      value: api://prod-gcp.nks-aiautomatisering.nks-bob-api/.default
     - name: NKS_BOB_API_ADMIN_GROUP
       value: dcb5ec4c-8027-428c-9dfd-15852388001c
     - name: GCP_TEAM_PROJECT_ID
       value: nks-aiautomatisering-prod-194a
     - name: STJERNEMARKERTE_SVAR_TABLE
-      value: stjernemarkerte_svar_dev
+      value: stjernemarkerte_svar_prod
   azure:
     application:
-      tenant: nav.no # Gjør at man kan logge på med vanlig konto i dev-gcp
+      tenant: nav.no
       enabled: true
       allowAllUsers: false
       claims:
         groups:
           - id: "dcb5ec4c-8027-428c-9dfd-15852388001c" # Administratorgruppe
-          - id: "1a7b1fec-44c3-40c1-bf1d-f462b5a90a26" # Brukergruppe
+          - id: "ad604335-b339-4804-82ee-fb5e2bcb87c9" # Brukergruppe
     sidecar:
       enabled: true
       autoLogin: true
@@ -67,10 +65,10 @@ spec:
     - https://{{ingress}}/
   liveness:
     path: /internal/is_alive
-    initialDelay: 40
+    initialDelay: 20
   readiness:
     path: /internal/is_ready
-    initialDelay: 40
+    initialDelay: 20
   observability:
     logging:
       destinations:
@@ -85,7 +83,7 @@ spec:
   gcp:
     sqlInstances:
       - name: nks-bob-api
-        tier: db-f1-micro
+        tier: db-g1-small
         collation: nb_NO.UTF8
         type: POSTGRES_16
         databases:

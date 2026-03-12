@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <condition class="ch.qos.logback.core.boolex.ExpressionPropertyCondition">
+        <expression>isDefined("NAIS_CLUSTER_NAME")</expression>
+    </condition>
+    <if>
+        <then>
+            <include resource="logback-nais.xml"/>
+        </then>
+        <else>
+            <include resource="logback-local.xml"/>
+        </else>
+    </if>
+</configuration>

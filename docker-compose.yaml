@@ -86,7 +86,8 @@ services:
                     "groups": [
                       "admin"
                     ],
-                    "azp": "consumer-client-id"
+                    "azp": "consumer-client-id",
+                    "idtyp": "app"
                   }
                 },
                 {
@@ -100,7 +101,8 @@ services:
                     "groups": [
                       "admin"
                     ],
-                    "azp": "consumer-client-id"
+                    "azp": "consumer-client-id",
+                    "idtyp": "app"
                   }
                 },
                 {
@@ -114,7 +116,8 @@ services:
                     "groups": [
                       "admin"
                     ],
-                    "azp": "consumer-client-id"
+                    "azp": "consumer-client-id",
+                    "idtyp": "app"
                   }
                 }
               ]
