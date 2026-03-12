@@ -48,7 +48,9 @@ suspend fun main() {
     if (!response.status.isSuccess()) {
         val error = response.body<ErrorResponse>()
         logger.error { "Error from upload-starred-messages: ${error.code} ${error.message}" }
-        return
+        throw IllegalStateException(
+            "upload-starred-messages job failed with status ${response.status}: ${error.code} ${error.message}"
+        )
     }
 
     val result = response.body<UploadStarredMessagesSummary>()

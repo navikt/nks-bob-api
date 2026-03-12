@@ -48,7 +48,9 @@ suspend fun main() {
     if (!response.status.isSuccess()) {
         val error = response.body<ErrorResponse>()
         logger.error { "Error from delete-old-conversations: ${error.code} ${error.message}" }
-        return
+        throw IllegalStateException(
+            "delete-old-conversations job failed with status ${response.status}: ${error.code} ${error.message}"
+        )
     }
 
     val result = response.body<DeleteOldConversationsSummary>()
