@@ -17,7 +17,7 @@ import no.nav.nks_ai.shared.ErrorResponse
 import no.nav.nks_ai.shared.auth.EntraClient
 import java.util.UUID
 
-val logger = KotlinLogging.logger {}
+private val logger = KotlinLogging.logger {}
 
 suspend fun main() {
     val httpClient = HttpClient(CIO) {

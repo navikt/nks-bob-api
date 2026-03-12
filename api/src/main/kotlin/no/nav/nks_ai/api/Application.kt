@@ -59,7 +59,7 @@ fun main(args: Array<String>) {
     EngineMain.main(args)
 }
 
-val logger = KotlinLogging.logger { }
+private val logger = KotlinLogging.logger { }
 
 fun Application.module() {
     configureSerialization()
