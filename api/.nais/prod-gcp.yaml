@@ -24,6 +24,8 @@ spec:
     inbound:
       rules:
         - application: nks-bob-frontend
+        - application: nks-bob-api-delete-old-conversations
+        - application: nks-bob-api-upload-starred-messages
     outbound:
       rules:
         - application: nks-kbs
