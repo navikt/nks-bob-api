@@ -1,5 +1,6 @@
 package no.nav.nks_ai.api.v2.core
 
+import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.none
 import arrow.core.raise.either
@@ -8,9 +9,11 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.runningFold
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.MetricRegister
@@ -28,6 +31,7 @@ import no.nav.nks_ai.api.kbs.KbsChatMessage
 import no.nav.nks_ai.api.kbs.KbsErrorResponse
 import no.nav.nks_ai.api.kbs.fromMessage
 import no.nav.nks_ai.api.v2.core.conversation.streaming.ConversationEvent
+import no.nav.nks_ai.api.v2.core.conversation.streaming.diff
 import no.nav.nks_ai.api.v2.kbs.KbsClient
 import no.nav.nks_ai.api.v2.kbs.KbsStreamResponse
 import no.nav.nks_ai.api.v2.kbs.toModel
@@ -58,55 +62,68 @@ class SendMessageService(
         channelFlow {
             send(ConversationEvent.NewMessage(messageId, initialAnswer))
 
-            var latestMessage: Message? = null
+            var latestMessage = initialAnswer
             kbsClient.sendQuestionStream(
                 question = question.content,
                 messageHistory = history,
             )
-                .map { result ->
+                .runningFold(none<Pair<ConversationEvent, Message>>()) { prev, result ->
+                    prev.onSome { (event, _) ->
+                        when (event) {
+                            is ConversationEvent.NoOp -> logger.debug { "No-op event received" }
+                            else -> {}
+                        }
+                    }
+
                     result.fold(
                         ifRight = { response ->
                             when (response) {
                                 is KbsStreamResponse.KbsTokenChunkResponse -> {
-                                    ConversationEvent.ContentUpdated(messageId, response.chunk)
+                                    val event = ConversationEvent.ContentUpdated(messageId, response.chunk)
+                                    val message = prev.fold(
+                                        ifEmpty = { initialAnswer.copy(content = response.chunk) },
+                                        ifSome = { (_, prevMessage) -> prevMessage.copy(content = prevMessage.content + response.chunk) },
+                                    )
+
+                                    (event to message)
                                 }
 
                                 is KbsStreamResponse.StatusUpdateResponse -> {
-                                    ConversationEvent.StatusUpdate(messageId, response.text)
+                                    val event = ConversationEvent.StatusUpdate(messageId, response.text)
+                                    val message = prev.fold(
+                                        ifEmpty = { initialAnswer },
+                                        ifSome = { (_, prevMessage) -> prevMessage },
+                                    )
+
+                                    (event to message)
                                 }
 
                                 is KbsStreamResponse.KbsChatResponse -> {
-                                    responseToMessage(response, messageId).let { message ->
-                                        ConversationEvent.MessageUpdated(messageId, message)
-                                    }
+                                    val prevMessage = prev.fold(
+                                        ifEmpty = { initialAnswer },
+                                        ifSome = { (_, prevMessage) -> prevMessage },
+                                    )
+
+                                    val message = responseToMessage(response, messageId)
+                                    val event = prevMessage.diff(message)
+
+                                    (event to message)
                                 }
-                            }
+                            }.some()
                         },
                         ifLeft = { errorResponse ->
                             handleError(errorResponse, messageId).bind()
                                 .let { message ->
-                                    ConversationEvent.ErrorsUpdated(messageId, message.errors)
+                                    (ConversationEvent.ErrorsUpdated(messageId, message.errors) to message).some()
                                 }
                         },
                     )
                 }
-                .onEach { event ->
-                    when (event) {
-                        is ConversationEvent.NewMessage -> {
-                            event.message.some()
-                        }
-
-                        is ConversationEvent.MessageUpdated -> {
-                            event.message.some()
-                        }
-
-                        else -> {
-                            none()
-                        }
-                    }.onSome { message -> latestMessage = message }
-                }
+                .map { it.getOrNull() }
+                .filterNotNull()
+                .onEach { (_, message) -> latestMessage = message }
                 .onCompletion {
-                    latestMessage?.let { message ->
+                    latestMessage.let { message ->
                         messageService.updateAnswer(
                             messageId = messageId,
                             pending = false,
@@ -121,7 +138,8 @@ class SendMessageService(
                             send(ConversationEvent.PendingUpdated(message.id, message, false))
                         }
                     }
-                }.collect { event -> send(event) }
+                }
+                .collect { (event, _) -> send(event) }
         }.catch { throwable ->
             emit(ConversationEvent.ErrorsUpdated(messageId, handleError(throwable, messageId).bind().errors))
         }.onCompletion { timer.stop() }
