@@ -1,10 +1,10 @@
 package no.nav.nks_ai.api
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.HttpClient
-import io.ktor.client.HttpClientConfig
-import io.ktor.client.engine.apache.Apache
-import io.ktor.client.engine.apache.ApacheEngineConfig
+import io.ktor.client.*
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.cio.CIOEngineConfig
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.callid.CallId
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.sse.SSE
@@ -53,6 +53,7 @@ import no.nav.nks_ai.api.core.notification.notificationUserRoutes
 import no.nav.nks_ai.api.core.user.UserConfigService
 import no.nav.nks_ai.api.core.user.userConfigRoutes
 import no.nav.nks_ai.api.kbs.KbsClient
+import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationSseV2
 import no.nav.nks_ai.shared.auth.EntraClient
 
 fun main(args: Array<String>) {
@@ -88,11 +89,20 @@ fun Application.module() {
         scope = Config.kbs.scope,
     )
 
+    val kbsClientV2 = no.nav.nks_ai.api.v2.kbs.KbsClient(
+        sseClient = sseClient,
+        entraClient = entraClient,
+        baseUrl = Config.kbs.url,
+        scope = Config.kbs.scope,
+    )
+
     val bigQueryClient = BigQueryClient()
 
     val conversationService = ConversationService()
     val messageService = MessageService()
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
+    val sendMessageServiceV2 =
+        no.nav.nks_ai.api.v2.core.SendMessageService(conversationService, messageService, kbsClientV2)
     val adminService = AdminService()
     val userConfigService = UserConfigService()
     val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
@@ -123,6 +133,11 @@ fun Application.module() {
                 jobsRoutes(jobService)
             }
         }
+        route("/api/v2") {
+            authenticate {
+                conversationSseV2(messageService, sendMessageServiceV2)
+            }
+        }
         route("/internal") {
             healthRoutes()
         }
@@ -147,13 +162,13 @@ fun defaultJsonConfig(
 }
 
 private fun defaultHttpClient(
-    block: HttpClientConfig<ApacheEngineConfig>.() -> Unit = {}
+    block: HttpClientConfig<CIOEngineConfig>.() -> Unit = {}
 ): HttpClient =
-    HttpClient(Apache) {
-        engine {
-            socketTimeout = Config.HTTP_CLIENT_TIMEOUT_MS
-            connectTimeout = Config.HTTP_CLIENT_TIMEOUT_MS
-            connectionRequestTimeout = Config.HTTP_CLIENT_TIMEOUT_MS * 2
+    HttpClient(CIO) {
+        install(HttpTimeout) {
+            socketTimeoutMillis = Config.HTTP_CLIENT_TIMEOUT_MS.toLong()
+            connectTimeoutMillis = Config.HTTP_CLIENT_TIMEOUT_MS.toLong()
+            requestTimeoutMillis = Config.HTTP_CLIENT_TIMEOUT_MS.toLong() * 2
         }
         install(ContentNegotiation) {
             json(defaultJsonConfig())
