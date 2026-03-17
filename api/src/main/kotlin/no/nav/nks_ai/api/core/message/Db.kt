@@ -173,6 +173,7 @@ object MessageRepo {
         contextualizedQuestion: String?,
         tools: List<String>,
         toolsV2: List<Tool>,
+        thinking: List<String>,
     ): ApplicationResult<Message> =
         suspendTransaction {
             either {
@@ -189,6 +190,7 @@ object MessageRepo {
                     it.contextualizedQuestion = contextualizedQuestion
                     it.tools = tools
                     it.toolsV2 = toolsV2
+                    it.thinking = thinking
                 }?.toModel()
                     ?: raise(ApplicationError.MessageNotFound(messageId))
             }
