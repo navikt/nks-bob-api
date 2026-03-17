@@ -54,7 +54,7 @@ sealed class ConversationEvent {
     @SerialName("ContextUpdated")
     data class ContextUpdated(
         val id: MessageId,
-        val context: List<Context>,
+        val context: Map<String, Context>,
     ) : ConversationEvent()
 
     @Serializable

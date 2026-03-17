@@ -10,7 +10,7 @@ sealed class KbsStreamResponse {
     @Serializable
     data class KbsChatResponse(
         val answer: String,
-        val context: Map<String,KbsChatContext>,
+        val context: Map<String, KbsChatContext>,
         val citations: Map<String, List<String>>,
         @SerialName("follow_up") val followUp: List<String> = emptyList(),
         val tools: List<KbsToolCall>,
@@ -20,7 +20,7 @@ sealed class KbsStreamResponse {
     @Serializable
     data class KbsTokenChunkResponse(
         val chunk: String
-    ): KbsStreamResponse()
+    ) : KbsStreamResponse()
 
     @Serializable
     data class StatusUpdateResponse(
@@ -42,7 +42,7 @@ data class KbsChatContext(
     @SerialName("semantic_similarity") val semanticSimilarity: Double,
 )
 
-fun KbsChatContext.toModel(): Context =
+fun KbsChatContext.toModel(sourceId: String): Context =
     Context(
         content = content,
         title = title,
@@ -54,6 +54,7 @@ fun KbsChatContext.toModel(): Context =
         articleColumn = articleColumn,
         lastModified = lastModified,
         semanticSimilarity = semanticSimilarity,
+        sourceId = sourceId,
     )
 
 @Serializable
