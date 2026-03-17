@@ -121,6 +121,7 @@ class SendMessageService(
                             userQuestion = message.userQuestion,
                             contextualizedQuestion = message.contextualizedQuestion,
                             tools = message.tools,
+                            thinking = message.thinking,
                         ).map {
                             send(
                                 ConversationEvent.PendingUpdated(
@@ -247,6 +248,7 @@ class SendMessageService(
                     userQuestion = message.userQuestion,
                     contextualizedQuestion = message.contextualizedQuestion,
                     tools = message.tools,
+                    thinking = message.thinking,
                 ).map { emit(it) }.bind()
             }.mapLeft { error ->
                 MetricRegister.answerFailedReceive.inc()

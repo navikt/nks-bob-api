@@ -128,6 +128,7 @@ class SendMessageService(
                             userQuestion = message.userQuestion,
                             contextualizedQuestion = message.contextualizedQuestion,
                             tools = message.tools,
+                            thinking = message.thinking,
                         ).bind().let { message ->
                             send(ConversationEvent.PendingUpdated(message.id, message, false))
                         }
