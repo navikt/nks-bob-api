@@ -48,6 +48,8 @@ internal object Messages : BaseTable("messages") {
     val starred = bool("starred").clientDefault { false }
     val starredUploadedAt = datetime("starred_uploaded_at").nullable()
     val tools = array<String>("tools").clientDefault { emptyList() }
+    val toolsV2 = jsonb<List<Tool>>("tools_v2", jsonConfig).clientDefault { emptyList() }
+    val thinking = array<String>("thinking").clientDefault { emptyList() }
 }
 
 internal class MessageDAO(id: EntityID<UUID>) : BaseEntity(id, Messages) {
@@ -68,6 +70,8 @@ internal class MessageDAO(id: EntityID<UUID>) : BaseEntity(id, Messages) {
     var starred by Messages.starred
     var starredUploadedAt by Messages.starredUploadedAt
     var tools by Messages.tools
+    var toolsV2 by Messages.toolsV2
+    var thinking by Messages.thinking
 }
 
 internal fun MessageDAO.toModel() = Message(
@@ -77,14 +81,24 @@ internal fun MessageDAO.toModel() = Message(
     messageType = messageType,
     messageRole = messageRole,
     citations = citations,
-    context = context,
+    context = context.mapIndexed { index, context ->
+        val sourceId = context.sourceId ?: index.toString()
+        (sourceId to context)
+    }.toMap(),
     pending = pending,
     errors = errors,
     followUp = followUp,
     userQuestion = userQuestion,
     contextualizedQuestion = contextualizedQuestion,
     starred = starred,
-    tools = tools,
+    tools =
+        // Backwards compatibility
+        if (tools.isNotEmpty()) {
+            tools.map { Tool(name = it, arguments = emptyMap(), success = true) }
+        } else {
+            toolsV2
+        },
+    thinking = thinking,
 )
 
 object MessageRepo {
@@ -151,13 +165,14 @@ object MessageRepo {
         messageType: MessageType,
         messageRole: MessageRole,
         createdBy: String,
-        context: List<Context>,
+        context: Map<String, Context>,
         citations: List<Citation>,
         followUp: List<String>,
         pending: Boolean,
         userQuestion: String?,
         contextualizedQuestion: String?,
         tools: List<String>,
+        toolsV2: List<Tool>,
     ): ApplicationResult<Message> =
         suspendTransaction {
             either {
@@ -166,13 +181,14 @@ object MessageRepo {
                     it.messageType = messageType
                     it.messageRole = messageRole
                     it.createdBy = createdBy
-                    it.context = context
+                    it.context = context.map { (sourceId, ctx) -> ctx.copy(sourceId = sourceId) }
                     it.citations = citations
                     it.followUp = followUp
                     it.pending = pending
                     it.userQuestion = userQuestion
                     it.contextualizedQuestion = contextualizedQuestion
                     it.tools = tools
+                    it.toolsV2 = toolsV2
                 }?.toModel()
                     ?: raise(ApplicationError.MessageNotFound(messageId))
             }

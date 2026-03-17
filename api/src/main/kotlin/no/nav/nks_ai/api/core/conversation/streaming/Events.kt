@@ -10,6 +10,7 @@ import no.nav.nks_ai.api.core.message.Context
 import no.nav.nks_ai.api.core.message.Message
 import no.nav.nks_ai.api.core.message.MessageError
 import no.nav.nks_ai.api.core.message.MessageId
+import no.nav.nks_ai.api.kbs.toModel
 
 @OptIn(ExperimentalSerializationApi::class)
 @JsonClassDiscriminator("type")
@@ -104,9 +105,10 @@ fun Message.diff(message: Message): ConversationEvent {
     }
 
     if (this.context != message.context) {
+        val context = message.context.values.toList()
         return ConversationEvent.ContextUpdated(
             id = message.id,
-            context = message.context
+            context = context
         )
     }
 

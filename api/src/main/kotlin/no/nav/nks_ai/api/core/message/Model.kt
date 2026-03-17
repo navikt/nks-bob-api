@@ -7,11 +7,20 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.ClassSerialDescriptorBuilder
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.encoding.decodeStructure
+import kotlinx.serialization.encoding.encodeStructure
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonTransformingSerializer
 import no.nav.nks_ai.api.app.now
 import no.nav.nks_ai.api.app.toUUID
 
@@ -70,13 +79,26 @@ data class Context(
     val articleColumn: String?,
     val lastModified: LocalDateTime?,
     val semanticSimilarity: Double,
+    val sourceId: String? = null,
 )
 
 @Serializable
 data class Citation(
     val text: String,
-    val sourceId: Int,
+    @Serializable(with = SourceIdAsString::class)
+    val sourceId: String,
 )
+
+// Backwards compatibility for numbered source id
+object SourceIdAsString : JsonTransformingSerializer<String>(String.serializer()) {
+    override fun transformDeserialize(element: JsonElement): JsonElement =
+        when (element) {
+            is JsonPrimitive ->
+                if (element.isString) element else JsonPrimitive(element.content)
+            else -> element
+        }
+}
+
 
 fun Citation.Companion.fromNewCitation(newCitation: NewCitation) =
     Citation(
@@ -87,7 +109,14 @@ fun Citation.Companion.fromNewCitation(newCitation: NewCitation) =
 @Serializable
 data class NewCitation(
     val text: String,
-    val sourceId: Int,
+    val sourceId: String,
+)
+
+@Serializable
+data class Tool(
+    val name: String,
+    val arguments: Map<String, String>,
+    val success: Boolean,
 )
 
 @Serializable
@@ -104,26 +133,28 @@ data class Message(
     val messageType: MessageType,
     val messageRole: MessageRole,
     val citations: List<Citation>,
-    val context: List<Context>,
+    val context: Map<String, Context>,
     val pending: Boolean,
     val errors: List<MessageError>,
     val followUp: List<String>,
     val userQuestion: String?,
     val contextualizedQuestion: String?,
     val starred: Boolean,
-    val tools: List<String>,
+    val tools: List<Tool>,
+    val thinking: List<String>,
 )
 
 fun Message.Companion.answerFrom(
     messageId: MessageId,
     content: String,
     citations: List<NewCitation>,
-    context: List<Context>,
+    context: Map<String, Context>,
     followUp: List<String>,
     pending: Boolean = true,
     userQuestion: String?,
     contextualizedQuestion: String?,
-    tools: List<String>,
+    tools: List<Tool>,
+    thinking: List<String>,
 ) =
     Message(
         id = messageId,
@@ -140,6 +171,7 @@ fun Message.Companion.answerFrom(
         contextualizedQuestion = contextualizedQuestion,
         starred = false,
         tools = tools,
+        thinking = thinking,
     )
 
 @Serializable

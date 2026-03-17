@@ -25,6 +25,7 @@ import no.nav.nks_ai.api.core.message.MessageId
 import no.nav.nks_ai.api.core.message.MessageService
 import no.nav.nks_ai.api.core.message.MessageType
 import no.nav.nks_ai.api.core.message.NewCitation
+import no.nav.nks_ai.api.core.message.Tool
 import no.nav.nks_ai.api.core.message.answerFrom
 import no.nav.nks_ai.api.core.user.NavIdent
 import no.nav.nks_ai.api.kbs.KbsChatMessage
@@ -68,13 +69,6 @@ class SendMessageService(
                 messageHistory = history,
             )
                 .runningFold(none<Pair<ConversationEvent, Message>>()) { prev, result ->
-                    prev.onSome { (event, _) ->
-                        when (event) {
-                            is ConversationEvent.NoOp -> logger.debug { "No-op event received" }
-                            else -> {}
-                        }
-                    }
-
                     result.fold(
                         ifRight = { response ->
                             when (response) {
@@ -189,35 +183,37 @@ class SendMessageService(
             errors = listOf(messageError),
         )
     }
-
 }
 
 fun responseToMessage(
     response: KbsStreamResponse.KbsChatResponse,
     messageId: MessageId,
 ): Message {
-    val answerContent = response.answer
-    // TODO prepare for uuid
     val citations =
-        response.citations.map { (sourceId, citationTexts) ->
-            citationTexts.map { NewCitation(it, sourceId.toInt()) }
-        }.flatten()
+        response.citations.flatMap { (sourceId, citationTexts) ->
+            citationTexts.map { NewCitation(it, sourceId) }
+        }
 
-    // TODO source Id
-    val context = response.context.map { (sourceId, ctx) -> ctx.toModel() }
+    val context =
+        response.context.map { (sourceId, ctx) ->
+            sourceId to ctx.toModel(sourceId)
+        }.toMap()
 
-    // TODO migration needed
-    val tools = emptyList<String>()
+    val tools =
+        response.tools.map { (name, arguments, success) ->
+            Tool(name, arguments, success)
+        }
 
     return Message.answerFrom(
         messageId = messageId,
-        content = answerContent,
+        content = response.answer,
         citations = citations,
         context = context,
         followUp = response.followUp,
         userQuestion = "",
         contextualizedQuestion = "",
         tools = tools,
+        thinking = response.thinking,
     )
 }
 

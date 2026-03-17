@@ -33,6 +33,7 @@ import no.nav.nks_ai.api.core.message.MessageService
 import no.nav.nks_ai.api.core.message.MessageType
 import no.nav.nks_ai.api.core.message.NewCitation
 import no.nav.nks_ai.api.core.message.NewMessage
+import no.nav.nks_ai.api.core.message.Tool
 import no.nav.nks_ai.api.core.message.answerFrom
 import no.nav.nks_ai.api.core.user.NavIdent
 import no.nav.nks_ai.api.kbs.KbsChatMessage
@@ -288,7 +289,10 @@ private fun responseToMessage(
 ): Message {
     val answerContent = response.answer.text
     val citations = response.answer.citations.map { it.toNewCitation() }
-    val context = response.context.map { it.toModel() }
+    val context =
+        response.context.mapIndexed { index, context ->
+            index.toString() to context.toModel()
+        }.toMap()
 
     return Message.answerFrom(
         messageId = messageId,
@@ -298,7 +302,8 @@ private fun responseToMessage(
         followUp = response.followUp,
         userQuestion = response.question.user,
         contextualizedQuestion = response.question.contextualized,
-        tools = response.tools,
+        tools = response.tools.map { Tool(name = it, arguments = emptyMap(), success = true) },
+        thinking = emptyList(),
     )
 }
 
@@ -323,7 +328,10 @@ private fun responseToMessage(
         is KbsStreamResponse.KbsChatResponse -> {
             val answerContent = response.answer.text
             val citations = response.answer.citations.map { it.toNewCitation() }
-            val context = response.context.map { it.toModel() }
+            val context =
+                response.context.mapIndexed { index, context ->
+                    index.toString() to context.toModel()
+                }.toMap()
 
             Message.answerFrom(
                 messageId = messageId,
@@ -333,7 +341,8 @@ private fun responseToMessage(
                 followUp = response.followUp,
                 userQuestion = response.question.user,
                 contextualizedQuestion = response.question.contextualized,
-                tools = response.tools,
+                tools = response.tools.map { Tool(name = it, arguments = emptyMap(), success = true) },
+                thinking = emptyList(),
             )
         }
     }
