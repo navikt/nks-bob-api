@@ -6,7 +6,6 @@ import io.prometheus.metrics.core.datapoints.Timer
 import io.prometheus.metrics.core.metrics.Counter
 import io.prometheus.metrics.core.metrics.Gauge
 import io.prometheus.metrics.core.metrics.Histogram
-import io.prometheus.metrics.model.snapshots.Labels
 import no.nav.nks_ai.api.core.feedback.ResolvedCategory
 import no.nav.nks_ai.api.core.feedback.ResolvedImportance
 
