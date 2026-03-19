@@ -18,7 +18,7 @@
     },
     "bodyFileName": "v2/samordning-data.txt",
     "chunkedDribbleDelay": {
-      "numberOfChunks": 15,
+      "numberOfChunks": 18,
       "totalDuration": 8000
     }
   }
