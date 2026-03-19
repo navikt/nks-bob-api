@@ -1,6 +1,5 @@
 package no.nav.nks_ai.api.v2.core
 
-import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.none
 import arrow.core.raise.either
@@ -211,8 +210,8 @@ fun responseToMessage(
         citations = citations,
         context = context,
         followUp = response.followUp,
-        userQuestion = "",
-        contextualizedQuestion = "",
+        userQuestion = null,
+        contextualizedQuestion = null,
         tools = tools,
         thinking = response.thinking,
     )
