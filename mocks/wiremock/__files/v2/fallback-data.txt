@@ -1,12 +1,18 @@
+event: status_update
+data: {"text":"Vurderer spørsmålet"}
+
 event: token_chunk
-data: {"chunk":"Hei! Hvordan kan jeg hjelpe deg i dag?"}
+data: {"chunk":"Hei, hvordan"}
+
+event: token_chunk
+data: {"chunk":" kan jeg hjelpe deg i dag?"}
 
 event: chat_chunk
-data: {"answer":"Hei! Hvordan kan jeg hjelpe deg i dag?","thinking":["**Formulating a Response**\n\nI've registered the user's greeting. My current plan is to generate a suitable response. It should be a friendly greeting back, followed by a prompt to elicit the user's specific request. I'm considering different phrasing options to sound natural and helpful.\n\n\n"],"citations":{},"context":{},"follow_up":[],"tools":[]}
+data: {"answer":"Hei, hvordan kan jeg hjelpe deg i dag?","thinking":["**Formulating a Response**\n\n\\n\\n\n\nI've decided to reply to the user. Given the prompt, a basic greeting will suffice, but I'll strive to offer assistance as well. I've settled on \"Hei, hvordan kan jeg hjelpe deg i dag?\" to show I am ready to fulfill the implied request.\n\n\n"],"citations":{},"context":{},"follow_up":[],"tools":[]}
 
 event: chat_chunk
-data: {"answer":"Hei! Hvordan kan jeg hjelpe deg i dag?","thinking":["**Formulating a Response**\n\nI've registered the user's greeting. My current plan is to generate a suitable response. It should be a friendly greeting back, followed by a prompt to elicit the user's specific request. I'm considering different phrasing options to sound natural and helpful.\n\n\n"],"citations":{},"context":{},"follow_up":[],"tools":[]}
+data: {"answer":"Hei, hvordan kan jeg hjelpe deg i dag?","thinking":["**Formulating a Response**\n\n\\n\\n\n\nI've decided to reply to the user. Given the prompt, a basic greeting will suffice, but I'll strive to offer assistance as well. I've settled on \"Hei, hvordan kan jeg hjelpe deg i dag?\" to show I am ready to fulfill the implied request.\n\n\n"],"citations":{},"context":{},"follow_up":[],"tools":[]}
 
 event: chat_chunk
-data: {"answer":"Hei! Hvordan kan jeg hjelpe deg i dag?","thinking":["**Formulating a Response**\n\nI've registered the user's greeting. My current plan is to generate a suitable response. It should be a friendly greeting back, followed by a prompt to elicit the user's specific request. I'm considering different phrasing options to sound natural and helpful.\n\n\n"],"citations":{},"context":{},"follow_up":["Hva er de vanligste spørsmålene brukere stiller til Nav?","Hvilke tjenester tilbyr Nav for å hjelpe folk i arbeid?","Hva er de nyeste endringene i Nav-regelverket?"],"tools":[]}
+data: {"answer":"Hei, hvordan kan jeg hjelpe deg i dag?","thinking":["**Formulating a Response**\n\n\\n\\n\n\nI've decided to reply to the user. Given the prompt, a basic greeting will suffice, but I'll strive to offer assistance as well. I've settled on \"Hei, hvordan kan jeg hjelpe deg i dag?\" to show I am ready to fulfill the implied request.\n\n\n"],"citations":{},"context":{},"follow_up":["Hva er de viktigste funksjonene til Nav?","Hvilke dokumenter trenger jeg for å søke om ytelser fra Nav?","Hvor finner jeg informasjon om ledige stillinger hos Nav?"],"tools":[]}
 
