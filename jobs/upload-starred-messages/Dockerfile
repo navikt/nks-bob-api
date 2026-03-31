@@ -25,4 +25,4 @@ COPY --from=build /workspace/jobs/upload-starred-messages/build/libs/upload-star
 
 ENV TZ="Europe/Oslo"
 
-ENTRYPOINT ["java", "-XX:InitialRAMPercentage=25.0", "-XX:MaxRAMPercentage=75.0", "-cp", "/app/lib/*:/app/app.jar", "no.nav.nks_ai.upload_starred_messages.MainKt"]
+ENTRYPOINT ["java", "-XX:InitialRAMPercentage=25.0", "-XX:MaxRAMPercentage=75.0", "-cp", "/app/app.jar:/app/lib/*", "no.nav.nks_ai.upload_starred_messages.MainKt"]

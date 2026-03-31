@@ -24,7 +24,6 @@ repositories {
 dependencies {
     implementation(project(":shared"))
     implementation(libs.config4k)
-    implementation(libs.janino)
     implementation(libs.kotlin.logging)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.call.id)

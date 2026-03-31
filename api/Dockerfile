@@ -26,4 +26,4 @@ COPY --from=build /workspace/api/build/libs/api-*.jar /app/app.jar
 ENV TZ="Europe/Oslo"
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-XX:InitialRAMPercentage=25.0", "-XX:MaxRAMPercentage=75.0", "-cp", "/app/lib/*:/app/app.jar", "no.nav.nks_ai.api.ApplicationKt"]
+ENTRYPOINT ["java", "-XX:InitialRAMPercentage=25.0", "-XX:MaxRAMPercentage=75.0", "-cp", "/app/app.jar:/app/lib/*", "no.nav.nks_ai.api.ApplicationKt"]
