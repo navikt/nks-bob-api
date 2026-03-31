@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <condition class="ch.qos.logback.core.boolex.ExpressionPropertyCondition">
-        <expression>isDefined("NAIS_CLUSTER_NAME")</expression>
+    <condition class="ch.qos.logback.core.boolex.IsPropertyDefinedCondition">
+        <key>NAIS_CLUSTER_NAME</key>
     </condition>
     <if>
         <then>
