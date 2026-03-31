@@ -39,7 +39,6 @@ dependencies {
     implementation(libs.flyway.database.postgres)
     implementation(libs.google.cloud.bigquery)
     implementation(libs.hikari.cp)
-    implementation(libs.janino)
     implementation(libs.kotlin.logging)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.datetime)
