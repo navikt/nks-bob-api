@@ -29,7 +29,7 @@ spec:
     outbound:
       rules:
         - application: nks-kbs
-        - application: logging
+        - application: team-logs
           namespace: nais-system
   env:
     - name: NKS_KBS_URL
