@@ -80,7 +80,7 @@ data class KbsCitation(
 fun KbsCitation.toNewCitation() =
     NewCitation(
         text = text,
-        sourceId = sourceId,
+        sourceId = sourceId.toString(),
     )
 
 @Serializable
