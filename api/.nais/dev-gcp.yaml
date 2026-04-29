@@ -16,7 +16,6 @@ spec:
   replicas:
     max: 2
     min: 1
-  leaderElection: true
   resources:
     limits:
       memory: 1024Mi
