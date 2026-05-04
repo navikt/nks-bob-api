@@ -12,13 +12,13 @@ spec:
   port: 8080
   replicas:
     max: 6
-    min: 3
+    min: 2
   resources:
     limits:
-      memory: 2048Mi
+      memory: 1152Mi
     requests:
-      cpu: 350m
-      memory: 1536Mi
+      cpu: 50m
+      memory: 1088Mi
   accessPolicy:
     inbound:
       rules:
