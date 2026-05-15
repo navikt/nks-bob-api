@@ -1,0 +1,20 @@
+{
+  "priority": 2,
+  "request": {
+    "method": "POST",
+    "url": "/api/v2/stream/chat"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive"
+    },
+    "bodyFileName": "v2/fallback-data.txt",
+    "chunkedDribbleDelay": {
+      "numberOfChunks": 4,
+      "totalDuration": 200
+    }
+  }
+}

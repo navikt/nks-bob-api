@@ -1,4 +1,4 @@
-package no.nav.nks_ai.api.core.conversation.streaming
+package no.nav.nks_ai.api.v2.core.conversation.streaming
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
@@ -10,12 +10,11 @@ import no.nav.nks_ai.api.core.message.Context
 import no.nav.nks_ai.api.core.message.Message
 import no.nav.nks_ai.api.core.message.MessageError
 import no.nav.nks_ai.api.core.message.MessageId
-import no.nav.nks_ai.api.kbs.toModel
 
 @OptIn(ExperimentalSerializationApi::class)
 @JsonClassDiscriminator("type")
 @Serializable
-sealed class ConversationEvent() {
+sealed class ConversationEvent {
     @Serializable
     @SerialName("StatusUpdate")
     data class StatusUpdate(
@@ -38,6 +37,13 @@ sealed class ConversationEvent() {
     ) : ConversationEvent()
 
     @Serializable
+    @SerialName("MessageUpdated")
+    data class MessageUpdated(
+        val id: MessageId,
+        val message: Message,
+    ) : ConversationEvent()
+
+    @Serializable
     @SerialName("CitationsUpdated")
     data class CitationsUpdated(
         val id: MessageId,
@@ -48,7 +54,7 @@ sealed class ConversationEvent() {
     @SerialName("ContextUpdated")
     data class ContextUpdated(
         val id: MessageId,
-        val context: List<Context>,
+        val context: Map<String, Context>,
     ) : ConversationEvent()
 
     @Serializable
@@ -105,10 +111,9 @@ fun Message.diff(message: Message): ConversationEvent {
     }
 
     if (this.context != message.context) {
-        val context = message.context.values.toList()
         return ConversationEvent.ContextUpdated(
             id = message.id,
-            context = context
+            context = message.context
         )
     }
 

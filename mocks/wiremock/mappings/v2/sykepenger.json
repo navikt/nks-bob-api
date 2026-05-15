@@ -1,0 +1,25 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "url": "/api/v2/stream/chat",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": "$.[?(@.question =~ /.*sykepenger.*/)]"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive"
+    },
+    "bodyFileName": "v2/sykepenger-data.txt",
+    "chunkedDribbleDelay": {
+      "numberOfChunks": 10,
+      "totalDuration": 8000
+    }
+  }
+}

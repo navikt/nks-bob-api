@@ -8,6 +8,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.openapi.describe
 import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
+import kotlinx.serialization.Serializable
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.navIdent
 import no.nav.nks_ai.api.app.respondEither
@@ -97,6 +98,22 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }
+            get("/outdated") {
+                call.respondEither {
+                    val navIdent = call.navIdent().bind()
+                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=conversation/outdated" }
+
+                    adminService.getOldConversations().map { CountSummary(it.size) }
+                }
+            }.describe {
+                description = "Get count of outdated conversations"
+                responses {
+                    HttpStatusCode.OK {
+                        schema = jsonSchema<CountSummary>()
+                        description = "Count of outdated conversations"
+                    }
+                }
+            }
         }
         route("/messages") {
             get("/{id}/conversation") {
@@ -148,6 +165,25 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }
+            get("/outdated") {
+                call.respondEither {
+                    val navIdent = call.navIdent().bind()
+                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=conversation/outdated" }
+
+                    adminService.getOldMessages().map { CountSummary(it.size) }
+                }
+            }.describe {
+                description = "Get count of outdated messages"
+                responses {
+                    HttpStatusCode.OK {
+                        schema = jsonSchema<CountSummary>()
+                        description = "Count of outdated messages"
+                    }
+                }
+            }
         }
     }
 }
+
+@Serializable
+private data class CountSummary(val count: Int)
