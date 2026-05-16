@@ -32,7 +32,7 @@ services:
       - "3000:3000"
     command: >
       --openid.client-id='nks-bob-api'
-      --openid.well-known-url=http://localhost:8899/entraid/.well-known/openid-configuration
+      --openid.well-known-url=http://localhost:8898/entraid/.well-known/openid-configuration
       --ingress=http://localhost:3000
       --bind-address=0.0.0.0:3000
       --upstream-host=host.docker.internal:8080
@@ -63,7 +63,7 @@ services:
   mock-oauth2-server:
     image: ghcr.io/navikt/mock-oauth2-server:2.2.1
     ports:
-      - "8899:8080"
+      - "8898:8080"
     restart: on-failure
     platform: linux/x86_64
     environment:
