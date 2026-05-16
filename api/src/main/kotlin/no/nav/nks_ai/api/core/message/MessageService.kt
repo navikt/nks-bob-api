@@ -12,26 +12,28 @@ import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.user.NavIdent
+import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 
 private val logger = KotlinLogging.logger { }
 
-class MessageService() {
+class MessageService(private val vaskemaskinClient: VaskemaskinClient) {
     suspend fun addQuestion(
         conversationId: ConversationId,
         navIdent: NavIdent,
         messageContent: String,
-    ): ApplicationResult<Message> {
+    ): ApplicationResult<Message> = either {
         MetricRegister.questionsCreated.inc()
-        return MessageRepo.addMessage(
+        val cleanedContent = vaskemaskinClient.anonymize(messageContent).bind()
+        MessageRepo.addMessage(
             conversationId = conversationId,
-            messageContent = messageContent,
+            messageContent = cleanedContent,
             createdBy = navIdent.hash,
             messageType = MessageType.Question,
             messageRole = MessageRole.Human,
             context = emptyList(),
             citations = emptyList(),
             pending = false,
-        )
+        ).bind()
     }
 
     suspend fun addAnswer(

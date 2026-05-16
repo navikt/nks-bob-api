@@ -9,6 +9,7 @@ import kotlin.time.Duration.Companion.days
 
 object Config {
     val kbs: KbsConfig
+    val vaskemaskin: VaskemaskinConfig
     val jwt: JwtConfig
     val db: DbConfig
     val nais: NaisConfig
@@ -22,6 +23,7 @@ object Config {
     init {
         ConfigFactory.load()?.let {
             kbs = it.extract<KbsConfig>("kbs")
+            vaskemaskin = it.extract<VaskemaskinConfig>("vaskemaskin")
             jwt = it.extract<JwtConfig>("jwt")
             db = it.extract<DbConfig>("db")
             nais = it.extract<NaisConfig>("nais")
@@ -36,6 +38,10 @@ object Config {
 data class KbsConfig(
     val url: String,
     val scope: String,
+)
+
+data class VaskemaskinConfig(
+    val url: String,
 )
 
 data class JwtConfig(

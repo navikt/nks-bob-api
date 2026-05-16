@@ -53,6 +53,7 @@ import no.nav.nks_ai.api.core.notification.notificationUserRoutes
 import no.nav.nks_ai.api.core.user.UserConfigService
 import no.nav.nks_ai.api.core.user.userConfigRoutes
 import no.nav.nks_ai.api.kbs.KbsClient
+import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationSseV2
 import no.nav.nks_ai.shared.auth.EntraClient
 
@@ -98,8 +99,13 @@ fun Application.module() {
 
     val bigQueryClient = BigQueryClient()
 
+    val vaskemaskinClient = VaskemaskinClient(
+        baseUrl = Config.vaskemaskin.url,
+        httpClient = httpClient,
+    )
+
     val conversationService = ConversationService()
-    val messageService = MessageService()
+    val messageService = MessageService(vaskemaskinClient)
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val sendMessageServiceV2 =
         no.nav.nks_ai.api.v2.core.SendMessageService(conversationService, messageService, kbsClientV2)
