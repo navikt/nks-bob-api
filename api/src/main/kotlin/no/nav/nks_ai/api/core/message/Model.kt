@@ -115,7 +115,7 @@ data class NewCitation(
 @Serializable
 data class Tool(
     val name: String,
-    val arguments: Map<String, String>,
+    val arguments: Map<String, JsonElement>,
     val success: Boolean,
 )
 
