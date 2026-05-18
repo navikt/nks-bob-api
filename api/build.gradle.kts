@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.micrometer.registry.prometheus)
     implementation(libs.postgresql)
     implementation(libs.prometheus.tracer)
+    implementation(libs.unleash)
 
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ktor.server.test.host)

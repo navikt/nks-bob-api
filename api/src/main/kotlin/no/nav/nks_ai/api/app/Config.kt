@@ -15,6 +15,7 @@ object Config {
     val nais: NaisConfig
     val issuers: NonEmptyList<IssuerConfig>
     val bigQuery: BigQueryConfig
+    val unleash: UnleashSettings
 
     const val HTTP_CLIENT_TIMEOUT_MS = 10 * 60 * 1000
 
@@ -31,6 +32,7 @@ object Config {
                 .toNonEmptyListOrNull<IssuerConfig>()
                 ?: error("Error reading configuration: No issuers configured.")
             bigQuery = it.extract<BigQueryConfig>("bigquery")
+            unleash = it.extract<UnleashSettings>("unleash")
         } ?: error("Error reading configuration")
     }
 }
@@ -81,3 +83,11 @@ data class BigQueryConfig(
     val testgrunnlagDataset: String,
     val stjernemarkerteSvarTable: String,
 )
+
+data class UnleashSettings(
+    val serverApiUrl: String,
+    val serverApiToken: String,
+    val appName: String,
+) {
+    val isConfigured: Boolean get() = serverApiUrl.isNotEmpty()
+}

@@ -60,6 +60,7 @@ logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-enc
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheus" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
 prometheus-tracer = { module = "io.prometheus:prometheus-metrics-tracer-initializer", version = "1.5.1" }
+unleash = { module = "io.getunleash:unleash-client-java", version = "12.2.1" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

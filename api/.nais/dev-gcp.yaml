@@ -8,6 +8,7 @@ metadata:
   namespace: nks-aiautomatisering
 spec:
   envFrom:
+    - secret: nks-bob-api-unleash-api-token
   image: "{{ image }}"
   port: 8080
   replicas:
@@ -27,6 +28,8 @@ spec:
         - application: nks-bob-api-delete-old-conversations
         - application: nks-bob-api-upload-starred-messages
     outbound:
+      external:
+        - host: nks-aiautomatisering-unleash-api.nav.cloud.nais.io
       rules:
         - application: nks-kbs
         - application: nks-bob-vaskemaskin

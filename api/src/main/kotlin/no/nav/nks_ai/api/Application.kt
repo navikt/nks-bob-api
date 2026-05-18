@@ -23,6 +23,7 @@ import io.ktor.server.routing.routingRoot
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.api.app.Config
+import no.nav.nks_ai.api.app.FeatureToggles
 import no.nav.nks_ai.api.app.bq.BigQueryClient
 import no.nav.nks_ai.api.app.plugins.configureDatabases
 import no.nav.nks_ai.api.app.plugins.configureMonitoring
@@ -104,8 +105,10 @@ fun Application.module() {
         httpClient = httpClient,
     )
 
+    val featureToggles = FeatureToggles.create(Config.unleash)
+
     val conversationService = ConversationService()
-    val messageService = MessageService(vaskemaskinClient)
+    val messageService = MessageService(vaskemaskinClient, featureToggles)
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val sendMessageServiceV2 =
         no.nav.nks_ai.api.v2.core.SendMessageService(conversationService, messageService, kbsClientV2)

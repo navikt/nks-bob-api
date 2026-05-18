@@ -9,6 +9,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
+import no.nav.nks_ai.api.app.FeatureToggles
 import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.user.NavIdent
@@ -16,17 +17,24 @@ import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 
 private val logger = KotlinLogging.logger { }
 
-class MessageService(private val vaskemaskinClient: VaskemaskinClient) {
+class MessageService(
+    private val vaskemaskinClient: VaskemaskinClient,
+    private val featureToggles: FeatureToggles,
+) {
     suspend fun addQuestion(
         conversationId: ConversationId,
         navIdent: NavIdent,
         messageContent: String,
     ): ApplicationResult<Message> = either {
         MetricRegister.questionsCreated.inc()
-        val cleanedContent = vaskemaskinClient.anonymize(messageContent).bind()
+        val content = if (featureToggles.isVaskemaskinEnabled()) {
+            vaskemaskinClient.anonymize(messageContent).bind()
+        } else {
+            messageContent
+        }
         MessageRepo.addMessage(
             conversationId = conversationId,
-            messageContent = cleanedContent,
+            messageContent = content,
             createdBy = navIdent.hash,
             messageType = MessageType.Question,
             messageRole = MessageRole.Human,
