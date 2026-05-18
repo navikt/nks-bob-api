@@ -3,6 +3,7 @@ package no.nav.nks_ai.api.v2.kbs
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import no.nav.nks_ai.api.core.message.Context
 
 @Serializable
@@ -60,6 +61,6 @@ fun KbsChatContext.toModel(sourceId: String): Context =
 @Serializable
 data class KbsToolCall(
     val name: String,
-    val arguments: Map<String, String>,
+    val arguments: Map<String, JsonElement>,
     val success: Boolean,
 )
