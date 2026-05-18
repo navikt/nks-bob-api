@@ -68,8 +68,6 @@ dependencies {
     implementation(libs.logback.core)
     implementation(libs.logstash.logback.encoder)
     implementation(libs.micrometer.registry.prometheus)
-    implementation(libs.otel.ktor3)
-    implementation(libs.otel.logback.mdc)
     implementation(libs.postgresql)
     implementation(libs.prometheus.tracer)
 

@@ -6,7 +6,6 @@ hikari = "7.0.2"
 kotlin = "2.3.10"
 ktor = "3.4.3"
 logback = "1.5.32"
-opentelemetry = "2.23.0-alpha"
 postgres = "42.7.11"
 prometheus = "1.16.5"
 
@@ -59,8 +58,6 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 logback-core = { module = "ch.qos.logback:logback-core", version.ref = "logback" }
 logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version = "9.0" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheus" }
-otel-ktor3 = { module = "io.opentelemetry.instrumentation:opentelemetry-ktor-3.0", version.ref = "opentelemetry" }
-otel-logback-mdc = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0", version.ref = "opentelemetry" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
 prometheus-tracer = { module = "io.prometheus:prometheus-metrics-tracer-initializer", version = "1.5.1" }
 
