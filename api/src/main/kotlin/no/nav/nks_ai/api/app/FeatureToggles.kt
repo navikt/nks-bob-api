@@ -9,11 +9,15 @@ private val logger = KotlinLogging.logger {}
 
 class FeatureToggles private constructor(private val unleash: Unleash?) {
 
-    fun isVaskemaskinEnabled(): Boolean =
-        unleash?.isEnabled(VASKEMASKIN, false) ?: false
+    fun isVaskemaskinDetectionEnabled(): Boolean =
+        unleash?.isEnabled(VASKEMASKIN_DETECT, false) ?: false
+
+    fun isVaskemaskinAnonymizationEnabled(): Boolean =
+        unleash?.isEnabled(VASKEMASKIN_ANONYMIZE, false) ?: false
 
     companion object {
-        private const val VASKEMASKIN = "nks-bob-api.vaskemaskin"
+        private const val VASKEMASKIN_DETECT = "nks-bob-api.vaskemaskin-detect"
+        private const val VASKEMASKIN_ANONYMIZE = "nks-bob-api.vaskemaskin-anonymize"
 
         fun create(settings: UnleashSettings): FeatureToggles {
             if (!settings.isConfigured) {

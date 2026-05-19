@@ -6,6 +6,8 @@ import arrow.core.raise.ensure
 import arrow.core.right
 import arrow.core.some
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
@@ -14,6 +16,7 @@ import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.user.NavIdent
 import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
+import kotlin.coroutines.coroutineContext
 
 private val logger = KotlinLogging.logger { }
 
@@ -27,7 +30,11 @@ class MessageService(
         messageContent: String,
     ): ApplicationResult<Message> = either {
         MetricRegister.questionsCreated.inc()
-        val content = if (featureToggles.isVaskemaskinEnabled()) {
+        val content = if (featureToggles.isVaskemaskinDetectionEnabled()) {
+            // detect pii in parallel to gather metrics
+            coroutineScope { launch { vaskemaskinClient.detect(messageContent) } }
+            messageContent
+        } else if (featureToggles.isVaskemaskinAnonymizationEnabled()) {
             vaskemaskinClient.anonymize(messageContent).bind()
         } else {
             messageContent

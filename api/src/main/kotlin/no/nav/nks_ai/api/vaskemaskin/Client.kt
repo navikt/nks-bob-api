@@ -10,6 +10,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
@@ -20,6 +21,31 @@ class VaskemaskinClient(
     private val baseUrl: String,
     private val httpClient: HttpClient,
 ) {
+    suspend fun detect(text: String): ApplicationResult<Boolean> {
+        return try {
+            val response = httpClient.post("$baseUrl/detect") {
+                contentType(ContentType.Application.Json)
+                setBody(AnonymizeRequest(text))
+            }
+
+            if (!response.status.isSuccess()) {
+                logger.error { "Vaskemaskin returned error status ${response.status}" }
+                return ApplicationError.InternalServerError(
+                    message = "PII detection failed",
+                    description = "Vaskemaskin returned status ${response.status}",
+                ).left()
+            }
+
+            response.body<DetectResponse>().containsPii.right()
+        } catch (e: Exception) {
+            logger.error(e) { "Error calling vaskemaskin" }
+            ApplicationError.InternalServerError(
+                message = "PII detection failed",
+                description = e.message ?: "Unknown error when calling vaskemaskin",
+            ).left()
+        }
+    }
+
     suspend fun anonymize(text: String): ApplicationResult<String> {
         return try {
             val response = httpClient.post("$baseUrl/anonymize") {
@@ -54,6 +80,13 @@ data class AnonymizeRequest(
 @Serializable
 data class AnonymizeResponse(
     val text: String,
+    val entities: List<Entity>? = null,
+)
+
+@Serializable
+data class DetectResponse(
+    @SerialName("contains_pii")
+    val containsPii: Boolean,
     val entities: List<Entity>? = null,
 )
 
