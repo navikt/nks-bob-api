@@ -31,7 +31,7 @@ services:
     ports:
       - "3000:3000"
     command: >
-      --openid.client-id='nks-bob-api'
+      --openid.client-id='id'
       --openid.well-known-url=http://localhost:8898/entraid/.well-known/openid-configuration
       --ingress=http://localhost:3000
       --bind-address=0.0.0.0:3000
@@ -61,7 +61,7 @@ services:
       - localhost:host-gateway
 
   mock-oauth2-server:
-    image: ghcr.io/navikt/mock-oauth2-server:2.2.1
+    image: ghcr.io/navikt/mock-oauth2-server:3.0.3
     ports:
       - "8898:8080"
     restart: on-failure
@@ -91,32 +91,13 @@ services:
                   }
                 },
                 {
-                  "requestParam": "requested_token_use",
-                  "match": "on_behalf_of",
+                  "requestParam": "grant_type",
+                  "match": "client_credentials",
                   "claims": {
                     "aud": [
-                      "nks-bob-api"
+                      "nks-bob-vaskemaskin"
                     ],
-                    "NAVident": "Z123456",
-                    "groups": [
-                      "admin"
-                    ],
-                    "azp": "consumer-client-id",
-                    "idtyp": "app"
-                  }
-                },
-                {
-                  "requestParam": "client_id",
-                  "match": "id",
-                  "claims": {
-                    "aud": [
-                      "nks-bob-api"
-                    ],
-                    "NAVident": "Z123456",
-                    "groups": [
-                      "admin"
-                    ],
-                    "azp": "consumer-client-id",
+                    "azp": "nks-bob-api",
                     "idtyp": "app"
                   }
                 }
