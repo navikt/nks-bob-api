@@ -103,6 +103,8 @@ fun Application.module() {
     val vaskemaskinClient = VaskemaskinClient(
         baseUrl = Config.vaskemaskin.url,
         httpClient = httpClient,
+        entraClient = entraClient,
+        scope = Config.vaskemaskin.scope,
     )
 
     val featureToggles = FeatureToggles.create(Config.unleash)

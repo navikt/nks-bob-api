@@ -44,6 +44,7 @@ data class KbsConfig(
 
 data class VaskemaskinConfig(
     val url: String,
+    val scope: String,
 )
 
 data class JwtConfig(
