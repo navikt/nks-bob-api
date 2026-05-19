@@ -10,14 +10,14 @@ private val logger = KotlinLogging.logger {}
 class FeatureToggles private constructor(private val unleash: Unleash?) {
 
     fun isVaskemaskinEnabled(): Boolean =
-        unleash?.isEnabled(VASKEMASKIN, true) ?: true
+        unleash?.isEnabled(VASKEMASKIN, false) ?: false
 
     companion object {
         private const val VASKEMASKIN = "nks-bob-api.vaskemaskin"
 
         fun create(settings: UnleashSettings): FeatureToggles {
             if (!settings.isConfigured) {
-                logger.info { "Unleash not configured — all toggles use defaults (vaskemaskin=true)" }
+                logger.info { "Unleash not configured — all toggles use defaults (vaskemaskin=false)" }
                 return FeatureToggles(unleash = null)
             }
 
