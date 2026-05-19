@@ -66,6 +66,7 @@ data class DbConfig(
 data class NaisConfig(
     val electorUrl: String,
     val appName: String,
+    val tokenEndpoint: String,
 ) {
     val isRunningOnNais: Boolean = appName.isNotEmpty()
 }

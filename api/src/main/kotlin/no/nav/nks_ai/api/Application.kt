@@ -58,6 +58,7 @@ import no.nav.nks_ai.api.kbs.KbsClient
 import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationSseV2
 import no.nav.nks_ai.shared.auth.EntraClient
+import no.nav.nks_ai.shared.auth.TexasClient
 
 fun main(args: Array<String>) {
     EngineMain.main(args)
@@ -99,11 +100,16 @@ fun Application.module() {
 
     val bigQueryClient = BigQueryClient()
 
+    val texasClient = TexasClient(
+        naisTokenEndpoint = Config.nais.tokenEndpoint,
+        httpClient = httpClient,
+        logger = logger
+    )
     val vaskemaskinClient = VaskemaskinClient(
         baseUrl = Config.vaskemaskin.url,
         httpClient = httpClient,
-        entraClient = entraClient,
-        scope = Config.vaskemaskin.scope,
+        texasClient = texasClient,
+        targetAudience = Config.vaskemaskin.scope,
     )
 
     val featureToggles = FeatureToggles.create(Config.unleash)

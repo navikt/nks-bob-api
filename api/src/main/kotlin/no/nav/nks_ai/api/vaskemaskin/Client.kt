@@ -16,20 +16,19 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
-import no.nav.nks_ai.api.app.Config
-import no.nav.nks_ai.shared.auth.EntraClient
+import no.nav.nks_ai.shared.auth.TexasClient
 
 private val logger = KotlinLogging.logger {}
 
 class VaskemaskinClient(
     private val baseUrl: String,
     private val httpClient: HttpClient,
-    private val entraClient: EntraClient,
-    private val scope: String,
+    private val texasClient: TexasClient,
+    private val targetAudience: String,
 ) {
     suspend fun detect(text: String): ApplicationResult<Boolean> {
         return try {
-            val token = entraClient.getMachineToken(scope)
+            val token = texasClient.getMachineToken(targetAudience)
             val response = httpClient.post("$baseUrl/detect") {
                 contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -56,7 +55,7 @@ class VaskemaskinClient(
 
     suspend fun anonymize(text: String): ApplicationResult<String> {
         return try {
-            val token = entraClient.getMachineToken(scope)
+            val token = texasClient.getMachineToken(targetAudience)
             val response = httpClient.post("$baseUrl/anonymize") {
                 contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $token")
