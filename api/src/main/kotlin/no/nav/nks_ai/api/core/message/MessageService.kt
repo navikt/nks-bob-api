@@ -3,10 +3,9 @@ package no.nav.nks_ai.api.core.message
 import arrow.core.Some
 import arrow.core.raise.either
 import arrow.core.raise.ensure
-import arrow.core.right
 import arrow.core.some
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.api.app.ApplicationError
@@ -16,13 +15,13 @@ import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.user.NavIdent
 import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
-import kotlin.coroutines.coroutineContext
 
 private val logger = KotlinLogging.logger { }
 
 class MessageService(
     private val vaskemaskinClient: VaskemaskinClient,
     private val featureToggles: FeatureToggles,
+    private val backgroundScope: CoroutineScope,
 ) {
     suspend fun addQuestion(
         conversationId: ConversationId,
@@ -31,8 +30,8 @@ class MessageService(
     ): ApplicationResult<Message> = either {
         MetricRegister.questionsCreated.inc()
         val content = if (featureToggles.isVaskemaskinDetectionEnabled()) {
-            // detect pii in parallel to gather metrics
-            coroutineScope { launch { vaskemaskinClient.detect(messageContent) } }
+            // fire-and-forget: detect pii in background to gather metrics without blocking the request
+            backgroundScope.launch { vaskemaskinClient.detect(messageContent) }
             messageContent
         } else if (featureToggles.isVaskemaskinAnonymizationEnabled()) {
             vaskemaskinClient.anonymize(messageContent).bind()

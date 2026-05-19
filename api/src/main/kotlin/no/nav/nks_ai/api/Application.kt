@@ -110,7 +110,7 @@ fun Application.module() {
     val featureToggles = FeatureToggles.create(Config.unleash)
 
     val conversationService = ConversationService()
-    val messageService = MessageService(vaskemaskinClient, featureToggles)
+    val messageService = MessageService(vaskemaskinClient, featureToggles, this)
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val sendMessageServiceV2 =
         no.nav.nks_ai.api.v2.core.SendMessageService(conversationService, messageService, kbsClientV2)
