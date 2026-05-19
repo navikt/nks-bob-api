@@ -24,7 +24,7 @@ class FeatureToggles private constructor(private val unleash: Unleash?) {
             val config = UnleashConfig.builder()
                 .appName(settings.appName)
                 .instanceId(settings.appName)
-                .unleashAPI(settings.serverApiUrl)
+                .unleashAPI("${settings.serverApiUrl}/api")
                 .customHttpHeader("Authorization", settings.serverApiToken)
                 .build()
 
