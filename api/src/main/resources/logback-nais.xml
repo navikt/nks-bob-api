@@ -29,9 +29,6 @@
             <OnMismatch>ACCEPT</OnMismatch>
         </filter>
     </appender>
-    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.v1_0.OpenTelemetryAppender">
-        <appender-ref ref="stdout_json"/>
-    </appender>
     <root level="debug">
         <appender-ref ref="stdout_json"/>
         <appender-ref ref="team-logs"/>

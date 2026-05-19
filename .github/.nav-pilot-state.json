@@ -1,0 +1,81 @@
+{
+  "collection": "platform",
+  "version": "2026.05.13-124131-a42d43a",
+  "scope": "repo",
+  "source_sha": "5ef9edb",
+  "installed_at": "2026-05-18T08:45:57Z",
+  "files": [
+    {
+      "path": ".github/agents/nais.agent.md",
+      "hash": "5cdca085bd4edc56"
+    },
+    {
+      "path": ".github/agents/observability.agent.md",
+      "hash": "6f7b01a64b6fd461"
+    },
+    {
+      "path": ".github/agents/security-champion.agent.md",
+      "hash": "5ccba48b66938fd0"
+    },
+    {
+      "path": ".github/agents/nav-pilot.agent.md",
+      "hash": "e50baf495f28613f"
+    },
+    {
+      "path": ".github/skills/observability-setup/",
+      "hash": "78181a920d929a23"
+    },
+    {
+      "path": ".github/skills/security-review/",
+      "hash": "c74a83a4e61fbf58"
+    },
+    {
+      "path": ".github/skills/threat-model/",
+      "hash": "305fe669dec42981"
+    },
+    {
+      "path": ".github/skills/workstation-security/",
+      "hash": "75749c782af25813"
+    },
+    {
+      "path": ".github/skills/nav-plan/",
+      "hash": "0849265460ea23e2"
+    },
+    {
+      "path": ".github/skills/nav-deep-interview/",
+      "hash": "eeb3399ecd4e352c"
+    },
+    {
+      "path": ".github/skills/nav-architecture-review/",
+      "hash": "4618dec566442509"
+    },
+    {
+      "path": ".github/skills/nav-troubleshoot/",
+      "hash": "ce043cf29ce427b1"
+    },
+    {
+      "path": ".github/instructions/golang.instructions.md",
+      "hash": "8be854c7a6750941"
+    },
+    {
+      "path": ".github/instructions/security-owasp.instructions.md",
+      "hash": "6d2de01195174566"
+    },
+    {
+      "path": ".github/instructions/github-actions.instructions.md",
+      "hash": "bbef6f3e56b8b3b3"
+    },
+    {
+      "path": ".github/instructions/docker.instructions.md",
+      "hash": "32db7a2f8aaab2ac"
+    },
+    {
+      "path": ".github/prompts/nais-manifest.prompt.md",
+      "hash": "8576571223ffef8a"
+    },
+    {
+      "path": ".github/prompts/golang-service.prompt.md",
+      "hash": "42a507250b011dbd"
+    }
+  ]
+}

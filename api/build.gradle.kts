@@ -68,10 +68,9 @@ dependencies {
     implementation(libs.logback.core)
     implementation(libs.logstash.logback.encoder)
     implementation(libs.micrometer.registry.prometheus)
-    implementation(libs.otel.ktor3)
-    implementation(libs.otel.logback.mdc)
     implementation(libs.postgresql)
     implementation(libs.prometheus.tracer)
+    implementation(libs.unleash)
 
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ktor.server.test.host)

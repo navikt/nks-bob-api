@@ -4,6 +4,8 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+tmp/
+
 ### STS ###
 .apt_generated
 .classpath
@@ -34,3 +36,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Kotlin ###
+.kotlin/
+

@@ -23,6 +23,7 @@ import io.ktor.server.routing.routingRoot
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.api.app.Config
+import no.nav.nks_ai.api.app.FeatureToggles
 import no.nav.nks_ai.api.app.bq.BigQueryClient
 import no.nav.nks_ai.api.app.plugins.configureDatabases
 import no.nav.nks_ai.api.app.plugins.configureMonitoring
@@ -53,6 +54,7 @@ import no.nav.nks_ai.api.core.notification.notificationUserRoutes
 import no.nav.nks_ai.api.core.user.UserConfigService
 import no.nav.nks_ai.api.core.user.userConfigRoutes
 import no.nav.nks_ai.api.kbs.KbsClient
+import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationSseV2
 import no.nav.nks_ai.shared.auth.EntraClient
 
@@ -98,8 +100,17 @@ fun Application.module() {
 
     val bigQueryClient = BigQueryClient()
 
+    val vaskemaskinClient = VaskemaskinClient(
+        baseUrl = Config.vaskemaskin.url,
+        httpClient = httpClient,
+        entraClient = entraClient,
+        scope = Config.vaskemaskin.scope,
+    )
+
+    val featureToggles = FeatureToggles.create(Config.unleash)
+
     val conversationService = ConversationService()
-    val messageService = MessageService()
+    val messageService = MessageService(vaskemaskinClient, featureToggles, this)
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
     val sendMessageServiceV2 =
         no.nav.nks_ai.api.v2.core.SendMessageService(conversationService, messageService, kbsClientV2)

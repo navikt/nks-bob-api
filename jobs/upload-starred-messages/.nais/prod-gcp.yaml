@@ -12,7 +12,7 @@ spec:
     - name: NKS_BOB_API_SCOPE
       value: api://prod-gcp.nks-aiautomatisering.nks-bob-api/.default
   image: "{{ image }}"
-  schedule: "0 * * * *" # hver time
+  schedule: "0 1 * * *" # kl. 01:00 hver natt
   timeZone: Europe/Oslo
   concurrencyPolicy: Forbid # Forhindre at to jobber kjører samtidig
   resources:

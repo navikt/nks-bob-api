@@ -9,11 +9,13 @@ import kotlin.time.Duration.Companion.days
 
 object Config {
     val kbs: KbsConfig
+    val vaskemaskin: VaskemaskinConfig
     val jwt: JwtConfig
     val db: DbConfig
     val nais: NaisConfig
     val issuers: NonEmptyList<IssuerConfig>
     val bigQuery: BigQueryConfig
+    val unleash: UnleashSettings
 
     const val HTTP_CLIENT_TIMEOUT_MS = 10 * 60 * 1000
 
@@ -22,6 +24,7 @@ object Config {
     init {
         ConfigFactory.load()?.let {
             kbs = it.extract<KbsConfig>("kbs")
+            vaskemaskin = it.extract<VaskemaskinConfig>("vaskemaskin")
             jwt = it.extract<JwtConfig>("jwt")
             db = it.extract<DbConfig>("db")
             nais = it.extract<NaisConfig>("nais")
@@ -29,11 +32,17 @@ object Config {
                 .toNonEmptyListOrNull<IssuerConfig>()
                 ?: error("Error reading configuration: No issuers configured.")
             bigQuery = it.extract<BigQueryConfig>("bigquery")
+            unleash = it.extract<UnleashSettings>("unleash")
         } ?: error("Error reading configuration")
     }
 }
 
 data class KbsConfig(
+    val url: String,
+    val scope: String,
+)
+
+data class VaskemaskinConfig(
     val url: String,
     val scope: String,
 )
@@ -75,3 +84,11 @@ data class BigQueryConfig(
     val testgrunnlagDataset: String,
     val stjernemarkerteSvarTable: String,
 )
+
+data class UnleashSettings(
+    val serverApiUrl: String,
+    val serverApiToken: String,
+    val appName: String,
+) {
+    val isConfigured: Boolean get() = serverApiUrl.isNotEmpty()
+}
