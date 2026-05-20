@@ -24,13 +24,10 @@ flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-database-postgres = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 google-cloud-bigquery = { module = "com.google.cloud:google-cloud-bigquery", version = "2.65.0" }
 hikari-cp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
-janino = { module = "org.codehaus.janino:janino", version = "3.1.12" }
 kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version = "8.0.02" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.11.0" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.8.0" }
-kt-scheduler = { module = "com.github.Pool-Of-Tears:KtScheduler", version = "1.1.6" }
-ktor-client-apache = { module = "io.ktor:ktor-client-apache", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-call-id = { module = "io.ktor:ktor-client-call-id", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
