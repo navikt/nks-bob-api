@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.cio.CIOEngineConfig
+import io.ktor.client.engine.cio.endpoint
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.callid.CallId
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -176,6 +177,21 @@ private fun defaultHttpClient(
     block: HttpClientConfig<CIOEngineConfig>.() -> Unit = {}
 ): HttpClient =
     HttpClient(CIO) {
+        engine {
+            // Disable CIO's own request timeout — let HttpTimeout plugin manage all timeouts.
+            // In Ktor 3.5.0 the CIO engine's internal requestTimeout can silently abort requests
+            // without throwing an exception, overriding the plugin's behavior.
+            requestTimeout = 0
+
+            endpoint {
+                // Recycle idle connections after 55s. GCP load balancers close idle TCP connections
+                // after 600s by default, but intermediate Kubernetes/Envoy proxies may close earlier.
+                // Without this, CIO reuses dead connections and hangs silently.
+                keepAliveTime = 55_000
+                connectTimeout = 10_000
+                socketTimeout = Config.HTTP_CLIENT_TIMEOUT_MS.toLong()
+            }
+        }
         install(HttpTimeout) {
             socketTimeoutMillis = Config.HTTP_CLIENT_TIMEOUT_MS.toLong()
             connectTimeoutMillis = Config.HTTP_CLIENT_TIMEOUT_MS.toLong()

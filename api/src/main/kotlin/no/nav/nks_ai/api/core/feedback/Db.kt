@@ -30,7 +30,7 @@ import org.jetbrains.exposed.v1.jdbc.update
 
 internal object Feedbacks : BaseTable("feedbacks") {
     val message = reference("message", Messages).nullable()
-    val options = array<String>("options")
+    val opts = array<String>("options")
     val comment = text("comment", eagerLoading = true).nullable().clientDefault { null }
     val resolved = bool("resolved").clientDefault { false }
     val resolvedImportance = enumeration<ResolvedImportance>("resolved_importance").nullable().clientDefault { null }
@@ -43,7 +43,7 @@ internal class FeedbackDAO(id: EntityID<UUID>) : BaseEntity(id, Feedbacks) {
     companion object : BaseEntityClass<FeedbackDAO>(Feedbacks)
 
     var message by MessageDAO.Companion optionalReferencedOn Feedbacks.message
-    var options by Feedbacks.options
+    var options by Feedbacks.opts
     var comment by Feedbacks.comment
     var resolved by Feedbacks.resolved
     var resolvedImportance by Feedbacks.resolvedImportance
@@ -124,7 +124,7 @@ object FeedbackRepo {
             FeedbackFilter.CitationNotFound,
             FeedbackFilter.MissingSources,
             FeedbackFilter.Other ->
-                Feedbacks.options has FeedbackFilter.getOptionText(filter).bind()
+                Feedbacks.opts has FeedbackFilter.getOptionText(filter).bind()
 
             FeedbackFilter.Arbeid,
             FeedbackFilter.Helse,
