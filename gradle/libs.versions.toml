@@ -10,7 +10,7 @@ postgres = "42.7.11"
 prometheus = "1.16.5"
 
 [libraries]
-aedile-core = { module = "com.sksamuel.aedile:aedile-core", version = "3.0.3" }
+aedile-core = { module = "com.sksamuel.aedile:aedile-core", version = "3.0.4" }
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
 arrow-resilience = { module = "io.arrow-kt:arrow-resilience", version.ref = "arrow" }
 bcrypt = { module = "at.favre.lib:bcrypt", version = "0.10.2" }
@@ -25,10 +25,10 @@ flyway-database-postgres = { module = "org.flywaydb:flyway-database-postgresql",
 google-cloud-bigquery = { module = "com.google.cloud:google-cloud-bigquery", version = "2.65.0" }
 hikari-cp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
 janino = { module = "org.codehaus.janino:janino", version = "3.1.12" }
-kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version = "8.0.01" }
+kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version = "8.0.02" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.10.2" }
-kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.7.1" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.11.0" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.8.0" }
 kt-scheduler = { module = "com.github.Pool-Of-Tears:KtScheduler", version = "1.1.6" }
 ktor-client-apache = { module = "io.ktor:ktor-client-apache", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
@@ -59,7 +59,7 @@ logback-core = { module = "ch.qos.logback:logback-core", version.ref = "logback"
 logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version = "9.0" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheus" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
-prometheus-tracer = { module = "io.prometheus:prometheus-metrics-tracer-initializer", version = "1.5.1" }
+prometheus-tracer = { module = "io.prometheus:prometheus-metrics-tracer-initializer", version = "1.6.1" }
 unleash = { module = "io.getunleash:unleash-client-java", version = "12.2.1" }
 
 [plugins]
