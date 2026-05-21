@@ -54,6 +54,10 @@ spec:
       value: nks-aiautomatisering-prod-194a
     - name: STJERNEMARKERTE_SVAR_TABLE
       value: stjernemarkerte_svar_dev
+    # Ktor 3.5.0 changed the HttpSend plugin structure that the OTel Java agent hooks into.
+    # Disable Ktor client instrumentation to prevent the agent from silently aborting requests.
+    - name: OTEL_INSTRUMENTATION_KTOR_ENABLED
+      value: "false"
   azure:
     application:
       tenant: nav.no # Gjør at man kan logge på med vanlig konto i dev-gcp
