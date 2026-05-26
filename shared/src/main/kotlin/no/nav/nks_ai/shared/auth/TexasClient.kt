@@ -27,7 +27,12 @@ class TexasClient(
     ): Either<TexasError, TexasTokenResponse> = either {
         val response = httpClient.post(naisTokenEndpoint) {
             contentType(ContentType.Application.Json)
-            setBody(TexasTokenRequest(target = targetAudience))
+            setBody(
+                TexasTokenRequest(
+                    target = targetAudience,
+                    identityProvider = "entra_id"
+                )
+            )
         }
 
         if (!response.status.isSuccess()) {
@@ -48,7 +53,7 @@ class TexasClient(
 @Serializable
 data class TexasTokenRequest(
     val target: String,
-    @SerialName("identity_provider") val identityProvider: String = "entra_id",
+    @SerialName("identity_provider") val identityProvider: String,
 )
 
 @Serializable
