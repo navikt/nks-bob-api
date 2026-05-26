@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.cio.CIOEngineConfig
+import io.ktor.client.engine.cio.endpoint
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.callid.CallId
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -70,11 +71,9 @@ fun Application.module() {
     configureMonitoring()
     configureSecurity()
 
-    val httpClient = defaultHttpClient {}
+    val httpClient = defaultHttpClient()
 
-    val sseClient = defaultHttpClient {
-        install(SSE)
-    }
+    val sseClient = sseHttpClient()
 
     val entraClient = EntraClient(
         entraTokenUrl = Config.jwt.configTokenEndpoint,
@@ -172,13 +171,60 @@ fun defaultJsonConfig(
     block()
 }
 
+// Short-lived client for token fetching and API calls (Entra, Vaskemaskin, Texas).
+// Uses aggressive timeouts to fail fast — a 10-minute hang here blocks Dispatchers.IO threads
+// and cascades into total stoppage.
 private fun defaultHttpClient(
     block: HttpClientConfig<CIOEngineConfig>.() -> Unit = {}
 ): HttpClient =
     HttpClient(CIO) {
+        engine {
+            // Disable CIO's own request timeout — let HttpTimeout plugin manage all timeouts.
+            // In Ktor 3.5.0 the CIO engine's internal requestTimeout can silently abort requests
+            // without throwing an exception, overriding the plugin's behavior.
+            requestTimeout = 0
+
+            endpoint {
+                // Recycle idle connections after 55s. GCP load balancers close idle TCP connections
+                // after 600s by default, but intermediate Kubernetes/Envoy proxies may close earlier.
+                // Without this, CIO reuses dead connections and hangs silently.
+                keepAliveTime = 55_000
+                connectTimeout = 10_000
+                socketTimeout = 30_000
+            }
+        }
+        install(HttpTimeout) {
+            socketTimeoutMillis = 30_000
+            connectTimeoutMillis = 10_000
+            requestTimeoutMillis = 60_000
+        }
+        install(ContentNegotiation) {
+            json(defaultJsonConfig())
+        }
+        install(CallId) {
+            intercept { request, callId ->
+                request.header(HttpHeaders.XRequestId, callId)
+            }
+        }
+        block()
+    }
+
+// Long-lived client for SSE streaming to KBS — AI responses can take several minutes.
+// Must NOT share timeout settings with defaultHttpClient.
+private fun sseHttpClient(): HttpClient =
+    HttpClient(CIO) {
+        engine {
+            requestTimeout = 0
+            endpoint {
+                keepAliveTime = 55_000
+                connectTimeout = 10_000
+                socketTimeout = Config.HTTP_CLIENT_TIMEOUT_MS.toLong()
+            }
+        }
+        install(SSE)
         install(HttpTimeout) {
             socketTimeoutMillis = Config.HTTP_CLIENT_TIMEOUT_MS.toLong()
-            connectTimeoutMillis = Config.HTTP_CLIENT_TIMEOUT_MS.toLong()
+            connectTimeoutMillis = 10_000
             requestTimeoutMillis = Config.HTTP_CLIENT_TIMEOUT_MS.toLong() * 2
         }
         install(ContentNegotiation) {
@@ -190,5 +236,4 @@ private fun defaultHttpClient(
                 request.header(HttpHeaders.XRequestId, callId)
             }
         }
-        block()
     }
