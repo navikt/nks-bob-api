@@ -1,52 +1,42 @@
 package no.nav.nks_ai.api.app
 
-import arrow.core.NonEmptyList
-import arrow.core.toNonEmptyListOrNull
-import com.typesafe.config.ConfigFactory
-import io.github.config4k.extract
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
-object Config {
-    val kbs: KbsConfig
-    val vaskemaskin: VaskemaskinConfig
-    val jwt: JwtConfig
-    val db: DbConfig
-    val nais: NaisConfig
-    val issuers: NonEmptyList<IssuerConfig>
-    val bigQuery: BigQueryConfig
-    val unleash: UnleashSettings
+@Serializable
+data class Config (
+    val kbs: KbsConfig,
+    val vaskemaskin: VaskemaskinConfig,
+    val jwt: JwtConfig,
+    val db: DbConfig,
+    val nais: NaisConfig,
+    val issuer: IssuerConfig,
+    @SerialName("bigquery") val bigQuery: BigQueryConfig,
+    val unleash: UnleashSettings,
+    ){
 
+    companion object {
     const val HTTP_CLIENT_TIMEOUT_MS = 10 * 60 * 1000
 
     val conversationsMaxAge: Duration = 30.days
-
-    init {
-        ConfigFactory.load()?.let {
-            kbs = it.extract<KbsConfig>("kbs")
-            vaskemaskin = it.extract<VaskemaskinConfig>("vaskemaskin")
-            jwt = it.extract<JwtConfig>("jwt")
-            db = it.extract<DbConfig>("db")
-            nais = it.extract<NaisConfig>("nais")
-            issuers = it.extract<List<IssuerConfig>>("no.nav.security.jwt.issuers")
-                .toNonEmptyListOrNull<IssuerConfig>()
-                ?: error("Error reading configuration: No issuers configured.")
-            bigQuery = it.extract<BigQueryConfig>("bigquery")
-            unleash = it.extract<UnleashSettings>("unleash")
-        } ?: error("Error reading configuration")
     }
 }
 
+@Serializable
 data class KbsConfig(
     val url: String,
     val scope: String,
 )
 
+@Serializable
 data class VaskemaskinConfig(
     val url: String,
     val scope: String,
 )
 
+@Serializable
 data class JwtConfig(
     val clientId: String,
     val clientSecret: String,
@@ -54,6 +44,7 @@ data class JwtConfig(
     val adminGroup: String,
 )
 
+@Serializable
 data class DbConfig(
     val username: String,
     val password: String,
@@ -63,6 +54,7 @@ data class DbConfig(
     val jdbcURL: String?,
 )
 
+@Serializable
 data class NaisConfig(
     val electorUrl: String,
     val appName: String,
@@ -71,6 +63,7 @@ data class NaisConfig(
     val isRunningOnNais: Boolean = appName.isNotEmpty()
 }
 
+@Serializable
 data class IssuerConfig(
     val issuer_name: String,
     val discoveryurl: String,
@@ -78,6 +71,7 @@ data class IssuerConfig(
     val accepted_audience: String,
 )
 
+@Serializable
 data class BigQueryConfig(
     val projectId: String,
     val kunnskapsbaseDataset: String,
@@ -86,6 +80,7 @@ data class BigQueryConfig(
     val stjernemarkerteSvarTable: String,
 )
 
+@Serializable
 data class UnleashSettings(
     val serverApiUrl: String,
     val serverApiToken: String,

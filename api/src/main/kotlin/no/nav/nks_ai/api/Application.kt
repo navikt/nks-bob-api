@@ -26,6 +26,7 @@ import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.api.app.Config
 import no.nav.nks_ai.api.app.FeatureToggles
 import no.nav.nks_ai.api.app.bq.BigQueryClient
+import no.nav.nks_ai.api.app.getConfig
 import no.nav.nks_ai.api.app.plugins.configureDatabases
 import no.nav.nks_ai.api.app.plugins.configureMonitoring
 import no.nav.nks_ai.api.app.plugins.configureSecurity
@@ -71,12 +72,14 @@ fun Application.module() {
     configureMonitoring()
     configureSecurity()
 
+    val config = getConfig()
+
     val httpClient = defaultHttpClient()
 
     val sseClient = sseHttpClient()
 
     val texasClient = TexasClient(
-        naisTokenEndpoint = Config.nais.tokenEndpoint,
+        naisTokenEndpoint = config.nais.tokenEndpoint,
         httpClient = httpClient,
         logger = logger
     )
@@ -84,27 +87,27 @@ fun Application.module() {
     val kbsClient = KbsClient(
         sseClient = sseClient,
         texasClient = texasClient,
-        baseUrl = Config.kbs.url,
-        scope = Config.kbs.scope,
+        baseUrl = config.kbs.url,
+        scope = config.kbs.scope,
     )
 
     val kbsClientV2 = no.nav.nks_ai.api.v2.kbs.KbsClient(
         sseClient = sseClient,
         texasClient = texasClient,
-        baseUrl = Config.kbs.url,
-        scope = Config.kbs.scope,
+        baseUrl = config.kbs.url,
+        scope = config.kbs.scope,
     )
 
     val bigQueryClient = BigQueryClient()
 
     val vaskemaskinClient = VaskemaskinClient(
-        baseUrl = Config.vaskemaskin.url,
+        baseUrl = config.vaskemaskin.url,
         httpClient = httpClient,
         texasClient = texasClient,
-        targetAudience = Config.vaskemaskin.scope,
+        targetAudience = config.vaskemaskin.scope,
     )
 
-    val featureToggles = FeatureToggles.create(Config.unleash)
+    val featureToggles = FeatureToggles.create(config.unleash)
 
     val conversationService = ConversationService()
     val messageService = MessageService(vaskemaskinClient, featureToggles, this)

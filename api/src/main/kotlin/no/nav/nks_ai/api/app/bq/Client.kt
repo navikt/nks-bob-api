@@ -16,14 +16,15 @@ import com.google.cloud.bigquery.TableId
 import com.google.cloud.bigquery.TableResult
 import io.github.oshai.kotlinlogging.KotlinLogging
 import no.nav.nks_ai.api.app.ApplicationError
-import no.nav.nks_ai.api.app.Config
+import no.nav.nks_ai.api.app.getConfig
 
 private val logger = KotlinLogging.logger {}
 
 class BigQueryClient {
-    private val project = Config.bigQuery.projectId
+    private val config = getConfig()
+    private val project = config.bigQuery.projectId
     private val bigQuery: BigQuery =
-        if (Config.nais.isRunningOnNais) {
+        if (config.nais.isRunningOnNais) {
             BigQueryOptions
                 .newBuilder()
                 .setProjectId(project)

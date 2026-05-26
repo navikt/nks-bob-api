@@ -2,14 +2,14 @@ package no.nav.nks_ai.api.app.plugins
 
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
-import no.nav.nks_ai.api.app.Config
 import no.nav.nks_ai.api.app.DbConfig
+import no.nav.nks_ai.api.app.getConfig
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import javax.sql.DataSource
 
 fun Application.configureDatabases() {
-    Db.init(Config.db)
+    Db.init(getConfig().db)
 }
 
 object Db {

@@ -29,7 +29,6 @@ dependencies {
     implementation(libs.arrow.core)
     implementation(libs.arrow.resilience)
     implementation(libs.bcrypt)
-    implementation(libs.config4k)
     implementation(libs.exposed.core)
     implementation(libs.exposed.dao)
     implementation(libs.exposed.jdbc)
