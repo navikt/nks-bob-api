@@ -20,21 +20,23 @@ import kotlinx.coroutines.flow.retry
 import kotlinx.serialization.SerializationException
 import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.defaultJsonConfig
-import no.nav.nks_ai.shared.auth.EntraClient
+import no.nav.nks_ai.shared.auth.TexasClient
 
 private val logger = KotlinLogging.logger {}
 
 class KbsClient(
     private val baseUrl: String,
     private val sseClient: HttpClient,
-    private val entraClient: EntraClient,
+    private val texasClient: TexasClient,
     private val scope: String
 ) {
     fun sendQuestionStream(
         question: String,
         messageHistory: List<KbsChatMessage>,
     ): Flow<Either<KbsErrorResponse, KbsStreamResponse>> = channelFlow {
-        val token = entraClient.getMachineToken(scope)
+        val token = texasClient.getMachineToken(scope)
+            .onLeft { send(KbsErrorResponse.KbsGenericError(it.message).left()) }
+            .getOrNull() ?: return@channelFlow
 
         sseClient.sse("$baseUrl/api/v1/stream/chat", {
             method = HttpMethod.Post

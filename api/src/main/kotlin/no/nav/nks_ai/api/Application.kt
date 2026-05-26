@@ -57,7 +57,6 @@ import no.nav.nks_ai.api.core.user.userConfigRoutes
 import no.nav.nks_ai.api.kbs.KbsClient
 import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationSseV2
-import no.nav.nks_ai.shared.auth.EntraClient
 import no.nav.nks_ai.shared.auth.TexasClient
 
 fun main(args: Array<String>) {
@@ -76,35 +75,28 @@ fun Application.module() {
 
     val sseClient = sseHttpClient()
 
-    val entraClient = EntraClient(
-        entraTokenUrl = Config.jwt.configTokenEndpoint,
-        clientId = Config.jwt.clientId,
-        clientSecret = Config.jwt.clientSecret,
+    val texasClient = TexasClient(
+        naisTokenEndpoint = Config.nais.tokenEndpoint,
         httpClient = httpClient,
-        logger = logger,
+        logger = logger
     )
 
     val kbsClient = KbsClient(
         sseClient = sseClient,
-        entraClient = entraClient,
+        texasClient = texasClient,
         baseUrl = Config.kbs.url,
         scope = Config.kbs.scope,
     )
 
     val kbsClientV2 = no.nav.nks_ai.api.v2.kbs.KbsClient(
         sseClient = sseClient,
-        entraClient = entraClient,
+        texasClient = texasClient,
         baseUrl = Config.kbs.url,
         scope = Config.kbs.scope,
     )
 
     val bigQueryClient = BigQueryClient()
 
-    val texasClient = TexasClient(
-        naisTokenEndpoint = Config.nais.tokenEndpoint,
-        httpClient = httpClient,
-        logger = logger
-    )
     val vaskemaskinClient = VaskemaskinClient(
         baseUrl = Config.vaskemaskin.url,
         httpClient = httpClient,
