@@ -11,6 +11,8 @@ import io.ktor.client.request.post
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.getAs
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.shared.ErrorResponse
 import no.nav.nks_ai.shared.UploadStarredMessagesSummary
@@ -31,18 +33,20 @@ suspend fun main() {
         }
     }
 
+    val config = ApplicationConfig("application.conf").getAs<Config>()
+
     val texasClient = TexasClient(
-        naisTokenEndpoint = Config.nais.tokenEndpoint,
+        naisTokenEndpoint = config.nais.tokenEndpoint,
         httpClient = httpClient,
         logger = logger,
     )
 
-    val token = texasClient.getMachineToken(Config.api.scope)
+    val token = texasClient.getMachineToken(config.api.scope)
         .onLeft { throw IllegalStateException("Could not get machine token: ${it.message}") }
         .getOrNull()!!
 
     logger.info { "Uploading starred messages" }
-    val response = httpClient.post("${Config.api.url}/api/v1/admin/jobs/upload-starred-messages") {
+    val response = httpClient.post("${config.api.url}/api/v1/admin/jobs/upload-starred-messages") {
         header(HttpHeaders.Authorization, "Bearer $token")
     }
 
