@@ -79,5 +79,8 @@ dependencies {
         implementation("tools.jackson.core:jackson-core:3.1.3") {
             because("GHSA-2m67-wjpj-xhg9,  GHSA-72hv-8253-57qq and CVE-2026-29062")
         }
+        implementation("org.apache.commons:commons-lang3:3.20.0") {
+            because("CVE-2025-48924")
+        }
     }
 }
