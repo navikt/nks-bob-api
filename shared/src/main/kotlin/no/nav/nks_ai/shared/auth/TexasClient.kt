@@ -1,5 +1,7 @@
 package no.nav.nks_ai.shared.auth
 
+import arrow.core.Either
+import arrow.core.raise.either
 import io.github.oshai.kotlinlogging.KLogger
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -16,34 +18,37 @@ class TexasClient(
     private val httpClient: HttpClient,
     private val logger: KLogger
 ) {
-    suspend fun getMachineToken(targetAudience: String): String = createMachineToken(targetAudience).accessToken
+    suspend fun getMachineToken(targetAudience: String): Either<TexasError, String> = either {
+        createMachineToken(targetAudience).bind().accessToken
+    }
 
     private suspend fun createMachineToken(
         targetAudience: String
-    ): TexasTokenResponse {
+    ): Either<TexasError, TexasTokenResponse> = either {
         val response = httpClient.post(naisTokenEndpoint) {
             contentType(ContentType.Application.Json)
-            setBody(
-                TexasTokenRequest(
-                    target = targetAudience,
-                    identityProvider = "entra_id"
-                )
-            )
+            setBody(TexasTokenRequest(target = targetAudience))
         }
 
         if (!response.status.isSuccess()) {
             logger.error { "Could not fetch machine token: ${response.status.value} (${response.status.description})" }
-            error("Could not fetch machine token: ${response.status.description}")
+            raise(
+                TexasError(
+                    code = response.status.value,
+                    message = "Could not fetch machine token",
+                    description = response.status.description
+                )
+            )
         }
 
-        return response.body<TexasTokenResponse>()
+        response.body<TexasTokenResponse>()
     }
 }
 
 @Serializable
 data class TexasTokenRequest(
     val target: String,
-    @SerialName("identity_provider") val identityProvider: String,
+    @SerialName("identity_provider") val identityProvider: String = "entra_id",
 )
 
 @Serializable
@@ -51,4 +56,10 @@ data class TexasTokenResponse(
     @SerialName("access_token") val accessToken: String,
     @SerialName("expires_in") val expiresIn: Int,
     @SerialName("token_type") val tokenType: String,
+)
+
+data class TexasError(
+    val code: Int,
+    val message: String,
+    val description: String
 )

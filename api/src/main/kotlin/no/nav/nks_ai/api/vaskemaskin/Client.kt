@@ -1,6 +1,6 @@
 package no.nav.nks_ai.api.vaskemaskin
 
-import arrow.core.left
+import arrow.core.raise.either
 import arrow.core.right
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
@@ -26,9 +26,12 @@ class VaskemaskinClient(
     private val texasClient: TexasClient,
     private val targetAudience: String,
 ) {
-    suspend fun detect(text: String): ApplicationResult<Boolean> {
-        return try {
+    suspend fun detect(text: String): ApplicationResult<Boolean> = either {
+        try {
             val token = texasClient.getMachineToken(targetAudience)
+                .mapLeft { ApplicationError.InternalServerError(it.message, it.description) }
+                .bind()
+
             val response = httpClient.post("$baseUrl/detect") {
                 contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -37,25 +40,32 @@ class VaskemaskinClient(
 
             if (!response.status.isSuccess()) {
                 logger.error { "Vaskemaskin returned error status ${response.status}" }
-                return ApplicationError.InternalServerError(
-                    message = "PII detection failed",
-                    description = "Vaskemaskin returned status ${response.status}",
-                ).left()
+                raise(
+                    ApplicationError.InternalServerError(
+                        message = "PII detection failed",
+                        description = "Vaskemaskin returned status ${response.status}",
+                    )
+                )
             }
 
-            response.body<DetectResponse>().containsPii.right()
+            response.body<DetectResponse>().containsPii
         } catch (e: Exception) {
             logger.error(e) { "Error calling vaskemaskin" }
-            ApplicationError.InternalServerError(
-                message = "PII detection failed",
-                description = e.message ?: "Unknown error when calling vaskemaskin",
-            ).left()
+            raise(
+                ApplicationError.InternalServerError(
+                    message = "PII detection failed",
+                    description = e.message ?: "Unknown error when calling vaskemaskin",
+                )
+            )
         }
     }
 
-    suspend fun anonymize(text: String): ApplicationResult<String> {
-        return try {
+    suspend fun anonymize(text: String): ApplicationResult<String> = either {
+        try {
             val token = texasClient.getMachineToken(targetAudience)
+                .mapLeft { ApplicationError.InternalServerError(it.message, it.description) }
+                .bind()
+
             val response = httpClient.post("$baseUrl/anonymize") {
                 contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $token")
@@ -64,19 +74,23 @@ class VaskemaskinClient(
 
             if (!response.status.isSuccess()) {
                 logger.error { "Vaskemaskin returned error status ${response.status}" }
-                return ApplicationError.InternalServerError(
-                    message = "PII cleaning failed",
-                    description = "Vaskemaskin returned status ${response.status}",
-                ).left()
+                raise(
+                    ApplicationError.InternalServerError(
+                        message = "PII cleaning failed",
+                        description = "Vaskemaskin returned status ${response.status}",
+                    )
+                )
             }
 
-            response.body<AnonymizeResponse>().text.right()
+            response.body<AnonymizeResponse>().text
         } catch (e: Exception) {
             logger.error(e) { "Error calling vaskemaskin" }
-            ApplicationError.InternalServerError(
-                message = "PII cleaning failed",
-                description = e.message ?: "Unknown error when calling vaskemaskin",
-            ).left()
+            raise(
+                ApplicationError.InternalServerError(
+                    message = "PII cleaning failed",
+                    description = e.message ?: "Unknown error when calling vaskemaskin",
+                )
+            )
         }
     }
 }

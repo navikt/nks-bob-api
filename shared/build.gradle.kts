@@ -16,6 +16,7 @@ repositories {
 }
 
 dependencies {
+    implementation(libs.arrow.core)
     implementation(libs.aedile.core)
     implementation(libs.kotlin.logging)
     implementation(libs.ktor.client.core)
