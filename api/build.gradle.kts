@@ -74,4 +74,10 @@ dependencies {
 
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ktor.server.test.host)
+
+    constraints {
+        implementation("tools.jackson.core:jackson-core:3.1.3") {
+            because("GHSA-2m67-wjpj-xhg9,  GHSA-72hv-8253-57qq and CVE-2026-29062")
+        }
+    }
 }

@@ -33,4 +33,10 @@ dependencies {
     implementation(libs.logback.classic)
     implementation(libs.logback.core)
     implementation(libs.logstash.logback.encoder)
+
+    constraints {
+        implementation("tools.jackson.core:jackson-core:3.1.3") {
+            because("GHSA-2m67-wjpj-xhg9,  GHSA-72hv-8253-57qq and CVE-2026-29062")
+        }
+    }
 }
