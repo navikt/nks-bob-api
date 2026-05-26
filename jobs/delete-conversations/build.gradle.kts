@@ -24,6 +24,7 @@ repositories {
 
 dependencies {
     implementation(project(":shared"))
+    implementation(libs.arrow.core)
     implementation(libs.config4k)
     implementation(libs.kotlin.logging)
     implementation(libs.ktor.client.cio)

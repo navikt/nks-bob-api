@@ -17,12 +17,14 @@ application {
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
+
 repositories {
     mavenCentral()
 }
 
 dependencies {
     implementation(project(":shared"))
+    implementation(libs.arrow.core)
     implementation(libs.config4k)
     implementation(libs.kotlin.logging)
     implementation(libs.ktor.client.cio)
