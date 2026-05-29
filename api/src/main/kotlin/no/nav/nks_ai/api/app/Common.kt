@@ -158,9 +158,11 @@ fun ApplicationCall.getClaim(issuer: String, name: String) =
         ?.getClaim(name)
         ?.asString()
 
-fun getConfig(): Config = ApplicationConfig("application.conf").getAs<Config>()
+private val appConfig: Config by lazy { ApplicationConfig("application.conf").getAs<Config>() }
 
-fun getIssuerName(): String = getConfig().issuer.issuer_name
+fun getConfig(): Config = appConfig
+
+fun getIssuerName(): String = appConfig.issuer.issuer_name
 
 fun ApplicationCall.getNavIdent(): NavIdent? =
     getClaim(getIssuerName(), "NAVident")
