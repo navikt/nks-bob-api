@@ -25,12 +25,23 @@ class TexasClient(
     private suspend fun createMachineToken(
         targetAudience: String
     ): Either<TexasError, TexasTokenResponse> = either {
-        val response = httpClient.post(naisTokenEndpoint) {
-            contentType(ContentType.Application.Json)
-            setBody(
-                TexasTokenRequest(
-                    target = targetAudience,
-                    identityProvider = "entra_id"
+        val response = runCatching {
+            httpClient.post(naisTokenEndpoint) {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    TexasTokenRequest(
+                        target = targetAudience,
+                        identityProvider = "entra_id"
+                    )
+                )
+            }
+        }.getOrElse { e ->
+            logger.error(e) { "Could not fetch machine token: request failed" }
+            raise(
+                TexasError(
+                    code = 500,
+                    message = "Could not fetch machine token",
+                    description = e.message ?: "Request to token endpoint failed"
                 )
             )
         }
@@ -46,7 +57,17 @@ class TexasClient(
             )
         }
 
-        response.body<TexasTokenResponse>()
+        runCatching { response.body<TexasTokenResponse>() }
+            .getOrElse { e ->
+                logger.error(e) { "Could not parse machine token response" }
+                raise(
+                    TexasError(
+                        code = 500,
+                        message = "Could not fetch machine token",
+                        description = e.message ?: "Could not parse token response"
+                    )
+                )
+            }
     }
 }
 

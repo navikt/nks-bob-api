@@ -1,7 +1,6 @@
 package no.nav.nks_ai.api.vaskemaskin
 
 import arrow.core.raise.either
-import arrow.core.right
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -17,6 +16,7 @@ import kotlinx.serialization.Serializable
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.shared.auth.TexasClient
+import kotlin.getOrElse
 
 private val logger = KotlinLogging.logger {}
 
@@ -27,71 +27,89 @@ class VaskemaskinClient(
     private val targetAudience: String,
 ) {
     suspend fun detect(text: String): ApplicationResult<Boolean> = either {
-        try {
-            val token = texasClient.getMachineToken(targetAudience)
-                .mapLeft { ApplicationError.InternalServerError(it.message, it.description) }
-                .bind()
+        val token = texasClient.getMachineToken(targetAudience)
+            .mapLeft { ApplicationError.InternalServerError(it.message, it.description) }
+            .bind()
 
-            val response = httpClient.post("$baseUrl/detect") {
+        val response = runCatching {
+            httpClient.post("$baseUrl/detect") {
                 contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $token")
                 setBody(AnonymizeRequest(text))
             }
-
-            if (!response.status.isSuccess()) {
-                logger.error { "Vaskemaskin returned error status ${response.status}" }
-                raise(
-                    ApplicationError.InternalServerError(
-                        message = "PII detection failed",
-                        description = "Vaskemaskin returned status ${response.status}",
-                    )
+        }.getOrElse { e ->
+            logger.error(e) { "Could not call vaskemaskin: request failed" }
+            raise(
+                ApplicationError.InternalServerError(
+                    "PII detection failed",
+                    e.message ?: "Unknown error when calling vaskemaskin"
                 )
-            }
+            )
+        }
 
-            response.body<DetectResponse>().containsPii
-        } catch (e: Exception) {
-            logger.error(e) { "Error calling vaskemaskin" }
+        if (!response.status.isSuccess()) {
+            logger.error { "Vaskemaskin returned error status ${response.status}" }
             raise(
                 ApplicationError.InternalServerError(
                     message = "PII detection failed",
-                    description = e.message ?: "Unknown error when calling vaskemaskin",
+                    description = "Vaskemaskin returned status ${response.status}",
                 )
             )
         }
+
+        runCatching { response.body<DetectResponse>().containsPii }
+            .getOrElse { e ->
+                logger.error(e) { "Could not parse vaskemaskin response" }
+                raise(
+                    ApplicationError.InternalServerError(
+                        "PII detection failed",
+                        e.message ?: "Unknown error when calling vaskemaskin"
+                    )
+                )
+            }
     }
 
     suspend fun anonymize(text: String): ApplicationResult<String> = either {
-        try {
-            val token = texasClient.getMachineToken(targetAudience)
-                .mapLeft { ApplicationError.InternalServerError(it.message, it.description) }
-                .bind()
+        val token = texasClient.getMachineToken(targetAudience)
+            .mapLeft { ApplicationError.InternalServerError(it.message, it.description) }
+            .bind()
 
-            val response = httpClient.post("$baseUrl/anonymize") {
+        val response = runCatching {
+            httpClient.post("$baseUrl/anonymize") {
                 contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $token")
                 setBody(AnonymizeRequest(text))
             }
-
-            if (!response.status.isSuccess()) {
-                logger.error { "Vaskemaskin returned error status ${response.status}" }
-                raise(
-                    ApplicationError.InternalServerError(
-                        message = "PII cleaning failed",
-                        description = "Vaskemaskin returned status ${response.status}",
-                    )
-                )
-            }
-
-            response.body<AnonymizeResponse>().text
-        } catch (e: Exception) {
-            logger.error(e) { "Error calling vaskemaskin" }
+        }.getOrElse { e ->
+            logger.error(e) { "Could not call vaskemaskin: request failed" }
             raise(
                 ApplicationError.InternalServerError(
-                    message = "PII cleaning failed",
-                    description = e.message ?: "Unknown error when calling vaskemaskin",
+                    "PII cleaning failed",
+                    e.message ?: "Unknown error when calling vaskemaskin"
                 )
             )
         }
+
+        if (!response.status.isSuccess()) {
+            logger.error { "Vaskemaskin returned error status ${response.status}" }
+            raise(
+                ApplicationError.InternalServerError(
+                    message = "PII cleaning failed",
+                    description = "Vaskemaskin returned status ${response.status}",
+                )
+            )
+        }
+
+        runCatching { response.body<AnonymizeResponse>().text }
+            .getOrElse { e ->
+                logger.error(e) { "Could not parse vaskemaskin response" }
+                raise(
+                    ApplicationError.InternalServerError(
+                        "PII cleaning failed",
+                        e.message ?: "Unknown error when calling vaskemaskin"
+                    )
+                )
+            }
     }
 }
 

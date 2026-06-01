@@ -1,5 +1,6 @@
 package no.nav.nks_ai.delete_conversations
 
+import arrow.core.getOrElse
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -42,8 +43,7 @@ suspend fun main() {
     )
 
     val token = texasClient.getMachineToken(config.api.scope)
-        .onLeft { throw IllegalStateException("Could not get machine token: ${it.message}") }
-        .getOrNull()!!
+        .getOrElse { throw IllegalStateException("${it.message}: ${it.description}") }
 
     logger.info { "Deleting old conversations" }
     val response = httpClient.post("${config.api.url}/api/v1/admin/jobs/delete-old-conversations") {
