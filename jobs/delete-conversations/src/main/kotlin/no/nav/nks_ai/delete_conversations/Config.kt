@@ -1,27 +1,28 @@
 package no.nav.nks_ai.delete_conversations
 
-import com.typesafe.config.ConfigFactory
-import io.github.config4k.extract
+import kotlinx.serialization.Serializable
 
-object Config {
-    val api: ApiConfig
-    val jwt: JwtConfig
+@Serializable
+data class Config (
+    val api: ApiConfig,
+    val jwt: JwtConfig,
+    val nais: NaisConfig,
+)
 
-    init {
-        ConfigFactory.load()?.let {
-            api = it.extract<ApiConfig>("api")
-            jwt = it.extract<JwtConfig>("jwt")
-        } ?: error("Error reading configuration")
-    }
-}
-
+@Serializable
 data class ApiConfig(
     val url: String,
     val scope: String,
 )
 
+@Serializable
 data class JwtConfig(
     val clientId: String,
     val clientSecret: String,
     val configTokenEndpoint: String,
+)
+
+@Serializable
+data class NaisConfig(
+    val tokenEndpoint: String,
 )

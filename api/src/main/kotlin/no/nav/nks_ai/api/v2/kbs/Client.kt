@@ -24,14 +24,14 @@ import no.nav.nks_ai.api.kbs.KbsChatMessage
 import no.nav.nks_ai.api.kbs.KbsChatRequest
 import no.nav.nks_ai.api.kbs.KbsErrorResponse
 import no.nav.nks_ai.api.kbs.KbsValidationException
-import no.nav.nks_ai.shared.auth.EntraClient
+import no.nav.nks_ai.shared.auth.TexasClient
 
 private val logger = KotlinLogging.logger {}
 
 class KbsClient(
     private val baseUrl: String,
     private val sseClient: HttpClient,
-    private val entraClient: EntraClient,
+    private val texasClient: TexasClient,
     private val scope: String
 ) {
     fun sendQuestionStream(
@@ -41,7 +41,9 @@ class KbsClient(
         //   ApplicationResult<Flow<KbsStreamResponse>>
         //   and add KbsErrors to KbsStreamResponse?
     ): Flow<Either<KbsErrorResponse, KbsStreamResponse>> = channelFlow {
-        val token = entraClient.getMachineToken(scope)
+        val token = texasClient.getMachineToken(scope)
+            .onLeft { send(KbsErrorResponse.KbsGenericError(it.message).left()) }
+            .getOrNull() ?: return@channelFlow
 
         sseClient.sse("$baseUrl/api/v2/stream/chat", {
             method = HttpMethod.Post

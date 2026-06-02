@@ -14,6 +14,8 @@ import io.ktor.http.Parameters
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.getAs
 import io.ktor.server.request.header
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
@@ -156,7 +158,11 @@ fun ApplicationCall.getClaim(issuer: String, name: String) =
         ?.getClaim(name)
         ?.asString()
 
-fun ApplicationCall.getIssuerName(): String = Config.issuers.head.issuer_name
+private val appConfig: Config by lazy { ApplicationConfig("application.conf").getAs<Config>() }
+
+fun getConfig(): Config = appConfig
+
+fun getIssuerName(): String = appConfig.issuer.issuer_name
 
 fun ApplicationCall.getNavIdent(): NavIdent? =
     getClaim(getIssuerName(), "NAVident")

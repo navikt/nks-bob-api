@@ -1,5 +1,6 @@
 package no.nav.nks_ai.upload_starred_messages
 
+import arrow.core.getOrElse
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -11,10 +12,12 @@ import io.ktor.client.request.post
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.getAs
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.shared.ErrorResponse
 import no.nav.nks_ai.shared.UploadStarredMessagesSummary
-import no.nav.nks_ai.shared.auth.EntraClient
+import no.nav.nks_ai.shared.auth.TexasClient
 import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
@@ -31,17 +34,19 @@ suspend fun main() {
         }
     }
 
-    val entraClient = EntraClient(
-        entraTokenUrl = Config.jwt.configTokenEndpoint,
-        clientId = Config.jwt.clientId,
-        clientSecret =Config.jwt.clientSecret,
+    val config = ApplicationConfig("application.conf").getAs<Config>()
+
+    val texasClient = TexasClient(
+        naisTokenEndpoint = config.nais.tokenEndpoint,
         httpClient = httpClient,
         logger = logger,
     )
 
-    val token = entraClient.getMachineToken(Config.api.scope)
+    val token = texasClient.getMachineToken(config.api.scope)
+        .getOrElse { throw IllegalStateException("${it.message}: ${it.description}") }
+
     logger.info { "Uploading starred messages" }
-    val response = httpClient.post("${Config.api.url}/api/v1/admin/jobs/upload-starred-messages") {
+    val response = httpClient.post("${config.api.url}/api/v1/admin/jobs/upload-starred-messages") {
         header(HttpHeaders.Authorization, "Bearer $token")
     }
 

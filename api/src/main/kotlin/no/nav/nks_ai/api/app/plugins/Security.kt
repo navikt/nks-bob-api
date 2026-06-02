@@ -13,7 +13,7 @@ import io.ktor.server.auth.principal
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.RoutingContext
 import no.nav.nks_ai.api.app.ApplicationError
-import no.nav.nks_ai.api.app.Config
+import no.nav.nks_ai.api.app.getConfig
 import no.nav.nks_ai.api.app.respondError
 import java.net.URI
 import java.util.concurrent.TimeUnit
@@ -43,16 +43,19 @@ fun Application.configureSecurity() {
 ////        )
 // }
 
-    val jwkProvider = JwkProviderBuilder(URI.create(Config.issuers.head.jwksurl).toURL())
+    val config = getConfig()
+    val issuer = config.issuer
+
+    val jwkProvider = JwkProviderBuilder(URI.create(issuer.jwksurl).toURL())
         .cached(10, 24, TimeUnit.HOURS)
         .rateLimited(10, 1, TimeUnit.MINUTES)
         .build()
 
     authentication {
         jwt {
-            verifier(jwkProvider, Config.issuers.head.issuer_name) {
+            verifier(jwkProvider, issuer.issuer_name) {
                 logger.debug { "Verifying jwt" }
-                withAudience(Config.issuers.head.accepted_audience)
+                withAudience(issuer.accepted_audience)
             }
 
             validate { credentials ->
@@ -66,10 +69,10 @@ fun Application.configureSecurity() {
             }
         }
         jwt("AdminUser") {
-            verifier(jwkProvider, Config.issuers.head.issuer_name) {
+            verifier(jwkProvider, issuer.issuer_name) {
                 logger.debug { "Verifying admin jwt" }
-                withAudience(Config.issuers.head.accepted_audience)
-                withArrayClaim("groups", Config.jwt.adminGroup)
+                withAudience(issuer.accepted_audience)
+                withArrayClaim("groups", config.jwt.adminGroup)
             }
 
             validate { credentials ->
@@ -83,10 +86,10 @@ fun Application.configureSecurity() {
             }
         }
         jwt("MachineToken") {
-            verifier(jwkProvider, Config.issuers.head.issuer_name) {
+            verifier(jwkProvider, issuer.issuer_name) {
                 logger.debug { "Verifying machine jwt" }
-                withAudience(Config.issuers.head.accepted_audience)
-                withIssuer(Config.issuers.head.issuer_name)
+                withAudience(issuer.accepted_audience)
+                withIssuer(issuer.issuer_name)
                 withClaim("idtyp", "app")
             }
 
@@ -116,8 +119,9 @@ fun Application.configureSecurity() {
 }
 
 fun RoutingContext.isAdmin(): Boolean {
+    val config = getConfig()
     val principal = call.principal<JWTPrincipal>()
     val groups = principal?.payload?.claims["groups"]
-    return groups?.asList<String>(String::class.java)
-        ?.any { it == Config.jwt.adminGroup } == true
+    return groups?.asList(String::class.java)
+        ?.any { it == config.jwt.adminGroup } == true
 }
