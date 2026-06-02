@@ -97,7 +97,7 @@ spec:
       - name: nks-bob-api
         tier: db-f1-micro
         collation: nb_NO.UTF8
-        type: POSTGRES_16
+        type: POSTGRES_17
         databases:
           - name: nks-bob-api
             envVarPrefix: DB
