@@ -2,12 +2,16 @@ package no.nav.nks_ai.api.core.ignoredWords
 
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.Page
 import no.nav.nks_ai.api.app.Pagination
 import no.nav.nks_ai.api.core.conversation.ConversationRepo
 import no.nav.nks_ai.api.core.user.NavIdent
+
+private val logger = KotlinLogging.logger { }
 
 interface IgnoredWordsService {
     suspend fun getIgnoredWord(id: IgnoredWordId): ApplicationResult<IgnoredWord>
@@ -23,6 +27,7 @@ interface IgnoredWordsService {
 
     suspend fun deleteIgnoredWord(id: IgnoredWordId): ApplicationResult<Unit>
 
+    suspend fun deleteOldIgnoredWords(deleteBefore: LocalDateTime): ApplicationResult<Int>
 }
 
 fun ignoredWordsService() = object : IgnoredWordsService {
@@ -53,6 +58,20 @@ fun ignoredWordsService() = object : IgnoredWordsService {
 
     override suspend fun deleteIgnoredWord(id: IgnoredWordId): ApplicationResult<Unit> {
         return IgnoredWordRepo.deleteIgnoredWord(id)
+    }
+
+    override suspend fun deleteOldIgnoredWords(deleteBefore: LocalDateTime): ApplicationResult<Int> = either {
+        val words = IgnoredWordRepo.getWordsCreatedBefore(deleteBefore).bind()
+        if (words.isEmpty()) {
+            logger.info { "Found 0 words older than $deleteBefore" }
+            return@either 0
+        }
+
+        logger.info { "Deleting ${words.size} words older than $deleteBefore" }
+        val deletedCount = IgnoredWordRepo.deleteIgnoredWords(words.map { it.id }).bind()
+        logger.info { "$deletedCount words deleted" }
+
+        deletedCount
     }
 
 }

@@ -120,7 +120,7 @@ fun Application.module() {
     val notificationService = notificationService()
     val feedbackService = feedbackService(messageService)
     val ignoredWordsService = ignoredWordsService()
-    val jobService = jobService(messageService, conversationService, markMessageStarredService)
+    val jobService = jobService(messageService, conversationService, markMessageStarredService, ignoredWordsService)
 
     routing {
         route("/api/v1") {

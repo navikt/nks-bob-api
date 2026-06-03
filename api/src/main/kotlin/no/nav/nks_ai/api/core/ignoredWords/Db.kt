@@ -1,6 +1,8 @@
 package no.nav.nks_ai.api.core.ignoredWords
 
 import arrow.core.raise.either
+import arrow.core.right
+import kotlinx.datetime.LocalDateTime
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.BaseEntity
@@ -18,6 +20,9 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.count
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.less
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.select
 import java.util.*
 
@@ -118,6 +123,22 @@ object IgnoredWordRepo {
                     total = total,
                 )
             }
+        }
+
+    suspend fun deleteIgnoredWords(
+        ignoredWordIds: List<IgnoredWordId>,
+    ): ApplicationResult<Int> =
+        suspendTransaction {
+            IgnoredWords.deleteWhere {
+                IgnoredWords.id inList ignoredWordIds.map { it.value }
+            }.right()
+        }
+
+    suspend fun getWordsCreatedBefore(deleteBefore: LocalDateTime): ApplicationResult<List<IgnoredWord>> =
+        suspendTransaction {
+                IgnoredWordsDAO.find {
+                    IgnoredWords.createdAt.less(deleteBefore)
+                }.map(IgnoredWordsDAO::toModel).right()
         }
 }
 
