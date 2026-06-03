@@ -75,7 +75,7 @@ dependencies {
     testImplementation(libs.ktor.server.test.host)
 
     constraints {
-        implementation("tools.jackson.core:jackson-core:3.1.3") {
+        implementation("tools.jackson.core:jackson-core:3.1.4") {
             because("GHSA-2m67-wjpj-xhg9,  GHSA-72hv-8253-57qq and CVE-2026-29062")
         }
         implementation("org.apache.commons:commons-lang3:3.20.0") {
