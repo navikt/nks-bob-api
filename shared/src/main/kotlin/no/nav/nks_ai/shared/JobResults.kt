@@ -13,3 +13,8 @@ data class UploadStarredMessagesSummary(
     val uploadedMessages: Int,
     val errors: List<String>,
 )
+
+@Serializable
+data class DeleteIgnoredWordsSummary(
+    val deletedWords: Int,
+)

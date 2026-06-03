@@ -8,6 +8,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
 import no.nav.nks_ai.api.app.respondEither
+import no.nav.nks_ai.shared.DeleteIgnoredWordsSummary
 import no.nav.nks_ai.shared.DeleteOldConversationsSummary
 import no.nav.nks_ai.shared.UploadStarredMessagesSummary
 
@@ -37,6 +38,19 @@ fun Route.jobsRoutes(jobService: JobService) {
                 HttpStatusCode.OK {
                     schema = jsonSchema<UploadStarredMessagesSummary>()
                     description = "Summary of uploaded starred messages"
+                }
+            }
+        }
+        post("/delete-ignored-words") {
+            call.respondEither {
+                jobService.deleteIgnoredWords()
+            }
+        }.describe {
+            description = "Delete ignored words"
+            responses {
+                HttpStatusCode.OK {
+                    schema = jsonSchema<DeleteIgnoredWordsSummary>()
+                    description = "Summary of deleted ignored words"
                 }
             }
         }

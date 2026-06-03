@@ -9,8 +9,10 @@ import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.Config
 import no.nav.nks_ai.api.core.MarkMessageStarredService
 import no.nav.nks_ai.api.core.conversation.ConversationService
+import no.nav.nks_ai.api.core.ignoredWords.IgnoredWordsService
 import no.nav.nks_ai.api.core.message.MessageId
 import no.nav.nks_ai.api.core.message.MessageService
+import no.nav.nks_ai.shared.DeleteIgnoredWordsSummary
 import no.nav.nks_ai.shared.DeleteOldConversationsSummary
 import no.nav.nks_ai.shared.UploadStarredMessagesSummary
 import kotlin.time.Clock
@@ -21,12 +23,15 @@ interface JobService {
     suspend fun deleteOldConversations(): ApplicationResult<DeleteOldConversationsSummary>
 
     suspend fun uploadStarredMessages(): ApplicationResult<UploadStarredMessagesSummary>
+
+    suspend fun deleteIgnoredWords(): ApplicationResult<DeleteIgnoredWordsSummary>
 }
 
 fun jobService(
     messageService: MessageService,
     conversationService: ConversationService,
     markMessageStarredService: MarkMessageStarredService,
+    ignoredWordsService: IgnoredWordsService,
 ) = object : JobService {
     override suspend fun deleteOldConversations(): ApplicationResult<DeleteOldConversationsSummary> = either {
         val deleteBefore = Clock.System.now()
@@ -65,5 +70,15 @@ fun jobService(
             uploadedMessages = uploadedMessages.size,
             errors = errors.map { "${it.message}: ${it.description}" },
         )
+    }
+
+    override suspend fun deleteIgnoredWords(): ApplicationResult<DeleteIgnoredWordsSummary> = either {
+        val deleteBefore = Clock.System.now()
+            .minus(Config.conversationsMaxAge)
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+
+        val deletedIgnoredWords = ignoredWordsService.deleteOldIgnoredWords(deleteBefore).bind()
+
+        DeleteIgnoredWordsSummary(deletedWords = deletedIgnoredWords)
     }
 }

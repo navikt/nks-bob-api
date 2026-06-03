@@ -27,6 +27,7 @@ spec:
         - application: nks-bob-frontend-lokal
         - application: nks-bob-api-delete-old-conversations
         - application: nks-bob-api-upload-starred-messages
+        - application: nks-bob-api-delete-ignored-words
     outbound:
       external:
         - host: nks-aiautomatisering-unleash-api.nav.cloud.nais.io

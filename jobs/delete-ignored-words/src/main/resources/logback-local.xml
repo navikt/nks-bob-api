@@ -1,0 +1,12 @@
+<included scan="true" scanPeriod="30 seconds">
+    <property name="LOGGER_PATTERN"
+              value="%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %X{call-id} %highlight(%-5level) %logger{36} - %msg%n"/>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOGGER_PATTERN}</pattern>
+        </encoder>
+    </appender>
+    <root level="debug">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</included>
