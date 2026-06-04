@@ -8,6 +8,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.right
 import com.sksamuel.aedile.core.Cache
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.callid.withCallId
 import io.ktor.http.HttpMethod
 import io.ktor.http.Parameters
@@ -52,14 +53,14 @@ import java.util.*
 import kotlin.collections.get
 import kotlin.time.Clock
 
+private val dbLogger = KotlinLogging.logger("no.nav.nks_ai.api.app.Database")
+
 suspend fun <T> suspendTransaction(block: Transaction.() -> ApplicationResult<T>): ApplicationResult<T> =
     Either.catch {
         suspendTransaction(statement = block)
     }.mapLeft { throwable ->
-        ApplicationError.InternalServerError(
-            throwable.message ?: "Database error",
-            throwable.stackTraceToString()
-        )
+        dbLogger.error(throwable) { "Database error: ${throwable.message}" }
+        ApplicationError.InternalServerError("Database error", "An internal error occurred")
     }.flatten()
 
 abstract class BaseTable(name: String) : UUIDTable(name) {
