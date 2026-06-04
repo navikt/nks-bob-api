@@ -1,5 +1,6 @@
 # ---------- build stage ----------
 FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jdk:openjdk-25 AS build
+USER root
 WORKDIR /workspace
 
 # Copy gradle wrapper and build files first for better caching
