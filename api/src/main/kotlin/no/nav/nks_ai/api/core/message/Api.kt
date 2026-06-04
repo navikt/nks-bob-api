@@ -52,9 +52,12 @@ fun Route.messageRoutes(
             val messageId = call.messageId()
                 ?: return@put call.respondError(ApplicationError.MissingMessageId())
 
+            val navIdent = call.getNavIdent()
+                ?: return@put call.respondError(ApplicationError.MissingNavIdent())
+
             val message = call.receive<UpdateMessage>()
 
-            call.respondResult(messageService.updateMessage(messageId, message))
+            call.respondResult(messageService.updateMessage(messageId, navIdent, message))
         }.describe {
             description = "Update a message"
             requestBody {

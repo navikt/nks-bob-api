@@ -137,11 +137,14 @@ class MessageService(
         navIdent.isVerified(ownedBy)
     }
 
-    suspend fun updateMessage(messageId: MessageId, message: UpdateMessage): ApplicationResult<Message> =
-        MessageRepo.patchMessage(
-            messageId = messageId,
-            starred = message.starred.some(),
-        )
+    suspend fun updateMessage(messageId: MessageId, navIdent: NavIdent, message: UpdateMessage): ApplicationResult<Message> =
+        either {
+            ensure(isOwnedBy(messageId, navIdent).bind()) { ApplicationError.MissingAccess() }
+            MessageRepo.patchMessage(
+                messageId = messageId,
+                starred = message.starred.some(),
+            ).bind()
+        }
 
     suspend fun deleteOldMessages(deleteBefore: LocalDateTime): ApplicationResult<Int> = either {
         val messages = MessageRepo.getMessagesCreatedBefore(deleteBefore).bind()
