@@ -101,6 +101,7 @@ fun Application.configureSecurity() {
                     return@validate null
                 }
                 val apps = config.nais.preAuthorizedAppList
+                if (config.nais.isRunningOnNais && apps.isEmpty()) { logger.error { "MachineToken avvist: AZURE_APP_PRE_AUTHORIZED_APPS mangler/ugyldig" }; return@validate null }
                 if (apps.isNotEmpty() && apps.none { it.clientId == azp }) {
                     logger.warn { "MachineToken avvist: ukjent azp=$azp" }
                     return@validate null
