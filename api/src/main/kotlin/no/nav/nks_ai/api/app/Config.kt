@@ -61,8 +61,13 @@ data class NaisConfig(
     val appName: String,
     val tokenEndpoint: String,
     val preAuthorizedApps: String = "",
+    val corsExtraOrigins: String = "",
 ) {
     val isRunningOnNais: Boolean = appName.isNotEmpty()
+
+    val corsExtraOriginList: List<String> by lazy {
+        corsExtraOrigins.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    }
 
     val preAuthorizedAppList: List<PreAuthorizedApp> by lazy {
         if (preAuthorizedApps.isBlank()) return@lazy emptyList()

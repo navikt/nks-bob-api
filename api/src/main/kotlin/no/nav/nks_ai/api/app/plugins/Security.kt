@@ -116,11 +116,14 @@ fun Application.configureSecurity() {
         }
     }
     install(CORS) {
-        if (config.nais.isRunningOnNais) {
-            allowHost("bob.ansatt.nav.no", schemes = listOf("https"))
-            allowHost("bob.ansatt.dev.nav.no", schemes = listOf("https"))
-        } else {
-            anyHost()
+        allowHost("bob.ansatt.nav.no", schemes = listOf("https"))
+        allowHost("bob.ansatt.dev.nav.no", schemes = listOf("https"))
+
+        // Allow extra origins
+        config.nais.corsExtraOriginList.forEach { origin ->
+            val uri = URI(origin)
+            val schemes = if (uri.scheme != null) listOf(uri.scheme) else listOf("https")
+            allowHost(uri.host + (if (uri.port != -1) ":${uri.port}" else ""), schemes = schemes)
         }
 
         allowMethod(HttpMethod.Options)
