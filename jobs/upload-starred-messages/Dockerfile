@@ -1,5 +1,5 @@
 # ---------- build stage ----------
-FROM eclipse-temurin:25-jdk AS build
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jdk:openjdk-25 AS build
 WORKDIR /workspace
 
 # Copy gradle wrapper and build files first for better caching
@@ -17,7 +17,7 @@ RUN ./gradlew :jobs:upload-starred-messages:clean --no-daemon
 RUN ./gradlew :jobs:upload-starred-messages:installDist --no-daemon
 
 # ---------- runtime stage ----------
-FROM gcr.io/distroless/java25-debian13:nonroot
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-25
 WORKDIR /app
 
 COPY --from=build /workspace/jobs/upload-starred-messages/build/install/upload-starred-messages/lib/ /app/lib/
