@@ -23,7 +23,7 @@ flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-database-postgres = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 google-cloud-bigquery = { module = "com.google.cloud:google-cloud-bigquery", version = "2.66.0" }
 hikari-cp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
-kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version = "8.0.02" }
+kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version = "8.0.4" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.11.0" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.8.0" }
