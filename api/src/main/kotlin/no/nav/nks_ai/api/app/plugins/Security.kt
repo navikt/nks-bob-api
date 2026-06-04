@@ -116,8 +116,12 @@ fun Application.configureSecurity() {
         }
     }
     install(CORS) {
-        allowHost("bob.ansatt.nav.no", schemes = listOf("https"))
-        allowHost("bob.ansatt.dev.nav.no", schemes = listOf("https"))
+        if (config.nais.isRunningOnNais) {
+            allowHost("bob.ansatt.nav.no", schemes = listOf("https"))
+            allowHost("bob.ansatt.dev.nav.no", schemes = listOf("https"))
+        } else {
+            anyHost()
+        }
 
         allowMethod(HttpMethod.Options)
         allowMethod(HttpMethod.Put)
