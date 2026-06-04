@@ -90,12 +90,21 @@ fun Application.configureSecurity() {
             verifier(jwkProvider, issuer.issuer_name) {
                 logger.debug { "Verifying machine jwt" }
                 withAudience(issuer.accepted_audience)
-                withIssuer(issuer.issuer_name)
                 withClaim("idtyp", "app")
             }
 
             validate { credentials ->
                 logger.debug { "Validating machine jwt" }
+                val azp = credentials.payload.getClaim("azp")?.asString()
+                if (azp == null) {
+                    logger.warn { "MachineToken avvist: mangler azp-claim" }
+                    return@validate null
+                }
+                val apps = config.nais.preAuthorizedAppList
+                if (apps.isNotEmpty() && apps.none { it.clientId == azp }) {
+                    logger.warn { "MachineToken avvist: ukjent azp=$azp" }
+                    return@validate null
+                }
                 JWTPrincipal(credentials.payload)
             }
 
