@@ -11,6 +11,7 @@ import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.auth.principal
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.routing.RoutingContext
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.getConfig
@@ -105,7 +106,8 @@ fun Application.configureSecurity() {
         }
     }
     install(CORS) {
-        anyHost()
+        allowHost("bob.ansatt.nav.no", schemes = listOf("https"))
+        allowHost("bob.ansatt.dev.nav.no", schemes = listOf("https"))
 
         allowMethod(HttpMethod.Options)
         allowMethod(HttpMethod.Put)
@@ -115,6 +117,12 @@ fun Application.configureSecurity() {
 
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.Authorization)
+    }
+
+    install(DefaultHeaders) {
+        header("X-Content-Type-Options", "nosniff")
+        header("X-Frame-Options", "DENY")
+        header("Referrer-Policy", "strict-origin-when-cross-origin")
     }
 }
 
