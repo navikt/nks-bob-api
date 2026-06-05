@@ -7,6 +7,8 @@ metadata:
   name: nks-bob-api
   namespace: nks-aiautomatisering
 spec:
+  # Must be greater than ktor.deployment.shutdownTimeout (65s) + NAIS preStop sleep (5s).
+  terminationGracePeriodSeconds: 90
   envFrom:
     - secret: nks-bob-api-unleash-api-token
   image: "{{ image }}"

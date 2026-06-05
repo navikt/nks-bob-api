@@ -1,17 +1,17 @@
 {
   "collection": "platform",
-  "version": "2026.05.13-124131-a42d43a",
+  "version": "2026.06.05-082958-add16ce",
   "scope": "repo",
-  "source_sha": "5ef9edb",
+  "source_sha": "add16ce",
   "installed_at": "2026-05-18T08:45:57Z",
   "files": [
     {
       "path": ".github/agents/nais.agent.md",
-      "hash": "5cdca085bd4edc56"
+      "hash": "c5a977cd971007ef"
     },
     {
       "path": ".github/agents/observability.agent.md",
-      "hash": "6f7b01a64b6fd461"
+      "hash": "dc896b1966b009c0"
     },
     {
       "path": ".github/agents/security-champion.agent.md",
@@ -19,7 +19,7 @@
     },
     {
       "path": ".github/agents/nav-pilot.agent.md",
-      "hash": "e50baf495f28613f"
+      "hash": "1a77f9c4ecf37af8"
     },
     {
       "path": ".github/skills/observability-setup/",
@@ -39,7 +39,7 @@
     },
     {
       "path": ".github/skills/nav-plan/",
-      "hash": "0849265460ea23e2"
+      "hash": "0a160744cf2b4e82"
     },
     {
       "path": ".github/skills/nav-deep-interview/",
@@ -51,7 +51,7 @@
     },
     {
       "path": ".github/skills/nav-troubleshoot/",
-      "hash": "ce043cf29ce427b1"
+      "hash": "e9900d58d91ee0ee"
     },
     {
       "path": ".github/instructions/golang.instructions.md",
@@ -59,7 +59,7 @@
     },
     {
       "path": ".github/instructions/security-owasp.instructions.md",
-      "hash": "6d2de01195174566"
+      "hash": "3388700634dd315d"
     },
     {
       "path": ".github/instructions/github-actions.instructions.md",
