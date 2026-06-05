@@ -11,6 +11,7 @@ import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.auth.principal
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.routing.RoutingContext
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.getConfig
@@ -89,12 +90,22 @@ fun Application.configureSecurity() {
             verifier(jwkProvider, issuer.issuer_name) {
                 logger.debug { "Verifying machine jwt" }
                 withAudience(issuer.accepted_audience)
-                withIssuer(issuer.issuer_name)
                 withClaim("idtyp", "app")
             }
 
             validate { credentials ->
                 logger.debug { "Validating machine jwt" }
+                val azp = credentials.payload.getClaim("azp")?.asString()
+                if (azp == null) {
+                    logger.warn { "MachineToken avvist: mangler azp-claim" }
+                    return@validate null
+                }
+                val apps = config.nais.preAuthorizedAppList
+                if (config.nais.isRunningOnNais && apps.isEmpty()) { logger.error { "MachineToken avvist: AZURE_APP_PRE_AUTHORIZED_APPS mangler/ugyldig" }; return@validate null }
+                if (apps.isNotEmpty() && apps.none { it.clientId == azp }) {
+                    logger.warn { "MachineToken avvist: ukjent azp=$azp" }
+                    return@validate null
+                }
                 JWTPrincipal(credentials.payload)
             }
 
@@ -105,7 +116,15 @@ fun Application.configureSecurity() {
         }
     }
     install(CORS) {
-        anyHost()
+        allowHost("bob.ansatt.nav.no", schemes = listOf("https"))
+        allowHost("bob.ansatt.dev.nav.no", schemes = listOf("https"))
+
+        // Allow extra origins
+        config.nais.corsExtraOriginList.forEach { origin ->
+            val uri = URI(origin)
+            val schemes = if (uri.scheme != null) listOf(uri.scheme) else listOf("https")
+            allowHost(uri.host + (if (uri.port != -1) ":${uri.port}" else ""), schemes = schemes)
+        }
 
         allowMethod(HttpMethod.Options)
         allowMethod(HttpMethod.Put)
@@ -115,6 +134,12 @@ fun Application.configureSecurity() {
 
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.Authorization)
+    }
+
+    install(DefaultHeaders) {
+        header("X-Content-Type-Options", "nosniff")
+        header("X-Frame-Options", "DENY")
+        header("Referrer-Policy", "strict-origin-when-cross-origin")
     }
 }
 

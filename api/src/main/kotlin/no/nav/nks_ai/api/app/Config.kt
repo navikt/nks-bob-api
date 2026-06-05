@@ -2,6 +2,7 @@ package no.nav.nks_ai.api.app
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
@@ -59,9 +60,24 @@ data class NaisConfig(
     val electorUrl: String,
     val appName: String,
     val tokenEndpoint: String,
+    val preAuthorizedApps: String = "",
+    val corsExtraOrigins: String = "",
 ) {
     val isRunningOnNais: Boolean = appName.isNotEmpty()
+
+    val corsExtraOriginList: List<String> by lazy {
+        corsExtraOrigins.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    }
+
+    val preAuthorizedAppList: List<PreAuthorizedApp> by lazy {
+        if (preAuthorizedApps.isBlank()) return@lazy emptyList()
+        runCatching { Json.decodeFromString<List<PreAuthorizedApp>>(preAuthorizedApps) }
+            .getOrDefault(emptyList())
+    }
 }
+
+@Serializable
+data class PreAuthorizedApp(val name: String, val clientId: String)
 
 @Serializable
 data class IssuerConfig(

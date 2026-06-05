@@ -152,14 +152,29 @@ fun Application.module() {
         route("/internal") {
             healthRoutes()
         }
-        swaggerUI("/swagger-ui") {
-            info = OpenApiInfo(
-                version = "0.0.1",
-                title = "NKS Bob API",
-                description = "API for Nav Kontaktsenters chatbot Bob."
-            )
-            source = OpenApiDocSource.Routing {
-                routingRoot.descendants()
+        if (config.nais.isRunningOnNais) {
+            authenticate("AdminUser") {
+                swaggerUI("/swagger-ui") {
+                    info = OpenApiInfo(
+                        version = "0.0.1",
+                        title = "NKS Bob API",
+                        description = "API for Nav Kontaktsenters chatbot Bob."
+                    )
+                    source = OpenApiDocSource.Routing {
+                        routingRoot.descendants()
+                    }
+                }
+            }
+        } else {
+            swaggerUI("/swagger-ui") {
+                info = OpenApiInfo(
+                    version = "0.0.1",
+                    title = "NKS Bob API",
+                    description = "API for Nav Kontaktsenters chatbot Bob."
+                )
+                source = OpenApiDocSource.Routing {
+                    routingRoot.descendants()
+                }
             }
         }
     }

@@ -59,6 +59,10 @@ spec:
     # Disable Ktor client instrumentation to prevent the agent from silently aborting requests.
     - name: OTEL_INSTRUMENTATION_KTOR_ENABLED
       value: "false"
+    # Comma-separated list of extra origins allowed in CORS (e.g. for local frontend dev against dev-gcp).
+    # Example: http://localhost:5173,http://localhost:3000
+    - name: CORS_EXTRA_ORIGINS
+      value: "http://localhost:5173"
   azure:
     application:
       tenant: nav.no # Gjør at man kan logge på med vanlig konto i dev-gcp
