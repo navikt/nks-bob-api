@@ -14,6 +14,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.openapi.OpenApiInfo
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStopping
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.plugins.swagger.swaggerUI
@@ -25,6 +26,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.api.app.Config
 import no.nav.nks_ai.api.app.FeatureToggles
+import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.app.bq.BigQueryClient
 import no.nav.nks_ai.api.app.getConfig
 import no.nav.nks_ai.api.app.plugins.configureDatabases
@@ -108,6 +110,12 @@ fun Application.module() {
     )
 
     val featureToggles = FeatureToggles.create(config.unleash)
+
+    monitor.subscribe(ApplicationStopping) {
+        logger.info {
+            "Graceful shutdown initiated. Active SSE connections: ${MetricRegister.sseConnections.get()}"
+        }
+    }
 
     val conversationService = ConversationService()
     val messageService = MessageService(vaskemaskinClient, featureToggles, this)
