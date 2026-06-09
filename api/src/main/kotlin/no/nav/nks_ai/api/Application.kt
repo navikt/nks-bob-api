@@ -58,6 +58,7 @@ import no.nav.nks_ai.api.core.notification.notificationUserRoutes
 import no.nav.nks_ai.api.core.user.UserConfigService
 import no.nav.nks_ai.api.core.user.userConfigRoutes
 import no.nav.nks_ai.api.kbs.KbsClient
+import no.nav.nks_ai.api.v2.core.conversation.conversationRoutesV2
 import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationSseV2
 import no.nav.nks_ai.shared.auth.TexasClient
@@ -155,6 +156,7 @@ fun Application.module() {
         route("/api/v2") {
             authenticate {
                 conversationSseV2(messageService, sendMessageServiceV2)
+                conversationRoutesV2(messageService, sendMessageServiceV2)
             }
         }
         route("/internal") {
