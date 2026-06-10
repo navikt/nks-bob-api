@@ -53,6 +53,7 @@ class SendMessageService(
         }
 
         val history = conversationService.getConversationMessages(conversationId, navIdent).bind()
+            .filter { it.id != question.id }
             .map(KbsChatMessage::fromMessage)
 
         val initialAnswer = messageService.addEmptyAnswer(conversationId).bind()
