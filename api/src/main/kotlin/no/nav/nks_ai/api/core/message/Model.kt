@@ -95,6 +95,7 @@ object SourceIdAsString : JsonTransformingSerializer<String>(String.serializer()
         when (element) {
             is JsonPrimitive ->
                 if (element.isString) element else JsonPrimitive(element.content)
+
             else -> element
         }
 }
@@ -142,6 +143,7 @@ data class Message(
     val starred: Boolean,
     val tools: List<Tool>,
     val thinking: List<String>,
+    val model: String?,
 )
 
 fun Message.Companion.answerFrom(
@@ -155,6 +157,7 @@ fun Message.Companion.answerFrom(
     contextualizedQuestion: String?,
     tools: List<Tool>,
     thinking: List<String>,
+    model: String?,
 ) =
     Message(
         id = messageId,
@@ -172,6 +175,7 @@ fun Message.Companion.answerFrom(
         starred = false,
         tools = tools,
         thinking = thinking,
+        model = model,
     )
 
 @Serializable
