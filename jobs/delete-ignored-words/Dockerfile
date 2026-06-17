@@ -12,9 +12,6 @@ RUN ./gradlew --version
 
 COPY . .
 
-# Pre-fetch dependencies to warm cache
-RUN ./gradlew :jobs:delete-ignored-words:clean --no-daemon
-
 RUN ./gradlew :jobs:delete-ignored-words:installDist --no-daemon
 
 # ---------- runtime stage ----------

@@ -12,9 +12,6 @@ RUN ./gradlew --version
 
 COPY . .
 
-# Pre-fetch dependencies to warm cache
-RUN ./gradlew :jobs:upload-starred-messages:clean --no-daemon
-
 RUN ./gradlew :jobs:upload-starred-messages:installDist --no-daemon
 
 # ---------- runtime stage ----------

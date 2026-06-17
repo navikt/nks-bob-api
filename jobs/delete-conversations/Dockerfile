@@ -12,9 +12,6 @@ RUN ./gradlew --version
 
 COPY . .
 
-# Pre-fetch dependencies to warm cache
-RUN ./gradlew :jobs:delete-conversations:clean --no-daemon
-
 RUN ./gradlew :jobs:delete-conversations:installDist --no-daemon
 
 # ---------- runtime stage ----------
