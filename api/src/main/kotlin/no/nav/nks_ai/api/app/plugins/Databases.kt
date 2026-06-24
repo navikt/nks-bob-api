@@ -2,6 +2,7 @@ package no.nav.nks_ai.api.app.plugins
 
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStopped
 import no.nav.nks_ai.api.app.DbConfig
 import no.nav.nks_ai.api.app.getConfig
 import org.flywaydb.core.Flyway
@@ -10,6 +11,7 @@ import javax.sql.DataSource
 
 fun Application.configureDatabases() {
     Db.init(getConfig().db)
+    monitor.subscribe(ApplicationStopped) { Db.close() }
 }
 
 object Db {
