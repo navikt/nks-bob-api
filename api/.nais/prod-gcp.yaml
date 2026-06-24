@@ -11,6 +11,7 @@ spec:
   terminationGracePeriodSeconds: 90
   envFrom:
     - secret: nks-bob-api-unleash-api-token
+    - secret: navident-hmac
   image: "{{ image }}"
   port: 8080
   replicas:

@@ -16,6 +16,7 @@ data class Config (
     val issuer: IssuerConfig,
     @SerialName("bigquery") val bigQuery: BigQueryConfig,
     val unleash: UnleashSettings,
+    val metrics: MetricsConfig,
     ){
 
     companion object {
@@ -104,3 +105,9 @@ data class UnleashSettings(
 ) {
     val isConfigured: Boolean get() = serverApiUrl.isNotEmpty()
 }
+
+// TODO: Remove when initiator label on answersReceived metric is removed.
+@Serializable
+data class MetricsConfig(
+    val navIdentSecret: String,
+)

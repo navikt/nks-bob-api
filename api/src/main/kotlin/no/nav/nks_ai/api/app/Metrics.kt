@@ -33,7 +33,7 @@ object MetricRegister {
     val answersReceived: Counter = Counter.builder()
         .name("${METRICS_NS}_answers_received")
         .help("Hvor mange svar som er blitt fullstendig mottatt")
-        .labelNames("model")
+        .labelNames("model", "initiator")
         .withExemplars()
         .register(appMicrometerRegistry.prometheusRegistry)
 
