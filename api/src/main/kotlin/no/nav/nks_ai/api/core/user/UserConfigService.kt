@@ -10,6 +10,8 @@ import com.sksamuel.aedile.core.expireAfterWrite
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.eitherGet
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 import kotlin.time.Duration.Companion.hours
 
 @JvmInline
@@ -21,6 +23,17 @@ class NavIdent(value: String) {
 
     val hash: String by lazy {
         BCrypt.withDefaults().hashToString(6, value.toCharArray())
+    }
+
+    // Deterministic HMAC-SHA256 hash — same input + same secret always gives same output.
+    // Used for metric labels where stable identity across requests is needed.
+    // TODO: Remove when debugging is done.
+    fun deterministicHash(secret: String): String {
+        val mac = Mac.getInstance("HmacSHA256")
+        mac.init(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
+        return mac.doFinal(plaintext.value.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+            .take(16)
     }
 
     private val verifyer = BCrypt.verifyer()

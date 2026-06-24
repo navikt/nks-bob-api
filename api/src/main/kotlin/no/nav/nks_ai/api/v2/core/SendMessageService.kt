@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.runningFold
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.MetricRegister
+import no.nav.nks_ai.api.app.getConfig
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.conversation.ConversationService
 import no.nav.nks_ai.api.core.message.Message
@@ -118,7 +119,9 @@ class SendMessageService(
                 .onEach { (_, message) -> latestMessage = message }
                 .onCompletion {
                     latestMessage.let { message ->
-                        MetricRegister.answersReceived.labelValues(message.model ?: "unknown").inc()
+                        MetricRegister.answersReceived
+                            .labelValues(message.model ?: "unknown", navIdent.deterministicHash(getConfig().metrics.navIdentSecret)) // TODO: Remove "initiator" label when debugging is done
+                            .inc()
                         messageService.updateAnswer(
                             messageId = messageId,
                             pending = false,
