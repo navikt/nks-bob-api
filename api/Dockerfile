@@ -12,9 +12,6 @@ RUN ./gradlew --version
 
 COPY . .
 
-# Pre-fetch dependencies to warm cache
-RUN ./gradlew :api:clean --no-daemon
-
 RUN ./gradlew :api:installDist --no-daemon
 
 # ---------- runtime stage ----------

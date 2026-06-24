@@ -50,6 +50,7 @@ internal object Messages : BaseTable("messages") {
     val tools = array<String>("tools").clientDefault { emptyList() }
     val toolsV2 = jsonb<List<Tool>>("tools_v2", jsonConfig).clientDefault { emptyList() }
     val thinking = array<String>("thinking").clientDefault { emptyList() }
+    val model = varchar("model", 255).nullable().clientDefault { null }
 }
 
 internal class MessageDAO(id: EntityID<UUID>) : BaseEntity(id, Messages) {
@@ -72,6 +73,7 @@ internal class MessageDAO(id: EntityID<UUID>) : BaseEntity(id, Messages) {
     var tools by Messages.tools
     var toolsV2 by Messages.toolsV2
     var thinking by Messages.thinking
+    var model by Messages.model
 }
 
 internal fun MessageDAO.toModel() = Message(
@@ -99,6 +101,7 @@ internal fun MessageDAO.toModel() = Message(
             toolsV2
         },
     thinking = thinking,
+    model = model,
 )
 
 object MessageRepo {
@@ -174,6 +177,7 @@ object MessageRepo {
         tools: List<String>,
         toolsV2: List<Tool>,
         thinking: List<String>,
+        model: String?,
     ): ApplicationResult<Message> =
         suspendTransaction {
             either {
@@ -191,6 +195,7 @@ object MessageRepo {
                     it.tools = tools
                     it.toolsV2 = toolsV2
                     it.thinking = thinking
+                    it.model = model
                 }?.toModel()
                     ?: raise(ApplicationError.MessageNotFound(messageId))
             }

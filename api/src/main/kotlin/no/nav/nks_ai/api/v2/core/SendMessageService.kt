@@ -118,6 +118,7 @@ class SendMessageService(
                 .onEach { (_, message) -> latestMessage = message }
                 .onCompletion {
                     latestMessage.let { message ->
+                        MetricRegister.answersReceived.labelValues(message.model ?: "unknown").inc()
                         messageService.updateAnswer(
                             messageId = messageId,
                             pending = false,
@@ -129,6 +130,7 @@ class SendMessageService(
                             contextualizedQuestion = message.contextualizedQuestion,
                             tools = message.tools,
                             thinking = message.thinking,
+                            model = message.model
                         ).bind().let { message ->
                             send(ConversationEvent.PendingUpdated(message.id, message, false))
                         }
@@ -215,6 +217,7 @@ fun responseToMessage(
         contextualizedQuestion = null,
         tools = tools,
         thinking = response.thinking,
+        model = response.model,
     )
 }
 

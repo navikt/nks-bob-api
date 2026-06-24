@@ -16,6 +16,7 @@ sealed class KbsStreamResponse {
         @SerialName("follow_up") val followUp: List<String> = emptyList(),
         val tools: List<KbsToolCall>,
         val thinking: List<String>,
+        val model: String? = null,
     ) : KbsStreamResponse()
 
     @Serializable

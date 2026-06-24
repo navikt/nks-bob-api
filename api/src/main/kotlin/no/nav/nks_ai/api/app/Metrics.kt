@@ -30,6 +30,13 @@ object MetricRegister {
         .help("Hvor mange svar som er blitt opprettet")
         .register(appMicrometerRegistry.prometheusRegistry)
 
+    val answersReceived: Counter = Counter.builder()
+        .name("${METRICS_NS}_answers_received")
+        .help("Hvor mange svar som er blitt fullstendig mottatt")
+        .labelNames("model")
+        .withExemplars()
+        .register(appMicrometerRegistry.prometheusRegistry)
+
     val answersLiked: Counter = Counter.builder()
         .name("${METRICS_NS}_answers_liked")
         .help("Hvor mange svar som har fått tommel opp")
