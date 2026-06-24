@@ -118,6 +118,7 @@ class SendMessageService(
                 .onEach { (_, message) -> latestMessage = message }
                 .onCompletion {
                     latestMessage.let { message ->
+                        MetricRegister.answersReceived.labelValues(message.model ?: "unknown").inc()
                         messageService.updateAnswer(
                             messageId = messageId,
                             pending = false,
