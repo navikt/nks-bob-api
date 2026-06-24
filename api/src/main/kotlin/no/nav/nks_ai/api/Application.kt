@@ -14,6 +14,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.openapi.OpenApiInfo
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.ApplicationStopping
 import io.ktor.server.auth.authenticate
 import io.ktor.server.netty.EngineMain
@@ -115,6 +116,11 @@ fun Application.module() {
         logger.info {
             "Graceful shutdown initiated. Active SSE connections: ${MetricRegister.sseConnections.get()}"
         }
+    }
+
+    monitor.subscribe(ApplicationStopped) {
+        httpClient.close()
+        sseClient.close()
     }
 
     val conversationService = ConversationService()
