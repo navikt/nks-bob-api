@@ -61,13 +61,13 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Deploy development
-        uses: nais/deploy/actions/deploy@c55d6073d913975d2dada508bdfefc6427d39867 # v2
+        uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
         env:
           IMAGE: ${{ needs.build.outputs.image }}
           CLUSTER: dev-gcp
           RESOURCE: jobs/delete-ignored-words/.nais/dev-gcp.yaml
       - name: Deploy production
-        uses: nais/deploy/actions/deploy@c55d6073d913975d2dada508bdfefc6427d39867 # v2
+        uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
         if: github.ref == 'refs/heads/main'
         env:
           IMAGE: ${{ needs.build.outputs.image }}
