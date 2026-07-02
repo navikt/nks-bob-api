@@ -161,7 +161,10 @@ fun ApplicationCall.getClaim(issuer: String, name: String) =
 
 private val appConfig: Config by lazy { ApplicationConfig("application.conf").getAs<Config>() }
 
-fun getConfig(): Config = appConfig
+/** Kun for tester — overstyr config uten å påvirke produksjonens lazy-initialisering. */
+internal var testConfigOverride: Config? = null
+
+fun getConfig(): Config = testConfigOverride ?: appConfig
 
 fun getIssuerName(): String = appConfig.issuer.issuer_name
 

@@ -74,6 +74,9 @@ dependencies {
 
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.mock.oauth2.server)
+    testImplementation(libs.mockk)
+    testImplementation(libs.testcontainers.postgresql)
 
     constraints {
         implementation("tools.jackson.core:jackson-core:3.1.4") {

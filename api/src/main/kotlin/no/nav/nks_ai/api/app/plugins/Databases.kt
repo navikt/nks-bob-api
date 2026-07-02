@@ -21,6 +21,8 @@ object Db {
         dataSource = HikariDataSource().apply {
             if (config.jdbcURL != null && config.jdbcURL.isNotEmpty()) {
                 jdbcUrl = config.jdbcURL
+                username = config.username
+                password = config.password
             } else {
                 dataSourceClassName = "org.postgresql.ds.PGSimpleDataSource"
                 addDataSourceProperty("serverName", config.host)
