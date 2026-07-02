@@ -39,19 +39,19 @@ class AdminService {
             ConversationRepo.getConversation(conversationId).bind()
         }
 
-    suspend fun getOldConversations(): ApplicationResult<List<Conversation>> {
-        val maxAge = Clock.System.now()
-            .minus(Config.conversationsMaxAge)
-            .toLocalDateTime(TimeZone.currentSystemDefault())
-
-        return ConversationRepo.getEmptyConversationsCreatedBefore(maxAge)
-    }
-
-    suspend fun getOldMessages(): ApplicationResult<List<Message>> {
-        val maxAge = Clock.System.now()
-            .minus(Config.conversationsMaxAge)
-            .toLocalDateTime(TimeZone.currentSystemDefault())
-
-        return MessageRepo.getMessagesCreatedBefore(maxAge)
-    }
+//    suspend fun getOldConversations(): ApplicationResult<List<Conversation>> {
+//        val maxAge = Clock.System.now()
+//            .minus(Config.conversationsMaxAge)
+//            .toLocalDateTime(TimeZone.currentSystemDefault())
+//
+//        return ConversationRepo.getEmptyConversationsCreatedBefore(maxAge)
+//    }
+//
+//    suspend fun getOldMessages(): ApplicationResult<List<Message>> {
+//        val maxAge = Clock.System.now()
+//            .minus(Config.conversationsMaxAge)
+//            .toLocalDateTime(TimeZone.currentSystemDefault())
+//
+//        return MessageRepo.getMessagesCreatedBefore(maxAge)
+//    }
 }

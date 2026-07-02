@@ -98,22 +98,22 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }
-            get("/outdated") {
-                call.respondEither {
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=conversation/outdated" }
-
-                    adminService.getOldConversations().map { CountSummary(it.size) }
-                }
-            }.describe {
-                description = "Get count of outdated conversations"
-                responses {
-                    HttpStatusCode.OK {
-                        schema = jsonSchema<CountSummary>()
-                        description = "Count of outdated conversations"
-                    }
-                }
-            }
+//            get("/outdated") {
+//                call.respondEither {
+//                    val navIdent = call.navIdent().bind()
+//                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=conversation/outdated" }
+//
+//                    adminService.getOldConversations().map { CountSummary(it.size) }
+//                }
+//            }.describe {
+//                description = "Get count of outdated conversations"
+//                responses {
+//                    HttpStatusCode.OK {
+//                        schema = jsonSchema<CountSummary>()
+//                        description = "Count of outdated conversations"
+//                    }
+//                }
+//            }
         }
         route("/messages") {
             get("/{id}/conversation") {
@@ -165,22 +165,22 @@ fun Route.adminRoutes(adminService: AdminService) {
                     }
                 }
             }
-            get("/outdated") {
-                call.respondEither {
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=conversation/outdated" }
-
-                    adminService.getOldMessages().map { CountSummary(it.size) }
-                }
-            }.describe {
-                description = "Get count of outdated messages"
-                responses {
-                    HttpStatusCode.OK {
-                        schema = jsonSchema<CountSummary>()
-                        description = "Count of outdated messages"
-                    }
-                }
-            }
+//            get("/outdated") {
+//                call.respondEither {
+//                    val navIdent = call.navIdent().bind()
+//                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=conversation/outdated" }
+//
+//                    adminService.getOldMessages().map { CountSummary(it.size) }
+//                }
+//            }.describe {
+//                description = "Get count of outdated messages"
+//                responses {
+//                    HttpStatusCode.OK {
+//                        schema = jsonSchema<CountSummary>()
+//                        description = "Count of outdated messages"
+//                    }
+//                }
+//            }
         }
     }
 }
