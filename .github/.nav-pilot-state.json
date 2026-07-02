@@ -1,8 +1,8 @@
 {
   "collection": "platform",
-  "version": "2026.06.17-180055-992b76c",
+  "version": "2026.07.01-205322-ecb3952",
   "scope": "repo",
-  "source_sha": "992b76c",
+  "source_sha": "ecb3952",
   "installed_at": "2026-05-18T08:45:57Z",
   "files": [
     {
@@ -11,7 +11,7 @@
     },
     {
       "path": ".github/agents/observability.agent.md",
-      "hash": "dc896b1966b009c0"
+      "hash": "790f7e03f52e44d8"
     },
     {
       "path": ".github/agents/security-champion.agent.md",
@@ -19,7 +19,7 @@
     },
     {
       "path": ".github/agents/nav-pilot.agent.md",
-      "hash": "f490eb3f9ca1e9a3"
+      "hash": "09c7351bf3ceb03b"
     },
     {
       "path": ".github/skills/observability-setup/",
