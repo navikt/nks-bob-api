@@ -32,31 +32,36 @@ object TestOAuth2Server {
     const val AUDIENCE = "test-audience"
     const val ADMIN_GROUP = "test-admin-group"
     const val NAV_IDENT = "A123456"
+    const val ADMIN_NAV_IDENT = "B654321"
 
     /** Utsteder et standard bruker-token (ingen admin-gruppe). */
-    fun userToken(): String = server.issueToken(
+    fun userToken(): String = tokenFor(NAV_IDENT)
+
+    /** Utsteder et admin-token med riktig admin-gruppe. */
+    fun adminToken(): String = adminTokenFor(ADMIN_NAV_IDENT)
+
+    /** Utsteder et bruker-token for et spesifikt NAVident — nyttig for å skille brukere i tester. */
+    fun tokenFor(navIdent: String): String = server.issueToken(
         issuerId = ISSUER_ID,
         clientId = "test-client",
         tokenCallback = DefaultOAuth2TokenCallback(
             issuerId = ISSUER_ID,
-            subject = "test-user",
+            subject = navIdent,
             audience = listOf(AUDIENCE),
-            claims = mapOf(
-                "NAVident" to NAV_IDENT,
-            ),
+            claims = mapOf("NAVident" to navIdent),
         )
     ).serialize()
 
-    /** Utsteder et admin-token med riktig admin-gruppe. */
-    fun adminToken(): String = server.issueToken(
+    /** Utsteder et admin-token for et spesifikt NAVident. */
+    fun adminTokenFor(navIdent: String): String = server.issueToken(
         issuerId = ISSUER_ID,
         clientId = "test-client",
         tokenCallback = DefaultOAuth2TokenCallback(
             issuerId = ISSUER_ID,
-            subject = "test-admin",
+            subject = navIdent,
             audience = listOf(AUDIENCE),
             claims = mapOf(
-                "NAVident" to NAV_IDENT,
+                "NAVident" to navIdent,
                 "groups" to listOf(ADMIN_GROUP),
             ),
         )
