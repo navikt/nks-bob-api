@@ -43,16 +43,8 @@ class ConversationService(
         ConversationRepo.updateConversation(id, navIdent, conversation)
 
     suspend fun deleteOldConversations(deleteBefore: LocalDateTime): ApplicationResult<Int> = either {
-        val conversations = ConversationRepo.getEmptyConversationsCreatedBefore(deleteBefore).bind()
-        if (conversations.isEmpty()) {
-            logger.info { "Found 0 conversations older than $deleteBefore" }
-            return@either 0
-        }
-
-        logger.info { "Deleting ${conversations.size} conversations older than $deleteBefore" }
-        val deletedCount = ConversationRepo.deleteConversations(conversations.map { it.id }).bind()
-        logger.info { "$deletedCount conversations deleted" }
-
+        val deletedCount = ConversationRepo.deleteEmptyConversationsCreatedBefore(deleteBefore).bind()
+        logger.info { "$deletedCount empty conversations older than $deleteBefore deleted" }
         deletedCount
     }
 }
