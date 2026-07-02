@@ -34,7 +34,8 @@ object Db {
             maximumPoolSize = 15
             minimumIdle = 3
             connectionTimeout = 30_000
-            maxLifetime = 60_000
+            idleTimeout = 300_000
+            maxLifetime = 1_800_000
             isAutoCommit = false
         }
 
