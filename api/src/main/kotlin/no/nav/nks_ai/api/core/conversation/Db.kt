@@ -22,7 +22,6 @@ import org.jetbrains.exposed.v1.core.notExists
 import org.jetbrains.exposed.v1.jdbc.SizedIterable
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.util.*
 
 internal object Conversations : BaseTable("conversations") {
@@ -128,17 +127,15 @@ object ConversationRepo {
             }.right()
         }
 
-    suspend fun getEmptyConversationsCreatedBefore(
+    suspend fun deleteEmptyConversationsCreatedBefore(
         dateTime: LocalDateTime,
-    ): ApplicationResult<List<Conversation>> =
+    ): ApplicationResult<Int> =
         suspendTransaction {
-            val query = Conversations.selectAll().where {
+            Conversations.deleteWhere {
                 (Conversations.createdAt less dateTime) and notExists(
                     Messages.select(Messages.conversation)
                         .where { Messages.conversation eq Conversations.id }
                 )
-            }
-
-            ConversationDAO.wrapRows(query).toList().map { it.toModel() }.right()
+            }.right()
         }
 }
