@@ -40,8 +40,10 @@ class UserConfigApiTest {
 
     @Test
     fun `GET user-config - oppretter config med defaultverdier for ny bruker`() = testApp { client ->
+        val nyttToken = TestOAuth2Server.tokenFor("GET_DEFAULT_${System.nanoTime()}")
+
         client.get("/api/v1/user/config") {
-            bearerAuth(TestOAuth2Server.userToken())
+            bearerAuth(nyttToken)
         }.apply {
             assertEquals(HttpStatusCode.OK, status)
             val config = body<UserConfigDto>()
@@ -80,8 +82,8 @@ class UserConfigApiTest {
 
     @Test
     fun `GET user-config - ulike brukere faar separate configs`() = testApp { client ->
-        val brukerToken = TestOAuth2Server.tokenFor("C111111")
-        val adminToken = TestOAuth2Server.adminTokenFor("D222222")
+        val brukerToken = TestOAuth2Server.tokenFor("ISOLERT_C_${System.nanoTime()}")
+        val adminToken = TestOAuth2Server.adminTokenFor("ISOLERT_D_${System.nanoTime()}")
 
         // Bruker C endrer sin config
         client.get("/api/v1/user/config") { bearerAuth(brukerToken) }
@@ -158,9 +160,11 @@ class UserConfigApiTest {
 
     @Test
     fun `PUT user-config - returnerer 404 naar brukeren ikke eksisterer enda`() = testApp { client ->
-        // PUT krever at config finnes fra før — bruk GET for å opprette den
+        // Bruker som garantert ikke har eksistert i databasen fra andre tester
+        val nyttToken = TestOAuth2Server.tokenFor("PUT_404_${System.nanoTime()}")
+
         client.put("/api/v1/user/config") {
-            bearerAuth(TestOAuth2Server.userToken())
+            bearerAuth(nyttToken)
             contentType(ContentType.Application.Json)
             setBody(UserConfig(showStartInfo = false, showTutorial = false, showNewConceptInfo = false))
         }.apply {
@@ -182,7 +186,8 @@ class UserConfigApiTest {
 
     @Test
     fun `PATCH user-config - oppdaterer kun angitte felter`() = testApp { client ->
-        val token = TestOAuth2Server.userToken()
+        // Unik bruker slik at vi vet nøyaktig hvilke defaultverdier som gjelder
+        val token = TestOAuth2Server.tokenFor("PATCH_ISOLERT_${System.nanoTime()}")
 
         // Opprett config med kjente defaultverdier
         client.get("/api/v1/user/config") { bearerAuth(token) }
@@ -245,8 +250,11 @@ class UserConfigApiTest {
 
     @Test
     fun `PATCH user-config - returnerer 404 naar brukeren ikke eksisterer`() = testApp { client ->
+        // Bruker som garantert ikke har eksistert i databasen fra andre tester
+        val nyttToken = TestOAuth2Server.tokenFor("PATCH_404_${System.nanoTime()}")
+
         client.patch("/api/v1/user/config") {
-            bearerAuth(TestOAuth2Server.userToken())
+            bearerAuth(nyttToken)
             contentType(ContentType.Application.Json)
             setBody(PatchUserConfig(showStartInfo = false))
         }.apply {
