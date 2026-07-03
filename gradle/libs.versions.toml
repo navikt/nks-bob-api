@@ -11,6 +11,7 @@ mockk = "1.14.2"
 postgres = "42.7.11"
 prometheus = "1.16.5"
 testcontainers = "1.21.0"
+wiremock = "3.13.0"
 
 [libraries]
 aedile-core = { module = "com.sksamuel.aedile:aedile-core", version = "3.0.4" }
@@ -31,6 +32,7 @@ kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version
 mock-oauth2-server = { module = "no.nav.security:mock-oauth2-server", version.ref = "mock-oauth2-server" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
+wiremock = { module = "org.wiremock:wiremock-standalone", version.ref = "wiremock" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.11.0" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.8.0" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }

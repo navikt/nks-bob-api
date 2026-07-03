@@ -72,6 +72,7 @@ object TestOAuth2Server {
  * Starter en Ktor-testapplikasjon med:
  *  - Ekte PostgreSQL via Testcontainers (Flyway-migrasjoner kjøres automatisk)
  *  - mock-oauth2-server som JWT-utsteder
+ *  - WireMock som stub for Texas token-endpoint og andre eksterne HTTP-tjenester
  *  - Alle produksjonsplugins og ruter aktive
  *
  * Bygger en fullstendig Config-instans direkte fra de kjørende test-serverne og
@@ -81,14 +82,18 @@ object TestOAuth2Server {
 fun testApp(block: suspend ApplicationTestBuilder.(client: HttpClient) -> Unit) {
     val oauth = TestOAuth2Server.server
     val db = TestDatabase
+    val wireMock = TestWireMock
 
     // Issuer-URL fra mock-oauth2-server — denne brukes som `iss`-claim i tokens
     // og må matche nøyaktig det JwkProviderBuilder verifiserer mot.
     val issuerUrl = oauth.issuerUrl(TestOAuth2Server.ISSUER_ID).toString()
 
+    // Sett opp Texas-stubs for alle audiences som applikasjonen kan be om token for.
+    wireMock.stubTexasToken(audience = "scope") // vaskemaskin + kbs scope fra test-konfig
+
     testConfigOverride = Config(
-        kbs = KbsConfig(url = "http://localhost:1080", scope = "scope"),
-        vaskemaskin = VaskemaskinConfig(url = "http://localhost:8585", scope = "scope"),
+        kbs = KbsConfig(url = wireMock.baseUrl, scope = "scope"),
+        vaskemaskin = VaskemaskinConfig(url = wireMock.baseUrl, scope = "scope"),
         jwt = JwtConfig(
             clientId = "test-client-id",
             clientSecret = "test-client-secret",
@@ -106,7 +111,7 @@ fun testApp(block: suspend ApplicationTestBuilder.(client: HttpClient) -> Unit) 
         nais = NaisConfig(
             electorUrl = "",
             appName = "",
-            tokenEndpoint = "http://localhost:3333/api/v1/token",
+            tokenEndpoint = wireMock.tokenEndpoint,
         ),
         issuer = IssuerConfig(
             issuer_name = issuerUrl,

@@ -77,6 +77,7 @@ dependencies {
     testImplementation(libs.mock.oauth2.server)
     testImplementation(libs.mockk)
     testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.wiremock)
 
     constraints {
         implementation("tools.jackson.core:jackson-core:3.1.4") {
