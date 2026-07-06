@@ -66,6 +66,24 @@ object TestOAuth2Server {
             ),
         )
     ).serialize()
+
+    /**
+     * Utsteder et maskin-til-maskin-token (MachineToken) med idtyp=app og azp-claim.
+     * Brukes av jobs-endepunkter som krever authenticate("MachineToken").
+     */
+    fun machineToken(azp: String = "test-job-client"): String = server.issueToken(
+        issuerId = ISSUER_ID,
+        clientId = azp,
+        tokenCallback = DefaultOAuth2TokenCallback(
+            issuerId = ISSUER_ID,
+            subject = azp,
+            audience = listOf(AUDIENCE),
+            claims = mapOf(
+                "idtyp" to "app",
+                "azp" to azp,
+            ),
+        )
+    ).serialize()
 }
 
 /**
