@@ -21,4 +21,9 @@ dependencies {
     implementation(libs.kotlin.logging)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.kotlinx.json)
+
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.ktor.client.content.negotiation)
+    testImplementation(libs.kotlinx.coroutines.core)
 }
