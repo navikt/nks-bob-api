@@ -9,7 +9,7 @@ logback = "1.5.36"
 mock-oauth2-server = "2.1.10"
 mockk = "1.14.2"
 postgres = "42.7.11"
-prometheus = "1.16.5"
+prometheus = "1.17.0"
 testcontainers = "1.21.0"
 wiremock = "3.13.0"
 
