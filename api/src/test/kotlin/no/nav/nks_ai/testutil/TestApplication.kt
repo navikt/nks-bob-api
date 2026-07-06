@@ -15,6 +15,7 @@ import no.nav.nks_ai.api.app.MetricsConfig
 import no.nav.nks_ai.api.app.NaisConfig
 import no.nav.nks_ai.api.app.UnleashSettings
 import no.nav.nks_ai.api.app.VaskemaskinConfig
+import no.nav.nks_ai.api.app.bq.testBigQueryClientOverride
 import no.nav.nks_ai.api.app.testConfigOverride
 import no.nav.nks_ai.api.module
 import no.nav.security.mock.oauth2.MockOAuth2Server
@@ -97,10 +98,14 @@ object TestOAuth2Server {
  * setter den som testConfigOverride i getConfig() — slik at appConfig sin lazy-cache
  * aldri påvirker testene.
  */
-fun testApp(block: suspend ApplicationTestBuilder.(client: HttpClient) -> Unit) {
+fun testApp(block: suspend ApplicationTestBuilder.(client: HttpClient) -> Unit) =
+    testAppWithBigQuery { client, _ -> block(client) }
+
+fun testAppWithBigQuery(block: suspend ApplicationTestBuilder.(client: HttpClient, bigQuery: FakeBigQueryClient) -> Unit) {
     val oauth = TestOAuth2Server.server
     val db = TestDatabase
     val wireMock = TestWireMock
+    val fakeBigQuery = FakeBigQueryClient()
 
     // Issuer-URL fra mock-oauth2-server — denne brukes som `iss`-claim i tokens
     // og må matche nøyaktig det JwkProviderBuilder verifiserer mot.
@@ -147,6 +152,7 @@ fun testApp(block: suspend ApplicationTestBuilder.(client: HttpClient) -> Unit) 
         unleash = UnleashSettings(serverApiUrl = "", serverApiToken = "", appName = "nks-bob-api-test"),
         metrics = MetricsConfig(navIdentSecret = "test-secret"),
     )
+    testBigQueryClientOverride = fakeBigQuery
 
     try {
         testApplication {
@@ -160,10 +166,11 @@ fun testApp(block: suspend ApplicationTestBuilder.(client: HttpClient) -> Unit) 
                 }
             }
 
-            block(httpClient)
+            block(httpClient, fakeBigQuery)
         }
     } finally {
         testConfigOverride = null
+        testBigQueryClientOverride = null
     }
 }
 

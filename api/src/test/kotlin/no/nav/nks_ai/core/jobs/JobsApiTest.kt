@@ -22,6 +22,7 @@ import no.nav.nks_ai.shared.DeleteOldConversationsSummary
 import no.nav.nks_ai.shared.UploadStarredMessagesSummary
 import no.nav.nks_ai.testutil.TestOAuth2Server
 import no.nav.nks_ai.testutil.testApp
+import no.nav.nks_ai.testutil.testAppWithBigQuery
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -132,6 +133,12 @@ class JobsApiTest {
     @Test
     fun `POST upload-starred-messages - returnerer 200 med tom summary naar ingen stjernemerkede meldinger finnes`() =
         testApp { client ->
+            // Tøm eventuelle stjernemerkede meldinger fra andre tester ved å kjøre jobben først
+            client.post("/api/v1/admin/jobs/upload-starred-messages") {
+                bearerAuth(TestOAuth2Server.machineToken())
+            }
+
+            // Nå skal det ikke være noen igjen (alle ble enten lastet opp eller har feil)
             val summary = client.post("/api/v1/admin/jobs/upload-starred-messages") {
                 bearerAuth(TestOAuth2Server.machineToken())
             }.apply {
@@ -147,6 +154,11 @@ class JobsApiTest {
         val userToken = TestOAuth2Server.tokenFor("JOBS_STAR_${System.nanoTime()}")
         val machineToken = TestOAuth2Server.machineToken()
 
+        // Tell stjernemerkede meldinger som allerede finnes i databasen fra andre tester
+        val baselineSummary = client.post("/api/v1/admin/jobs/upload-starred-messages") {
+            bearerAuth(machineToken)
+        }.body<UploadStarredMessagesSummary>()
+
         // Opprett samtale og legg til en melding uten stjerne
         val conversation = client.post("/api/v1/conversations") {
             bearerAuth(userToken)
@@ -160,16 +172,17 @@ class JobsApiTest {
             setBody(NewMessage(content = "Spørsmål uten stjerne"))
         }
 
+        // Kjør jobben på nytt — antall opplastede skal ikke ha økt
         val summary = client.post("/api/v1/admin/jobs/upload-starred-messages") {
             bearerAuth(machineToken)
         }.body<UploadStarredMessagesSummary>()
 
-        assertEquals(0, summary.uploadedMessages)
-        assertTrue(summary.errors.isEmpty())
+        assertEquals(0, summary.uploadedMessages, "Ustjernede meldinger skal ikke lastes opp")
+        assertEquals(baselineSummary.errors.size, summary.errors.size, "Antall feil skal ikke ha økt")
     }
 
     @Test
-    fun `POST upload-starred-messages - stjernemerket melding plukkes opp av jobb`() = testApp { client ->
+    fun `POST upload-starred-messages - stjernemerket melding plukkes opp av jobb`() = testAppWithBigQuery { client, bigQuery ->
         val userToken = TestOAuth2Server.tokenFor("JOBS_STAR2_${System.nanoTime()}")
         val machineToken = TestOAuth2Server.machineToken()
 
@@ -194,18 +207,20 @@ class JobsApiTest {
             assertEquals(HttpStatusCode.OK, status)
         }
 
-        // Jobb skal plukke opp den stjernemerkede meldingen
-        // Merk: MarkMessageStarredService.markStarred() kaller BigQuery som ikke er tilgjengelig
-        // i testmiljø — jobben returnerer feil for denne meldingen, men summary skal reflektere det
+        // Jobb skal plukke opp den stjernemerkede meldingen og sende den til BigQuery
         val summary = client.post("/api/v1/admin/jobs/upload-starred-messages") {
             bearerAuth(machineToken)
         }.apply {
             assertEquals(HttpStatusCode.OK, status)
         }.body<UploadStarredMessagesSummary>()
 
-        // BigQuery er ikke stubbet — forvent 1 feil, 0 opplastede
-        assertEquals(0, summary.uploadedMessages)
-        assertEquals(1, summary.errors.size)
+        assertEquals(1, summary.uploadedMessages)
+        assertTrue(summary.errors.isEmpty())
+
+        // Verifiser at BigQuery faktisk mottok insert-kallet med riktig tabell
+        assertEquals(1, bigQuery.insertCalls.size)
+        assertEquals("testgrunnlag", bigQuery.insertCalls[0].dataset)
+        assertEquals("stjernemarkerte_svar_local", bigQuery.insertCalls[0].table)
     }
 
     // ─── delete-ignored-words ────────────────────────────────────────────────
