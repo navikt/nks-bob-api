@@ -22,19 +22,24 @@ import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
 
+private val appConfig: Config by lazy { ApplicationConfig("application.conf").getAs<Config>() }
+
+/** Kun for tester — overstyr config uten å påvirke produksjonens lazy-initialisering. */
+internal var testConfigOverride: Config? = null
+
+fun getConfig(): Config = testConfigOverride ?: appConfig
+
 suspend fun main() {
     val httpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-            })
+            json(Json { ignoreUnknownKeys = true })
         }
         install(CallId) {
             generate { UUID.randomUUID().toString() }
         }
     }
 
-    val config = ApplicationConfig("application.conf").getAs<Config>()
+    val config = getConfig()
 
     val texasClient = TexasClient(
         naisTokenEndpoint = config.nais.tokenEndpoint,
