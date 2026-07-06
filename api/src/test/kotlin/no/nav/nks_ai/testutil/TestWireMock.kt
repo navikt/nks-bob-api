@@ -14,8 +14,10 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
  * Setter opp stubs for eksterne HTTP-tjenester som applikasjonen kaller:
  *
  *   - Texas token-endpoint  POST /api/v1/token
+ *   - KBS v2 stream         POST /api/v2/stream/chat
  *
  * Bruk [stubTexasToken] for å registrere et token for en spesifikk audience.
+ * Bruk [stubKbsStream] for å registrere et SSE-svar fra KBS.
  * Bruk [resetStubs] for å fjerne alle stubs mellom tester ved behov.
  */
 object TestWireMock {
@@ -58,6 +60,38 @@ object TestWireMock {
                         )
                 )
         )
+    }
+
+    /**
+     * Legger til en stub for KBS v2 SSE-strøm.
+     * Returnerer [sseBody] som `text/event-stream` på `POST /api/v2/stream/chat`.
+     *
+     * Kall denne med innholdet fra en av testfilene i mocks/wiremock/__files/v2/.
+     */
+    fun stubKbsStream(sseBody: String) {
+        server.stubFor(
+            post(urlEqualTo("/api/v2/stream/chat"))
+                .willReturn(
+                    aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "text/event-stream")
+                        .withHeader("Cache-Control", "no-cache")
+                        .withBody(sseBody)
+                )
+        )
+    }
+
+    /**
+     * Legger til en stub for KBS v2 som returnerer en feil-event.
+     */
+    fun stubKbsStreamError(
+        type: String = "urn:nks-kbs:error:model",
+        status: Int = 500,
+        title: String = "Modellen er utilgjengelig",
+        detail: String = "Intern feil i språkmodellen",
+    ) {
+        val errorJson = """{"type":"$type","status":$status,"title":"$title","detail":"$detail"}"""
+        stubKbsStream("event: error\ndata: $errorJson\n\n")
     }
 
     /** Fjerner alle registrerte stubs — nyttig mellom tester ved behov. */
