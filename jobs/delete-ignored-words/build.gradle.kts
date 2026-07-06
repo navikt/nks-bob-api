@@ -41,4 +41,8 @@ dependencies {
             because("GHSA-2m67-wjpj-xhg9,  GHSA-72hv-8253-57qq and CVE-2026-29062")
         }
     }
+
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.kotlinx.coroutines.core)
+    testImplementation(libs.wiremock)
 }

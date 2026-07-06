@@ -29,6 +29,7 @@ import no.nav.nks_ai.api.app.Config
 import no.nav.nks_ai.api.app.FeatureToggles
 import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.app.bq.BigQueryClient
+import no.nav.nks_ai.api.app.bq.getBigQueryClient
 import no.nav.nks_ai.api.app.getConfig
 import no.nav.nks_ai.api.app.plugins.configureDatabases
 import no.nav.nks_ai.api.app.plugins.configureMonitoring
@@ -101,7 +102,7 @@ fun Application.module() {
         scope = config.kbs.scope,
     )
 
-    val bigQueryClient = BigQueryClient()
+    val bigQueryClient = getBigQueryClient()
 
     val vaskemaskinClient = VaskemaskinClient(
         baseUrl = config.vaskemaskin.url,

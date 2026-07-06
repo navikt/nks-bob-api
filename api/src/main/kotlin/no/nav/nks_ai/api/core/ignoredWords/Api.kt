@@ -134,7 +134,7 @@ fun Route.ignoredWordsAdminRoutes(ignoredWordsService: IgnoredWordsService) {
 fun Route.ignoredWordsRoutes(ignoredWordsService: IgnoredWordsService) {
     route("/ignored-words") {
         post {
-            call.respondEither {
+            call.respondEither(HttpStatusCode.Created) {
                 val navIdent = call.navIdent().bind()
                 val newIgnoredWord = call.receive<NewIgnoredWord>()
 

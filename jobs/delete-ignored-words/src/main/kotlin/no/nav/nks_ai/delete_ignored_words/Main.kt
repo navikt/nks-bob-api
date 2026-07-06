@@ -17,11 +17,17 @@ import io.ktor.server.config.getAs
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.shared.DeleteIgnoredWordsSummary
 import no.nav.nks_ai.shared.ErrorResponse
-import no.nav.nks_ai.shared.UploadStarredMessagesSummary
 import no.nav.nks_ai.shared.auth.TexasClient
 import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
+
+private val appConfig: Config by lazy { ApplicationConfig("application.conf").getAs<Config>() }
+
+/** Kun for tester — overstyr config uten å påvirke produksjonens lazy-initialisering. */
+internal var testConfigOverride: Config? = null
+
+fun getConfig(): Config = testConfigOverride ?: appConfig
 
 suspend fun main() {
     val httpClient = HttpClient(CIO) {
@@ -35,7 +41,7 @@ suspend fun main() {
         }
     }
 
-    val config = ApplicationConfig("application.conf").getAs<Config>()
+    val config = getConfig()
 
     val texasClient = TexasClient(
         naisTokenEndpoint = config.nais.tokenEndpoint,
