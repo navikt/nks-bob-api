@@ -16,7 +16,6 @@ import no.nav.nks_ai.api.core.user.NavIdent
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.notExists
 import org.jetbrains.exposed.v1.jdbc.SizedIterable
@@ -119,15 +118,6 @@ object ConversationRepo {
             }
         }
 
-    suspend fun deleteConversations(
-        conversationIds: List<ConversationId>,
-    ): ApplicationResult<Int> =
-        suspendTransaction {
-            Conversations.deleteWhere {
-                Conversations.id inList conversationIds.map { it.value }
-            }.right()
-        }
-
     suspend fun getEmptyConversationsCreatedBefore(
         dateTime: LocalDateTime,
     ): ApplicationResult<List<Conversation>> =
@@ -138,7 +128,18 @@ object ConversationRepo {
                         .where { Messages.conversation eq Conversations.id }
                 )
             }
-
             ConversationDAO.wrapRows(query).toList().map { it.toModel() }.right()
+        }
+
+    suspend fun deleteEmptyConversationsCreatedBefore(
+        dateTime: LocalDateTime,
+    ): ApplicationResult<Int> =
+        suspendTransaction {
+            Conversations.deleteWhere {
+                (Conversations.createdAt less dateTime) and notExists(
+                    Messages.select(Messages.conversation)
+                        .where { Messages.conversation eq Conversations.id }
+                )
+            }.right()
         }
 }
