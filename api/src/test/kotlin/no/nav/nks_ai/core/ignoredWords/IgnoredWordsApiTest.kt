@@ -63,7 +63,7 @@ class IgnoredWordsApiTest {
             contentType(ContentType.Application.Json)
             setBody(NewIgnoredWord(value = value, validationType = validationType, conversationId = conversationId))
         }.apply {
-            assertEquals(HttpStatusCode.OK, status)
+            assertEquals(HttpStatusCode.Created, status)
         }.body<IgnoredWord>()
     }
 
@@ -88,7 +88,7 @@ class IgnoredWordsApiTest {
             contentType(ContentType.Application.Json)
             setBody(NewIgnoredWord(value = "nav", validationType = "spell-check", conversationId = null))
         }.apply {
-            assertEquals(HttpStatusCode.OK, status)
+            assertEquals(HttpStatusCode.Created, status)
             val word = body<IgnoredWord>()
             assertNotNull(word.id)
             assertEquals("nav", word.value)
@@ -113,7 +113,7 @@ class IgnoredWordsApiTest {
                 )
             )
         }.apply {
-            assertEquals(HttpStatusCode.OK, status)
+            assertEquals(HttpStatusCode.Created, status)
             val word = body<IgnoredWord>()
             assertEquals("ytelse", word.value)
             assertEquals(conversation.id, word.conversationId)
