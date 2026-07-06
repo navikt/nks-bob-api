@@ -19,7 +19,6 @@ import no.nav.nks_ai.api.v2.core.conversation.streaming.ConversationEvent
 import no.nav.nks_ai.testutil.TestOAuth2Server
 import no.nav.nks_ai.testutil.TestWireMock
 import no.nav.nks_ai.testutil.testApp
-import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -38,7 +37,9 @@ class SendMessageServiceV2Test {
     // ─── Hjelpemetoder ───────────────────────────────────────────────────────
 
     private fun sseFixture(filename: String): String =
-        File("../mocks/wiremock/__files/v2/$filename").readText()
+        checkNotNull(javaClass.getResourceAsStream("/v2/$filename")) {
+            "Fixture ikke funnet på classpath: /v2/$filename"
+        }.bufferedReader().readText()
 
     /**
      * Parser SSE-tekst til liste av ConversationEvent.
