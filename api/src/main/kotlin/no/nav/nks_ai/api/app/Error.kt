@@ -1,6 +1,7 @@
 package no.nav.nks_ai.api.app
 
 import arrow.core.Either
+import arrow.core.flatten
 import arrow.core.raise.Raise
 import arrow.core.raise.either
 import io.ktor.http.HttpStatusCode
@@ -166,9 +167,9 @@ suspend inline fun <reified T : Any> ApplicationCall.respondEither(
 suspend inline fun <reified T : Any> ApplicationCall.respondEither(
     statusCode: HttpStatusCode,
     noinline block: suspend Raise<ApplicationError>.() -> ApplicationResult<T>
-): ApplicationResult<T> = either {
-    val result = block()
-    respondResult(statusCode, result).bind()
+): ApplicationResult<T> {
+    val result = either { block() }.flatten()
+    return respondResult(statusCode, result)
 }
 
 class InvalidUuidException() : Throwable(message = "Invalid UUID")

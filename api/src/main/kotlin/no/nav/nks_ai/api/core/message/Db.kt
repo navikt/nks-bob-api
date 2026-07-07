@@ -258,15 +258,6 @@ object MessageRepo {
             }
         }
 
-    suspend fun deleteMessages(
-        messageIds: List<MessageId>,
-    ): ApplicationResult<Int> =
-        suspendTransaction {
-            Messages.deleteWhere {
-                Messages.id inList messageIds.map { it.value }
-            }.right()
-        }
-
     suspend fun getMessagesCreatedBefore(
         dateTime: LocalDateTime,
     ): ApplicationResult<List<Message>> =
@@ -274,5 +265,14 @@ object MessageRepo {
             MessageDAO.find {
                 Messages.createdAt.less(dateTime)
             }.map { it.toModel() }.right()
+        }
+
+    suspend fun deleteMessagesCreatedBefore(
+        dateTime: LocalDateTime,
+    ): ApplicationResult<Int> =
+        suspendTransaction {
+            Messages.deleteWhere {
+                Messages.createdAt.less(dateTime)
+            }.right()
         }
 }

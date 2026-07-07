@@ -20,7 +20,26 @@ import no.nav.nks_ai.api.app.getConfig
 
 private val logger = KotlinLogging.logger {}
 
-class BigQueryClient {
+interface BigQueryClient {
+    fun insert(
+        dataset: String,
+        table: String,
+        row: RowToInsert,
+    ): Either<BigQueryError, RowToInsert>
+
+    fun <T> query(
+        query: String,
+        parameters: Map<String, QueryParameterValue>,
+        block: (result: TableResult) -> T,
+    ): Either<BigQueryError, T>
+}
+
+/** Kun for tester — overstyr BigQueryClient uten å påvirke produksjonens lazy-initialisering. */
+internal var testBigQueryClientOverride: BigQueryClient? = null
+
+fun getBigQueryClient(): BigQueryClient = testBigQueryClientOverride ?: GcpBigQueryClient()
+
+class GcpBigQueryClient : BigQueryClient {
     private val config = getConfig()
     private val project = config.bigQuery.projectId
     private val bigQuery: BigQuery =
@@ -41,7 +60,7 @@ class BigQueryClient {
                 .service
         }
 
-    fun insert(
+    override fun insert(
         dataset: String,
         table: String,
         row: RowToInsert
@@ -79,9 +98,9 @@ class BigQueryClient {
         }
     }
 
-    fun <T> query(
+    override fun <T> query(
         query: String,
-        parameters: Map<String, QueryParameterValue> = emptyMap(),
+        parameters: Map<String, QueryParameterValue>,
         block: (result: TableResult) -> T,
     ): Either<BigQueryError, T> {
         try {
