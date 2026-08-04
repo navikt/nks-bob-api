@@ -1,9 +1,9 @@
 [versions]
 arrow = "2.2.3"
 exposed = "1.3.1"
-flyway = "12.11.0"
+flyway = "13.1.0"
 hikari = "7.1.0"
-kotlin = "2.4.0"
+kotlin = "2.4.10"
 ktor = "3.5.1"
 logback = "1.5.37"
 mock-oauth2-server = "5.0.2"
@@ -25,7 +25,7 @@ exposed-json = { module = "org.jetbrains.exposed:exposed-json", version.ref = "e
 exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposed" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-database-postgres = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
-google-cloud-bigquery = { module = "com.google.cloud:google-cloud-bigquery", version = "2.68.0" }
+google-cloud-bigquery = { module = "com.google.cloud:google-cloud-bigquery", version = "2.69.0" }
 hikari-cp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
 kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version = "8.0.4" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
@@ -66,7 +66,7 @@ logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-enc
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheus" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
 prometheus-tracer = { module = "io.prometheus:prometheus-metrics-tracer-initializer", version = "1.8.0" }
-unleash = { module = "io.getunleash:unleash-client-java", version = "12.2.2" }
+unleash = { module = "io.getunleash:unleash-client-java", version = "12.2.3" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
