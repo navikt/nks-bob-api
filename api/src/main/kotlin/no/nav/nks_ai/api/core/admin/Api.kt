@@ -1,6 +1,5 @@
 package no.nav.nks_ai.api.core.admin
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.routing.Route
@@ -10,17 +9,13 @@ import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.serialization.Serializable
 import no.nav.nks_ai.api.app.ApplicationError
-import no.nav.nks_ai.api.app.navIdent
+import no.nav.nks_ai.api.app.plugins.logAdminAccess
 import no.nav.nks_ai.api.app.respondEither
-import no.nav.nks_ai.api.app.teamLogger
 import no.nav.nks_ai.api.core.conversation.Conversation
 import no.nav.nks_ai.api.core.conversation.ConversationSummary
 import no.nav.nks_ai.api.core.conversation.conversationId
 import no.nav.nks_ai.api.core.message.Message
 import no.nav.nks_ai.api.core.message.messageId
-
-private val logger = KotlinLogging.logger { }
-private val teamLogger = teamLogger(logger)
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.adminRoutes(adminService: AdminService) {
@@ -30,8 +25,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 call.respondEither {
                     val conversationId = call.conversationId()
                         ?: raise(ApplicationError.MissingConversationId())
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=conversation/${conversationId.value}" }
+                    call.logAdminAccess().bind()
 
                     adminService.getConversation(conversationId)
                 }
@@ -54,8 +48,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 call.respondEither {
                     val conversationId = call.conversationId()
                         ?: raise(ApplicationError.MissingConversationId())
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=conversation/${conversationId.value}/summary" }
+                    call.logAdminAccess().bind()
 
                     adminService.getConversationSummary(conversationId)
                 }
@@ -78,8 +71,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 call.respondEither {
                     val conversationId = call.conversationId()
                         ?: raise(ApplicationError.MissingConversationId())
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=conversation/${conversationId.value}/messages" }
+                    call.logAdminAccess().bind()
 
                     adminService.getConversationMessages(conversationId)
                 }
@@ -100,8 +92,7 @@ fun Route.adminRoutes(adminService: AdminService) {
             }
             get("/outdated") {
                 call.respondEither {
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=conversation/outdated" }
+                    call.logAdminAccess().bind()
 
                     adminService.getOldConversations().map { CountSummary(it.size) }
                 }
@@ -120,8 +111,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 call.respondEither {
                     val messageId = call.messageId()
                         ?: raise(ApplicationError.MissingMessageId())
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=message/${messageId.value}/conversation" }
+                    call.logAdminAccess().bind()
 
                     adminService.getConversationFromMessageId(messageId)
                 }
@@ -144,8 +134,7 @@ fun Route.adminRoutes(adminService: AdminService) {
                 call.respondEither {
                     val messageId = call.messageId()
                         ?: raise(ApplicationError.MissingMessageId())
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=message/${messageId.value}/conversation/summary" }
+                    call.logAdminAccess().bind()
 
                     val conversation = adminService.getConversationFromMessageId(messageId).bind()
                     adminService.getConversationSummary(conversation.id)
@@ -167,8 +156,7 @@ fun Route.adminRoutes(adminService: AdminService) {
             }
             get("/outdated") {
                 call.respondEither {
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=conversation/outdated" }
+                    call.logAdminAccess().bind()
 
                     adminService.getOldMessages().map { CountSummary(it.size) }
                 }

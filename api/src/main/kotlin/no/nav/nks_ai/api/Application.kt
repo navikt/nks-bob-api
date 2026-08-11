@@ -1,11 +1,12 @@
 package no.nav.nks_ai.api
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.*
+import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.cio.CIOEngineConfig
 import io.ktor.client.engine.cio.endpoint
-import io.ktor.client.plugins.*
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.callid.CallId
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.sse.SSE
@@ -30,6 +31,7 @@ import no.nav.nks_ai.api.app.FeatureToggles
 import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.app.bq.getBigQueryClient
 import no.nav.nks_ai.api.app.getConfig
+import no.nav.nks_ai.api.app.plugins.configureAdminLogging
 import no.nav.nks_ai.api.app.plugins.configureDatabases
 import no.nav.nks_ai.api.app.plugins.configureMonitoring
 import no.nav.nks_ai.api.app.plugins.configureSecurity
@@ -56,9 +58,9 @@ import no.nav.nks_ai.api.core.notification.notificationUserRoutes
 import no.nav.nks_ai.api.core.user.UserConfigService
 import no.nav.nks_ai.api.core.user.userConfigRoutes
 import no.nav.nks_ai.api.v2.core.SendMessageService
-import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationSseV2
 import no.nav.nks_ai.api.v2.kbs.KbsClient
+import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 import no.nav.nks_ai.shared.auth.TexasClient
 
 fun main(args: Array<String>) {
@@ -72,6 +74,7 @@ fun Application.module() {
     configureDatabases()
     configureMonitoring()
     configureSecurity()
+    configureAdminLogging()
 
     val config = getConfig()
 

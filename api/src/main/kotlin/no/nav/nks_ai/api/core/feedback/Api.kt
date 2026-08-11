@@ -1,7 +1,6 @@
 package no.nav.nks_ai.api.core.feedback
 
 import arrow.core.right
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.receive
@@ -17,13 +16,9 @@ import kotlinx.serialization.Serializable
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.Page
 import no.nav.nks_ai.api.app.Sort
-import no.nav.nks_ai.api.app.navIdent
 import no.nav.nks_ai.api.app.pagination
+import no.nav.nks_ai.api.app.plugins.logAdminAccess
 import no.nav.nks_ai.api.app.respondEither
-import no.nav.nks_ai.api.app.teamLogger
-
-private val logger = KotlinLogging.logger { }
-private val teamLogger = teamLogger(logger)
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
@@ -34,8 +29,7 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                 val filters = call.queryParameters.getAll("filter")
                     ?.map { FeedbackFilter.fromFilterValue(it).bind() }
                     ?: emptyList()
-                val navIdent = call.navIdent().bind()
-                teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=LIST resource=feedbacks" }
+                call.logAdminAccess().bind()
 
                 feedbackService.getFilteredFeedbacks(filters, pagination)
             }
@@ -77,8 +71,7 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
             get {
                 call.respondEither {
                     val feedbackId = call.feedbackId().bind()
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=feedback/${feedbackId.value}" }
+                    call.logAdminAccess().bind()
 
                     feedbackService.getFeedback(feedbackId)
                 }
@@ -101,8 +94,7 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
                 call.respondEither {
                     val feedbackId = call.feedbackId().bind()
                     val updateFeedback = call.receive<UpdateFeedback>()
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=UPDATE resource=feedback/${feedbackId.value}" }
+                    call.logAdminAccess().bind()
 
                     feedbackService.updateFeedback(feedbackId, updateFeedback)
                 }
@@ -128,8 +120,7 @@ fun Route.feedbackAdminRoutes(feedbackService: FeedbackService) {
             delete {
                 call.respondEither(HttpStatusCode.NoContent) {
                     val feedbackId = call.feedbackId().bind()
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=DELETE resource=feedback/${feedbackId.value}" }
+                    call.logAdminAccess().bind()
 
                     feedbackService.deleteFeedback(feedbackId)
                 }
@@ -167,8 +158,7 @@ fun Route.feedbackAdminBatchRoutes(feedbackService: FeedbackService) {
                         raise(ApplicationError.BadRequest("Invalid 'before' value. Expected ISO-8601 LocalDateTime, got: $beforeRaw"))
                     }
 
-                val navIdent = call.navIdent().bind()
-                teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=BATCH_RESOLVE resource=feedbacks before=$beforeRaw" }
+                call.logAdminAccess().bind()
 
                 val updated = feedbackService.batchResolveFeedbacksBefore(before, note).bind()
                 BatchResolveFeedbacksResponse(updated = updated, before = beforeRaw).right()
