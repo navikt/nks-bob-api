@@ -1,6 +1,5 @@
 package no.nav.nks_ai.api.core.ignoredWords
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.receive
@@ -15,11 +14,8 @@ import no.nav.nks_ai.api.app.Page
 import no.nav.nks_ai.api.app.Sort
 import no.nav.nks_ai.api.app.navIdent
 import no.nav.nks_ai.api.app.pagination
+import no.nav.nks_ai.api.app.plugins.logAdminAccess
 import no.nav.nks_ai.api.app.respondEither
-import no.nav.nks_ai.api.app.teamLogger
-
-private val logger = KotlinLogging.logger { }
-private val teamLogger = teamLogger(logger)
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.ignoredWordsAdminRoutes(ignoredWordsService: IgnoredWordsService) {
@@ -27,9 +23,7 @@ fun Route.ignoredWordsAdminRoutes(ignoredWordsService: IgnoredWordsService) {
         get {
             call.respondEither {
                 val pagination = call.pagination().bind()
-
-                val navIdent = call.navIdent().bind()
-                teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=ignored-words" }
+                call.logAdminAccess().bind()
 
                 ignoredWordsService.getAllIgnoredWords(pagination)
             }
@@ -64,9 +58,7 @@ fun Route.ignoredWordsAdminRoutes(ignoredWordsService: IgnoredWordsService) {
             get {
                 call.respondEither {
                     val id = call.ignoredWordId().bind()
-
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=ignored-words/${id}" }
+                    call.logAdminAccess().bind()
 
                     ignoredWordsService.getIgnoredWord(id)
                 }
@@ -82,9 +74,7 @@ fun Route.ignoredWordsAdminRoutes(ignoredWordsService: IgnoredWordsService) {
             delete {
                 call.respondEither(HttpStatusCode.NoContent) {
                     val id = call.ignoredWordId().bind()
-
-                    val navIdent = call.navIdent().bind()
-                    teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=DELETE resource=ignored-words/${id}" }
+                    call.logAdminAccess().bind()
 
                     ignoredWordsService.deleteIgnoredWord(id)
                 }
@@ -100,9 +90,7 @@ fun Route.ignoredWordsAdminRoutes(ignoredWordsService: IgnoredWordsService) {
         get("/aggregate") {
             call.respondEither {
                 val pagination = call.pagination().bind()
-
-                val navIdent = call.navIdent().bind()
-                teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=READ resource=ignored-words/aggregate" }
+                call.logAdminAccess().bind()
 
                 ignoredWordsService.getAllIgnoredWordsAggregated(pagination)
             }
