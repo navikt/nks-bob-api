@@ -61,7 +61,7 @@ class KbsClient(
                 when (response.event) {
                     "token_chunk" -> {
                         response.data?.let { data ->
-                            val chatResponse = defaultJsonConfig().decodeFromString<KbsStreamResponse.KbsTokenChunkResponse>(data)
+                            val chatResponse = defaultJsonConfig().decodeFromString<KbsStreamResponse.KbsTokenChunkResponse>(data.sanitize())
                             if (timer.isRunning && chatResponse.chunk.isNotEmpty()) {
                                 timer.stop()
                             }
@@ -72,7 +72,7 @@ class KbsClient(
 
                     "chat_chunk" -> {
                         response.data?.let { data ->
-                            val chatResponse = defaultJsonConfig().decodeFromString<KbsStreamResponse.KbsChatResponse>(data)
+                            val chatResponse = defaultJsonConfig().decodeFromString<KbsStreamResponse.KbsChatResponse>(data.sanitize())
                             if (timer.isRunning && chatResponse.answer.isNotEmpty()) {
                                 timer.stop()
                             }
@@ -156,3 +156,9 @@ class KbsClient(
         }
     }
 }
+
+private fun String.sanitize(): String = this
+    .replace("\\u0000f8", "ø")
+    .replace("\\u0000e5", "å")
+    .replace("\\u0000e6", "æ")
+    .replace("\\u0000", "")
