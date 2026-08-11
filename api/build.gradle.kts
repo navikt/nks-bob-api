@@ -89,10 +89,10 @@ dependencies {
         implementation("com.fasterxml.jackson.core:jackson-databind:2.22.1") {
             because("CVE-2026-54512, CVE-2026-54513, CVE-2026-54514, CVE-2026-54515, CVE-2026-54516, CVE-2026-54517, CVE-2026-54518")
         }
-        implementation("io.netty:netty-codec-http:4.2.16.Final") {
+        implementation("io.netty:netty-codec-http:4.2.17.Final") {
             because("CVE-2026-59921 CVE-2026-59899 CVE-2026-59898 CVE-2026-56746 CVE-2026-56745 CVE-2026-55833 CVE-2026-55831")
         }
-        implementation("io.netty:netty-codec-compression:4.2.16.Final") {
+        implementation("io.netty:netty-codec-compression:4.2.17.Final") {
             because("CVE-2026-59901")
         }
     }
