@@ -11,7 +11,7 @@ mockk = "1.14.2"
 postgres = "42.7.12"
 prometheus = "1.17.0"
 testcontainers = "1.21.4"
-wiremock = "3.13.0"
+wiremock = "3.13.2"
 
 [libraries]
 aedile-core = { module = "com.sksamuel.aedile:aedile-core", version = "3.0.4" }
