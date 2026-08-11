@@ -54,11 +54,11 @@ jobs:
           distribution: 'temurin'
           java-version: '25'
       - name: Setup Gradle to generate and submit dependency graphs
-        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           dependency-graph: generate-and-submit
       - name: Bygg og publiser docker bilde
-        uses: nais/docker-build-push@31c3a7321909bcb20799fdf46153fec721fd9512 # v0
+        uses: nais/docker-build-push@2d2b0a7193e65422b7f0355d4afb445e0a8b2cc3 # v0
         id: docker-build-push
         with:
           dockerfile: api/Dockerfile
@@ -79,14 +79,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Deploy development
-        uses: nais/deploy/actions/deploy@fc3eae3edebabdf67f7592102ae16176d5ba3b5f # v2
+        uses: nais/deploy/actions/deploy@849e900e3cfa7faf7ad1532bb3a3e6499c932199 # v2
         env:
           IMAGE: ${{ needs.build.outputs.image }}
           CLUSTER: dev-gcp
           RESOURCE: api/.nais/dev-gcp.yaml,api/.nais/unleash-apitoken-dev.yaml
           VAR: ingress=nks-bob-api.ansatt.dev.nav.no
       - name: Deploy production
-        uses: nais/deploy/actions/deploy@fc3eae3edebabdf67f7592102ae16176d5ba3b5f # v2
+        uses: nais/deploy/actions/deploy@849e900e3cfa7faf7ad1532bb3a3e6499c932199 # v2
         if: github.ref == 'refs/heads/main'
         env:
           IMAGE: ${{ needs.build.outputs.image }}

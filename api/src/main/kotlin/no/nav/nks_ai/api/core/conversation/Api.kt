@@ -16,18 +16,16 @@ import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.launch
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.app.getNavIdent
 import no.nav.nks_ai.api.app.respondError
 import no.nav.nks_ai.api.app.respondResult
-import no.nav.nks_ai.api.core.SendMessageService
-import no.nav.nks_ai.api.core.conversation.streaming.WebsocketFlowHandler
 import no.nav.nks_ai.api.core.message.Message
 import no.nav.nks_ai.api.core.message.MessageService
 import no.nav.nks_ai.api.core.message.NewMessage
+import no.nav.nks_ai.api.v2.core.SendMessageService
 
 private val logger = KotlinLogging.logger { }
 
@@ -65,7 +63,6 @@ fun Route.conversationRoutes(
 
                     if (newConversation.initialMessage != null) {
                         launch(Dispatchers.IO) {
-                            val flow = WebsocketFlowHandler.getFlow(conversationId)
                             val question =
                                 messageService.addQuestion(
                                     conversationId,
@@ -77,10 +74,9 @@ fun Route.conversationRoutes(
                                 question = question,
                                 conversationId = conversationId,
                                 navIdent = navIdent
-                            ).onRight { flow.emitAll(it) }
+                            )
                         }
                     }
-
                     call.respond(HttpStatusCode.Created, conversation)
                 }.onLeft { call.respondError(it) }
             }
@@ -209,14 +205,13 @@ fun Route.conversationRoutes(
             coroutineScope {
                 launch(Dispatchers.IO) {
                     either {
-                        val flow = WebsocketFlowHandler.getFlow(conversationId)
                         val question = messageService.addQuestion(conversationId, navIdent, newMessage.content).bind()
 
                         sendMessageService.askQuestion(
                             question = question,
                             conversationId = conversationId,
                             navIdent = navIdent
-                        ).onRight { flow.emitAll(it) }
+                        )
 
                     }.onLeft { error ->
                         logger.error { "An error occured when sending message: $error" }

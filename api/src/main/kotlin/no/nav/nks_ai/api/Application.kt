@@ -28,7 +28,6 @@ import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.api.app.Config
 import no.nav.nks_ai.api.app.FeatureToggles
 import no.nav.nks_ai.api.app.MetricRegister
-import no.nav.nks_ai.api.app.bq.BigQueryClient
 import no.nav.nks_ai.api.app.bq.getBigQueryClient
 import no.nav.nks_ai.api.app.getConfig
 import no.nav.nks_ai.api.app.plugins.configureDatabases
@@ -37,13 +36,10 @@ import no.nav.nks_ai.api.app.plugins.configureSecurity
 import no.nav.nks_ai.api.app.plugins.configureSerialization
 import no.nav.nks_ai.api.app.plugins.healthRoutes
 import no.nav.nks_ai.api.core.MarkMessageStarredService
-import no.nav.nks_ai.api.core.SendMessageService
 import no.nav.nks_ai.api.core.admin.AdminService
 import no.nav.nks_ai.api.core.admin.adminRoutes
 import no.nav.nks_ai.api.core.conversation.ConversationService
 import no.nav.nks_ai.api.core.conversation.conversationRoutes
-import no.nav.nks_ai.api.core.conversation.streaming.conversationSse
-import no.nav.nks_ai.api.core.conversation.streaming.conversationWebsocket
 import no.nav.nks_ai.api.core.feedback.feedbackAdminBatchRoutes
 import no.nav.nks_ai.api.core.feedback.feedbackAdminRoutes
 import no.nav.nks_ai.api.core.feedback.feedbackService
@@ -59,9 +55,10 @@ import no.nav.nks_ai.api.core.notification.notificationService
 import no.nav.nks_ai.api.core.notification.notificationUserRoutes
 import no.nav.nks_ai.api.core.user.UserConfigService
 import no.nav.nks_ai.api.core.user.userConfigRoutes
-import no.nav.nks_ai.api.kbs.KbsClient
+import no.nav.nks_ai.api.v2.core.SendMessageService
 import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationSseV2
+import no.nav.nks_ai.api.v2.kbs.KbsClient
 import no.nav.nks_ai.shared.auth.TexasClient
 
 fun main(args: Array<String>) {
@@ -95,13 +92,6 @@ fun Application.module() {
         scope = config.kbs.scope,
     )
 
-    val kbsClientV2 = no.nav.nks_ai.api.v2.kbs.KbsClient(
-        sseClient = sseClient,
-        texasClient = texasClient,
-        baseUrl = config.kbs.url,
-        scope = config.kbs.scope,
-    )
-
     val bigQueryClient = getBigQueryClient()
 
     val vaskemaskinClient = VaskemaskinClient(
@@ -127,8 +117,6 @@ fun Application.module() {
     val conversationService = ConversationService()
     val messageService = MessageService(vaskemaskinClient, featureToggles, this)
     val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
-    val sendMessageServiceV2 =
-        no.nav.nks_ai.api.v2.core.SendMessageService(conversationService, messageService, kbsClientV2)
     val adminService = AdminService()
     val userConfigService = UserConfigService()
     val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
@@ -141,8 +129,6 @@ fun Application.module() {
         route("/api/v1") {
             authenticate {
                 conversationRoutes(conversationService, messageService, sendMessageService)
-                conversationWebsocket(conversationService, messageService, sendMessageService)
-                conversationSse(messageService, sendMessageService)
                 userConfigRoutes(userConfigService)
                 messageRoutes(messageService, feedbackService)
                 notificationUserRoutes(notificationService)
@@ -161,7 +147,7 @@ fun Application.module() {
         }
         route("/api/v2") {
             authenticate {
-                conversationSseV2(messageService, sendMessageServiceV2)
+                conversationSseV2(messageService, sendMessageService)
             }
         }
         route("/internal") {
