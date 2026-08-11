@@ -7,7 +7,6 @@ import io.ktor.events.EventDefinition
 import io.ktor.http.HttpMethod
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import no.nav.nks_ai.api.app.ApplicationResult
@@ -28,7 +27,7 @@ fun Application.configureAdminLogging() {
     monitor.subscribe(AdminAccessEvent) { call ->
         val navIdent = call.navIdent().getOrElse {
             logger.error { "Missing navIdent in admin access log" }
-            throw BadRequestException("Missing navIdent in admin access log")
+            return@subscribe
         }
 
         val resource = call.request.path()
@@ -38,7 +37,7 @@ fun Application.configureAdminLogging() {
             HttpMethod.Put -> "UPDATE"
             HttpMethod.Delete -> "DELETE"
             HttpMethod.Patch -> "PATCH"
-            else -> "READ"
+            else -> call.request.httpMethod.value
         }
 
         teamLogger.info { "[ACCESS] user=${navIdent.plaintext.value} action=${action} resource=${resource}" }

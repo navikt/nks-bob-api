@@ -1,5 +1,6 @@
 package no.nav.nks_ai.api.core.notification
 
+import arrow.core.raise.context.bind
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.receive
@@ -15,6 +16,7 @@ import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.plugins.logAdminAccess
+import no.nav.nks_ai.api.app.respondEither
 import no.nav.nks_ai.api.app.respondError
 import no.nav.nks_ai.api.app.respondResult
 
@@ -60,10 +62,10 @@ fun Route.notificationUserRoutes(notificationService: NotificationService) {
         }
 
         get("/{id}") {
-            val notificationId = call.notificationId()
-                ?: return@get call.respondError(ApplicationError.MissingNotificationId())
-
-            call.respondResult(notificationService.getNotification(notificationId))
+            call.respondEither {
+                val notificationId = call.notificationId().bind()
+                notificationService.getNotification(notificationId)
+            }
         }.describe {
             description = "Get a notification"
             parameters {
@@ -86,10 +88,12 @@ fun Route.notificationUserRoutes(notificationService: NotificationService) {
 fun Route.notificationAdminRoutes(notificationService: NotificationService) {
     route("/admin/notifications") {
         post {
-            val createNotification = call.receive<CreateNotification>()
-            call.logAdminAccess().bind()
+            call.respondEither(HttpStatusCode.Created) {
+                val createNotification = call.receive<CreateNotification>()
+                call.logAdminAccess().bind()
 
-            call.respondResult(notificationService.addNotification(createNotification))
+                notificationService.addNotification(createNotification)
+            }
         }.describe {
             description = "Create a notification"
             requestBody {
@@ -106,13 +110,13 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
 
         route("/{id}") {
             put {
-                val notificationId = call.notificationId()
-                    ?: return@put call.respondError(ApplicationError.MissingNotificationId())
+                call.respondEither {
+                    val notificationId = call.notificationId().bind()
+                    val createNotification = call.receive<CreateNotification>()
+                    call.logAdminAccess().bind()
 
-                val createNotification = call.receive<CreateNotification>()
-                call.logAdminAccess().bind()
-
-                call.respondResult(notificationService.updateNotification(notificationId, createNotification))
+                    notificationService.updateNotification(notificationId, createNotification)
+                }
             }.describe {
                 description = "Update a notification"
                 parameters {
@@ -133,13 +137,13 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
                 }
             }
             patch {
-                val notificationId = call.notificationId()
-                    ?: return@patch call.respondError(ApplicationError.MissingNotificationId())
+                call.respondEither {
+                    val notificationId = call.notificationId().bind()
+                    val patchNotification = call.receive<PatchNotification>()
+                    call.logAdminAccess().bind()
 
-                val patchNotification = call.receive<PatchNotification>()
-                call.logAdminAccess().bind()
-
-                call.respondResult(notificationService.patchNotification(notificationId, patchNotification))
+                    notificationService.patchNotification(notificationId, patchNotification)
+                }
             }.describe {
                 description = "Patch a notification"
                 parameters {
@@ -160,11 +164,12 @@ fun Route.notificationAdminRoutes(notificationService: NotificationService) {
                 }
             }
             delete {
-                val notificationId = call.notificationId()
-                    ?: return@delete call.respondError(ApplicationError.MissingNotificationId())
-                call.logAdminAccess().bind()
+                call.respondEither(HttpStatusCode.NoContent) {
+                    val notificationId = call.notificationId().bind()
+                    call.logAdminAccess().bind()
 
-                call.respondResult(HttpStatusCode.NoContent, notificationService.deleteNotification(notificationId))
+                    notificationService.deleteNotification(notificationId)
+                }
             }.describe {
                 description = "Delete a notification"
                 parameters {

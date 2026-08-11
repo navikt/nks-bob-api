@@ -74,7 +74,7 @@ class NotificationApiTest {
                 )
             )
         }.apply {
-            assertEquals(HttpStatusCode.OK, status)
+            assertEquals(HttpStatusCode.Created, status)
         }.body<Notification>()
 
         // Bruker henter alle notifikasjoner
@@ -232,7 +232,7 @@ class NotificationApiTest {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.apply {
-            assertEquals(HttpStatusCode.OK, status)
+            assertEquals(HttpStatusCode.Created, status)
             val created = body<Notification>()
             assertNotNull(created.id)
             assertEquals("Ny notifikasjon", created.title)
@@ -304,7 +304,7 @@ class NotificationApiTest {
             contentType(ContentType.Application.Json)
             setBody(createError)
         }.apply {
-            assertEquals(HttpStatusCode.OK, status)
+            assertEquals(HttpStatusCode.Created, status)
         }.body<Notification>()
 
         // Forsøk å opprette en til — skal feile med 400
