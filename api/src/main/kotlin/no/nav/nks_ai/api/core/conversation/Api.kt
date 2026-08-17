@@ -52,19 +52,21 @@ fun Route.conversationRoutes(
                     val conversation = conversationService.addConversation(navIdent, newConversation).bind()
 
                     if (newConversation.initialMessage != null) {
-                        launch(Dispatchers.IO) {
-                            val question =
-                                messageService.addQuestion(
-                                    conversation.id,
-                                    navIdent,
-                                    newConversation.initialMessage.content
-                                ).bind()
+                        val question =
+                            messageService.addQuestion(
+                                conversation.id,
+                                navIdent,
+                                newConversation.initialMessage.content
+                            ).bind()
 
-                            sendMessageService.askQuestion(
-                                question = question,
-                                conversationId = conversation.id,
-                                navIdent = navIdent
-                            )
+                        val flow = sendMessageService.askQuestion(
+                            question = question,
+                            conversationId = conversation.id,
+                            navIdent = navIdent
+                        ).bind()
+
+                        launch(Dispatchers.IO) {
+                            flow.collect {}
                         }
                     }
 
@@ -183,14 +185,15 @@ fun Route.conversationRoutes(
                     val conversationId = call.conversationId().bind()
                     val newMessage = call.receive<NewMessage>()
 
-                    launch(Dispatchers.IO) {
-                        val question = messageService.addQuestion(conversationId, navIdent, newMessage.content).bind()
+                    val question = messageService.addQuestion(conversationId, navIdent, newMessage.content).bind()
+                    val flow = sendMessageService.askQuestion(
+                        question = question,
+                        conversationId = conversationId,
+                        navIdent = navIdent
+                    ).bind()
 
-                        sendMessageService.askQuestion(
-                            question = question,
-                            conversationId = conversationId,
-                            navIdent = navIdent
-                        )
+                    launch(Dispatchers.IO) {
+                        flow.collect {}
                     }
                     Unit.right()
                 }
