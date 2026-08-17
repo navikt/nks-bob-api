@@ -1,10 +1,8 @@
 package no.nav.nks_ai.api.core.notification
 
-import arrow.core.raise.context.bind
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.receive
-import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
@@ -14,19 +12,15 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
-import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.plugins.logAdminAccess
 import no.nav.nks_ai.api.app.respondEither
-import no.nav.nks_ai.api.app.respondError
 import no.nav.nks_ai.api.app.respondResult
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.notificationUserRoutes(notificationService: NotificationService) {
     route("/notifications") {
         get {
-            notificationService.getAllNotifications()
-                .onRight { notifications -> call.respond(notifications) }
-                .onLeft { error -> call.respondError(error) }
+            call.respondResult(notificationService.getAllNotifications())
         }.describe {
             description = "Get all notifications"
             responses {
