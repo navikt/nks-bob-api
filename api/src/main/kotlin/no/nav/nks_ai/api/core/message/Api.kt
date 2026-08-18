@@ -10,10 +10,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
-import no.nav.nks_ai.api.app.ApplicationError
-import no.nav.nks_ai.api.app.getNavIdent
-import no.nav.nks_ai.api.app.respondError
-import no.nav.nks_ai.api.app.respondResult
+import no.nav.nks_ai.api.app.navIdent
+import no.nav.nks_ai.api.app.respondEither
 import no.nav.nks_ai.api.core.feedback.CreateFeedback
 import no.nav.nks_ai.api.core.feedback.Feedback
 import no.nav.nks_ai.api.core.feedback.FeedbackService
@@ -26,13 +24,12 @@ fun Route.messageRoutes(
 ) {
     route("/messages") {
         get("/{id}") {
-            val navIdent = call.getNavIdent()
-                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
+            call.respondEither {
+                val navIdent = call.navIdent().bind()
+                val messageId = call.messageId().bind()
 
-            val messageId = call.messageId()
-                ?: return@get call.respondError(ApplicationError.MissingMessageId())
-
-            call.respondResult(messageService.getMessage(messageId, navIdent))
+                messageService.getMessage(messageId, navIdent)
+            }
         }.describe {
             description = "Get a message with the given ID"
             parameters {
@@ -49,15 +46,13 @@ fun Route.messageRoutes(
             }
         }
         put("/{id}") {
-            val messageId = call.messageId()
-                ?: return@put call.respondError(ApplicationError.MissingMessageId())
+            call.respondEither {
+                val navIdent = call.navIdent().bind()
+                val messageId = call.messageId().bind()
+                val message = call.receive<UpdateMessage>()
 
-            val navIdent = call.getNavIdent()
-                ?: return@put call.respondError(ApplicationError.MissingNavIdent())
-
-            val message = call.receive<UpdateMessage>()
-
-            call.respondResult(messageService.updateMessage(messageId, navIdent, message))
+                messageService.updateMessage(messageId, navIdent, message)
+            }
         }.describe {
             description = "Update a message"
             requestBody {
@@ -78,13 +73,12 @@ fun Route.messageRoutes(
             }
         }
         get("/{id}/feedback") {
-            val navIdent = call.getNavIdent()
-                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
+            call.respondEither {
+                val navIdent = call.navIdent().bind()
+                val messageId = call.messageId().bind()
 
-            val messageId = call.messageId()
-                ?: return@get call.respondError(ApplicationError.MissingMessageId())
-
-            call.respondResult(feedbackService.getFeedbacksForMessage(messageId, navIdent))
+                feedbackService.getFeedbacksForMessage(messageId, navIdent)
+            }
         }.describe {
             description = "Get the feedback for a message"
             parameters {
@@ -106,17 +100,13 @@ fun Route.messageRoutes(
             }
         }
         post("/{id}/feedback") {
-            val navIdent = call.getNavIdent()
-                ?: return@post call.respondError(ApplicationError.MissingNavIdent())
+            call.respondEither(HttpStatusCode.Created) {
+                val navIdent = call.navIdent().bind()
+                val messageId = call.messageId().bind()
+                val feedback = call.receive<CreateFeedback>()
 
-            val messageId = call.messageId()
-                ?: return@post call.respondError(ApplicationError.MissingMessageId())
-
-            val feedback = call.receive<CreateFeedback>()
-            call.respondResult(
-                HttpStatusCode.Created,
                 feedbackService.addFeedback(messageId, navIdent, feedback)
-            )
+            }
         }.describe {
             description = "Create a new feedback for a message"
             requestBody {

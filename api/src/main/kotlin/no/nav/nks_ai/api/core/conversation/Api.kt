@@ -1,11 +1,9 @@
 package no.nav.nks_ai.api.core.conversation
 
-import arrow.core.raise.either
-import io.github.oshai.kotlinlogging.KotlinLogging
+import arrow.core.right
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.receive
-import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
@@ -17,17 +15,13 @@ import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.MetricRegister
-import no.nav.nks_ai.api.app.getNavIdent
-import no.nav.nks_ai.api.app.respondError
-import no.nav.nks_ai.api.app.respondResult
+import no.nav.nks_ai.api.app.navIdent
+import no.nav.nks_ai.api.app.respondEither
 import no.nav.nks_ai.api.core.message.Message
 import no.nav.nks_ai.api.core.message.MessageService
 import no.nav.nks_ai.api.core.message.NewMessage
 import no.nav.nks_ai.api.v2.core.SendMessageService
-
-private val logger = KotlinLogging.logger { }
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.conversationRoutes(
@@ -37,10 +31,10 @@ fun Route.conversationRoutes(
 ) {
     route("/conversations") {
         get {
-            val navIdent = call.getNavIdent()
-                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
-
-            call.respondResult(conversationService.getAllConversations(navIdent))
+            call.respondEither {
+                val navIdent = call.navIdent().bind()
+                conversationService.getAllConversations(navIdent)
+            }
         }.describe {
             description = "Get all of your conversations"
             responses {
@@ -52,33 +46,32 @@ fun Route.conversationRoutes(
         }
         post {
             coroutineScope {
-                val newConversation = call.receive<NewConversation>()
-
-                val navIdent = call.getNavIdent()
-                    ?: return@coroutineScope call.respondError(ApplicationError.MissingNavIdent())
-
-                either {
+                call.respondEither(HttpStatusCode.Created) {
+                    val navIdent = call.navIdent().bind()
+                    val newConversation = call.receive<NewConversation>()
                     val conversation = conversationService.addConversation(navIdent, newConversation).bind()
-                    val conversationId = conversation.id
 
                     if (newConversation.initialMessage != null) {
-                        launch(Dispatchers.IO) {
-                            val question =
-                                messageService.addQuestion(
-                                    conversationId,
-                                    navIdent,
-                                    newConversation.initialMessage.content
-                                ).bind()
+                        val question =
+                            messageService.addQuestion(
+                                conversation.id,
+                                navIdent,
+                                newConversation.initialMessage.content
+                            ).bind()
 
-                            sendMessageService.askQuestion(
-                                question = question,
-                                conversationId = conversationId,
-                                navIdent = navIdent
-                            )
+                        val flow = sendMessageService.askQuestion(
+                            question = question,
+                            conversationId = conversation.id,
+                            navIdent = navIdent
+                        ).bind()
+
+                        launch(Dispatchers.IO) {
+                            flow.collect {}
                         }
                     }
-                    call.respond(HttpStatusCode.Created, conversation)
-                }.onLeft { call.respondError(it) }
+
+                    conversation.right()
+                }
             }
         }.describe {
             description = "Create a new conversation"
@@ -94,13 +87,12 @@ fun Route.conversationRoutes(
             }
         }
         get("/{id}") {
-            val conversationId = call.conversationId()
-                ?: return@get call.respondError(ApplicationError.MissingConversationId())
+            call.respondEither {
+                val navIdent = call.navIdent().bind()
+                val conversationId = call.conversationId().bind()
 
-            val navIdent = call.getNavIdent()
-                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
-
-            call.respondResult(conversationService.getConversation(conversationId, navIdent))
+                conversationService.getConversation(conversationId, navIdent)
+            }
         }.describe {
             description = "Get a conversation with the given ID"
             parameters {
@@ -117,16 +109,12 @@ fun Route.conversationRoutes(
             }
         }
         delete("/{id}") {
-            val conversationId = call.conversationId()
-                ?: return@delete call.respondError(ApplicationError.MissingConversationId())
+            call.respondEither(HttpStatusCode.NoContent) {
+                val navIdent = call.navIdent().bind()
+                val conversationId = call.conversationId().bind()
 
-            val navIdent = call.getNavIdent()
-                ?: return@delete call.respondError(ApplicationError.MissingNavIdent())
-
-            call.respondResult(
-                HttpStatusCode.NoContent,
                 conversationService.deleteConversation(conversationId, navIdent)
-            )
+            }
         }.describe {
             description = "Delete a conversation with the given ID"
             parameters {
@@ -142,15 +130,13 @@ fun Route.conversationRoutes(
             }
         }
         put("/{id}") {
-            val conversationId = call.conversationId()
-                ?: return@put call.respondError(ApplicationError.MissingConversationId())
+            call.respondEither {
+                val navIdent = call.navIdent().bind()
+                val conversationId = call.conversationId().bind()
+                val conversation = call.receive<UpdateConversation>()
 
-            val conversation = call.receive<UpdateConversation>()
-
-            val navIdent = call.getNavIdent()
-                ?: return@put call.respondError(ApplicationError.MissingNavIdent())
-
-            call.respondResult(conversationService.updateConversation(conversationId, navIdent, conversation))
+                conversationService.updateConversation(conversationId, navIdent, conversation)
+            }
         }.describe {
             description = "Update a conversation with the given ID"
             requestBody {
@@ -171,13 +157,12 @@ fun Route.conversationRoutes(
             }
         }
         get("/{id}/messages") {
-            val conversationId = call.conversationId()
-                ?: return@get call.respondError(ApplicationError.MissingConversationId())
+            call.respondEither {
+                val navIdent = call.navIdent().bind()
+                val conversationId = call.conversationId().bind()
 
-            val navIdent = call.getNavIdent()
-                ?: return@get call.respondError(ApplicationError.MissingNavIdent())
-
-            call.respondResult(conversationService.getConversationMessages(conversationId, navIdent))
+                conversationService.getConversationMessages(conversationId, navIdent)
+            }
         }.describe {
             description = "Get all messages for a given conversation"
             parameters {
@@ -194,31 +179,24 @@ fun Route.conversationRoutes(
             }
         }
         post("/{id}/messages") {
-            val conversationId = call.conversationId()
-                ?: return@post call.respondError(ApplicationError.MissingConversationId())
-
-            val newMessage = call.receive<NewMessage>()
-
-            val navIdent = call.getNavIdent()
-                ?: return@post call.respondError(ApplicationError.MissingNavIdent())
-
             coroutineScope {
-                launch(Dispatchers.IO) {
-                    either {
-                        val question = messageService.addQuestion(conversationId, navIdent, newMessage.content).bind()
+                call.respondEither<Unit>(HttpStatusCode.Accepted) {
+                    val navIdent = call.navIdent().bind()
+                    val conversationId = call.conversationId().bind()
+                    val newMessage = call.receive<NewMessage>()
 
-                        sendMessageService.askQuestion(
-                            question = question,
-                            conversationId = conversationId,
-                            navIdent = navIdent
-                        )
+                    val question = messageService.addQuestion(conversationId, navIdent, newMessage.content).bind()
+                    val flow = sendMessageService.askQuestion(
+                        question = question,
+                        conversationId = conversationId,
+                        navIdent = navIdent
+                    ).bind()
 
-                    }.onLeft { error ->
-                        logger.error { "An error occured when sending message: $error" }
+                    launch(Dispatchers.IO) {
+                        flow.collect {}
                     }
+                    Unit.right()
                 }
-
-                call.respond(HttpStatusCode.Accepted)
             }
         }.describe {
             description = "Add a new message to the conversation"
@@ -239,15 +217,11 @@ fun Route.conversationRoutes(
             }
         }
         post("/{id}/feedback") {
-            val conversationId = call.conversationId()
-                ?: return@post call.respondError(ApplicationError.MissingConversationId())
+            call.respondEither(HttpStatusCode.Created) {
+                val navIdent = call.navIdent().bind()
+                val conversationId = call.conversationId().bind()
+                val feedback = call.receive<ConversationFeedback>()
 
-            val navIdent = call.getNavIdent()
-                ?: return@post call.respondError(ApplicationError.MissingNavIdent())
-
-            val feedback = call.receive<ConversationFeedback>()
-
-            either {
                 conversationService.getConversation(conversationId, navIdent).bind()
 
                 // Feedback won't be saved, just register the metrics.
@@ -256,8 +230,8 @@ fun Route.conversationRoutes(
                     false -> MetricRegister.conversationsDisliked.inc()
                 }
 
-                call.respond(HttpStatusCode.Created, ConversationFeedback(feedback.liked))
-            }.onLeft { call.respondError(it) }
+                ConversationFeedback(feedback.liked).right()
+            }
         }.describe {
             description = "Create a new feedback for a conversation"
             requestBody {

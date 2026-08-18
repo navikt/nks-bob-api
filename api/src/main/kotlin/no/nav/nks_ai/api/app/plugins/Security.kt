@@ -118,6 +118,7 @@ fun Application.configureSecurity() {
     install(CORS) {
         allowHost("bob.ansatt.nav.no", schemes = listOf("https"))
         allowHost("bob.ansatt.dev.nav.no", schemes = listOf("https"))
+        allowHost("nks-bob-api.ansatt.dev.nav.no", schemes = listOf("https"))
 
         // Allow extra origins
         config.nais.corsExtraOriginList.forEach { origin ->

@@ -1,28 +1,26 @@
 package no.nav.nks_ai.api.core.message
 
+import arrow.core.raise.either
 import io.ktor.server.application.ApplicationCall
-import java.util.*
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.descriptors.ClassSerialDescriptorBuilder
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.buildClassSerialDescriptor
-import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.encoding.decodeStructure
-import kotlinx.serialization.encoding.encodeStructure
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.JsonTransformingSerializer
+import no.nav.nks_ai.api.app.ApplicationError
+import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.now
 import no.nav.nks_ai.api.app.toUUID
+import java.util.*
 
 object MessageIdSerializer : KSerializer<MessageId> {
     override fun deserialize(decoder: Decoder): MessageId {
@@ -46,8 +44,10 @@ value class MessageId(@Contextual val value: UUID)
 
 fun UUID.toMessageId() = MessageId(this)
 
-fun ApplicationCall.messageId(name: String = "id"): MessageId? =
-    this.parameters[name]?.toUUID()?.toMessageId()
+fun ApplicationCall.messageId(name: String = "id"): ApplicationResult<MessageId> = either {
+    parameters[name]?.toUUID()?.toMessageId()
+        ?: raise(ApplicationError.MissingMessageId())
+}
 
 @Serializable
 enum class MessageType {
