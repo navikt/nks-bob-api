@@ -1,5 +1,6 @@
 package no.nav.nks_ai.api.core.conversation
 
+import arrow.core.raise.either
 import io.ktor.server.application.ApplicationCall
 import java.util.*
 import kotlinx.datetime.LocalDateTime
@@ -11,6 +12,8 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import no.nav.nks_ai.api.app.ApplicationError
+import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.toUUID
 import no.nav.nks_ai.api.core.message.Message
 import no.nav.nks_ai.api.core.message.MessageRole
@@ -38,8 +41,10 @@ value class ConversationId(@Contextual val value: UUID)
 
 fun UUID.toConversationId() = ConversationId(this)
 
-fun ApplicationCall.conversationId(name: String = "id"): ConversationId? =
-    this.parameters[name]?.toUUID()?.toConversationId()
+fun ApplicationCall.conversationId(name: String = "id"): ApplicationResult<ConversationId> = either {
+    parameters[name]?.toUUID()?.toConversationId()
+        ?: raise(ApplicationError.MissingConversationId())
+}
 
 @Serializable
 data class Conversation(

@@ -1,5 +1,6 @@
 package no.nav.nks_ai.api.core.admin
 
+import arrow.core.raise.context.bind
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.routing.Route
@@ -23,8 +24,7 @@ fun Route.adminRoutes(adminService: AdminService) {
         route("/conversations") {
             get("/{id}") {
                 call.respondEither {
-                    val conversationId = call.conversationId()
-                        ?: raise(ApplicationError.MissingConversationId())
+                    val conversationId = call.conversationId().bind()
                     call.logAdminAccess().bind()
 
                     adminService.getConversation(conversationId)
@@ -46,8 +46,7 @@ fun Route.adminRoutes(adminService: AdminService) {
             }
             get("/{id}/summary") {
                 call.respondEither {
-                    val conversationId = call.conversationId()
-                        ?: raise(ApplicationError.MissingConversationId())
+                    val conversationId = call.conversationId().bind()
                     call.logAdminAccess().bind()
 
                     adminService.getConversationSummary(conversationId)
@@ -69,8 +68,7 @@ fun Route.adminRoutes(adminService: AdminService) {
             }
             get("/{id}/messages") {
                 call.respondEither {
-                    val conversationId = call.conversationId()
-                        ?: raise(ApplicationError.MissingConversationId())
+                    val conversationId = call.conversationId().bind()
                     call.logAdminAccess().bind()
 
                     adminService.getConversationMessages(conversationId)
@@ -109,8 +107,7 @@ fun Route.adminRoutes(adminService: AdminService) {
         route("/messages") {
             get("/{id}/conversation") {
                 call.respondEither {
-                    val messageId = call.messageId()
-                        ?: raise(ApplicationError.MissingMessageId())
+                    val messageId = call.messageId().bind()
                     call.logAdminAccess().bind()
 
                     adminService.getConversationFromMessageId(messageId)
@@ -132,8 +129,7 @@ fun Route.adminRoutes(adminService: AdminService) {
             }
             get("/{id}/conversation/summary") {
                 call.respondEither {
-                    val messageId = call.messageId()
-                        ?: raise(ApplicationError.MissingMessageId())
+                    val messageId = call.messageId().bind()
                     call.logAdminAccess().bind()
 
                     val conversation = adminService.getConversationFromMessageId(messageId).bind()

@@ -35,7 +35,7 @@ fun Route.conversationSseV2(
             val navIdent = call.getNavIdent()
                 ?: return@sse call.respondError(ApplicationError.MissingNavIdent())
 
-            val conversationId = call.conversationId()
+            val conversationId = call.conversationId().getOrNull()
                 ?: return@sse call.respondError(ApplicationError.MissingConversationId())
 
             // call.receiveNullable was not able to transform from json for some reason ¯\_(ツ)_/¯

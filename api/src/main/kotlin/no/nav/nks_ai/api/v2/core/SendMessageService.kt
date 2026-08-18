@@ -153,7 +153,7 @@ class SendMessageService(
         return handleError(
             MessageError(
                 title = "Ukjent feil",
-                description = "En ukjent feil oppsto når vi mottok svar fra språkmodellen."
+                description = "En ukjent feil oppsto når vi mottok svar fra språkmodellen. Hvis feilen vedvarer, bruk kunnskapsbasen i Salesforce."
             ),
             messageId
         )
