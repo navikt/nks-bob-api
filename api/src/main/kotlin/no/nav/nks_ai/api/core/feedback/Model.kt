@@ -55,6 +55,7 @@ enum class FeedbackFilter(val value: String) {
     VeryImportant("særskilt-viktige"),
     UserError("brukerfeil"),
     AiError("ki-feil"),
+    Fixed("rettet"),
     DateExpired("dato-utgatt"),
     InaccurateAnswer("hele-deler-av-svaret-er-feil"),
     MissingDetails("mangler-vesentlige-detaljer"),
@@ -205,6 +206,7 @@ class ResolvedCategorySerializer : KSerializer<ResolvedCategory> {
 enum class ResolvedCategory(val value: String) {
     UserError("brukerfeil"),
     AiError("ki-feil"),
+    Fixed("rettet"),
     DateExpired("dato-utgatt");
 
     companion object {
