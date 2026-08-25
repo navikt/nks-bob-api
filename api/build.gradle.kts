@@ -80,7 +80,7 @@ dependencies {
     testImplementation(libs.wiremock)
 
     constraints {
-        implementation("tools.jackson.core:jackson-core:3.2.1") {
+        implementation("tools.jackson.core:jackson-core:3.2.2") {
             because("CVE-2026-59889")
         }
         implementation("org.apache.commons:commons-lang3:3.20.0") {
