@@ -108,6 +108,7 @@ object FeedbackRepo {
             FeedbackFilter.Resolved -> Feedbacks.resolved eq true
             FeedbackFilter.UserError -> Feedbacks.resolvedCategory eq ResolvedCategory.UserError
             FeedbackFilter.AiError -> Feedbacks.resolvedCategory eq ResolvedCategory.AiError
+            FeedbackFilter.Fixed -> Feedbacks.resolvedCategory eq ResolvedCategory.Fixed
             FeedbackFilter.DateExpired -> Feedbacks.resolvedCategory eq ResolvedCategory.DateExpired
 
             FeedbackFilter.NotRelevant,

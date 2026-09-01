@@ -80,13 +80,13 @@ dependencies {
     testImplementation(libs.wiremock)
 
     constraints {
-        implementation("tools.jackson.core:jackson-core:3.2.1") {
+        implementation("tools.jackson.core:jackson-core:3.2.2") {
             because("CVE-2026-59889")
         }
         implementation("org.apache.commons:commons-lang3:3.20.0") {
             because("CVE-2025-48924")
         }
-        implementation("com.fasterxml.jackson.core:jackson-databind:2.22.1") {
+        implementation("com.fasterxml.jackson.core:jackson-databind:2.22.2") {
             because("CVE-2026-54512, CVE-2026-54513, CVE-2026-54514, CVE-2026-54515, CVE-2026-54516, CVE-2026-54517, CVE-2026-54518")
         }
         implementation("io.netty:netty-codec-http:4.2.17.Final") {
