@@ -23,6 +23,10 @@ spec:
     requests:
       cpu: 25m
       memory: 704Mi
+  # Aiven Kafka pool used for the conversation-events topic (see .nais/topic-dev.yaml).
+  # This gives the app the standard KAFKA_* env vars (brokers + mTLS cert/key/truststore).
+  kafka:
+    pool: nav-dev
   accessPolicy:
     inbound:
       rules:
@@ -66,6 +70,8 @@ spec:
     # Example: http://localhost:5173,http://localhost:3000
     - name: CORS_EXTRA_ORIGINS
       value: "http://localhost:5173"
+    - name: CONVERSATION_EVENTS_TOPIC
+      value: "nks-aiautomatisering.nks-bob-api.conversation-events"
   azure:
     application:
       tenant: nav.no # Gjør at man kan logge på med vanlig konto i dev-gcp

@@ -58,7 +58,9 @@ import no.nav.nks_ai.api.core.notification.notificationUserRoutes
 import no.nav.nks_ai.api.core.user.UserConfigService
 import no.nav.nks_ai.api.core.user.userConfigRoutes
 import no.nav.nks_ai.api.v2.core.SendMessageService
+import no.nav.nks_ai.api.v2.core.conversation.streaming.ConversationEventBus
 import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationSseV2
+import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationWebSocketV2
 import no.nav.nks_ai.api.v2.kbs.KbsClient
 import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 import no.nav.nks_ai.shared.auth.TexasClient
@@ -106,20 +108,25 @@ fun Application.module() {
 
     val featureToggles = FeatureToggles.create(config.unleash)
 
+    val conversationEventBus = ConversationEventBus(config.kafka)
+    conversationEventBus.start(this)
+
     monitor.subscribe(ApplicationStopping) {
         logger.info {
-            "Graceful shutdown initiated. Active SSE connections: ${MetricRegister.sseConnections.get()}"
+            "Graceful shutdown initiated. Active SSE connections: ${MetricRegister.sseConnections.get()}, " +
+                "active websocket connections: ${MetricRegister.websocketConnections.get()}"
         }
     }
 
     monitor.subscribe(ApplicationStopped) {
         httpClient.close()
         sseClient.close()
+        conversationEventBus.close()
     }
 
     val conversationService = ConversationService()
     val messageService = MessageService(vaskemaskinClient, featureToggles, this)
-    val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
+    val sendMessageService = SendMessageService(conversationService, messageService, kbsClient, conversationEventBus)
     val adminService = AdminService()
     val userConfigService = UserConfigService()
     val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
@@ -151,6 +158,7 @@ fun Application.module() {
         route("/api/v2") {
             authenticate {
                 conversationSseV2(messageService, sendMessageService)
+                conversationWebSocketV2(conversationService, conversationEventBus)
             }
         }
         route("/internal") {

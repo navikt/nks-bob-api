@@ -10,6 +10,7 @@ import no.nav.nks_ai.api.app.Config
 import no.nav.nks_ai.api.app.DbConfig
 import no.nav.nks_ai.api.app.IssuerConfig
 import no.nav.nks_ai.api.app.JwtConfig
+import no.nav.nks_ai.api.app.KafkaConfig
 import no.nav.nks_ai.api.app.KbsConfig
 import no.nav.nks_ai.api.app.MetricsConfig
 import no.nav.nks_ai.api.app.NaisConfig
@@ -151,6 +152,13 @@ fun testAppWithBigQuery(block: suspend ApplicationTestBuilder.(client: HttpClien
         ),
         unleash = UnleashSettings(serverApiUrl = "", serverApiToken = "", appName = "nks-bob-api-test"),
         metrics = MetricsConfig(navIdentSecret = "test-secret"),
+        // No broker is started in tests; disable Kafka entirely so ConversationEventBus never
+        // creates a real producer/consumer (avoids network timeouts / hangs on shutdown).
+        kafka = KafkaConfig(
+            brokers = "localhost:19092",
+            conversationEventsTopic = "nks-bob-api-test.conversation-events",
+            enabled = false,
+        ),
     )
     testBigQueryClientOverride = fakeBigQuery
 
