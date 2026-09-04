@@ -41,6 +41,19 @@ data class ConversationIdEvent(
 )
 
 /**
+ * A [ConversationIdEvent] together with the Kafka offset it was read at. The offset is only used
+ * locally (never serialized) to de-duplicate between the replayed [ConversationEventBus.history]
+ * and the live [ConversationEventBus.events] flow when a websocket connects - see ws.kt. Since all
+ * events for a given conversation are published with the conversation id as the record key, they
+ * always land in the same partition, so the offset is a correct, strictly increasing
+ * ordering/dedup key for that conversation regardless of which instance produced a given event.
+ */
+data class ConversationEventRecord(
+    val offset: Long,
+    val idEvent: ConversationIdEvent,
+)
+
+/**
  * Publishes [ConversationEvent]s produced by [no.nav.nks_ai.api.v2.core.SendMessageService] to a
  * shared Kafka topic, and re-broadcasts everything read back from that topic as an in-process
  * [SharedFlow] that the websocket endpoint (ws.kt) filters on conversation id.
@@ -49,6 +62,12 @@ data class ConversationIdEvent(
  * deliberate broadcast/fan-out pattern (not the usual competing-consumers pattern): every running
  * pod must see every event, since we don't know in advance which pod holds the websocket
  * connection for a given conversation.
+ *
+ * Every instance also keeps a small in-memory replay buffer per conversation (see [history]), so
+ * that a websocket connecting late - e.g. because the frontend navigated away and back, or has a
+ * slow connection - can be sent everything that happened in the conversation so far, not just
+ * events from the moment it connects. The frontend is expected to filter/dedupe on its side if it
+ * only cares about events it hasn't already rendered.
  */
 class ConversationEventBus(
     private val config: KafkaConfig,
@@ -67,13 +86,33 @@ class ConversationEventBus(
             null
         }
 
-    private val _events = MutableSharedFlow<ConversationIdEvent>(
+    private val _events = MutableSharedFlow<ConversationEventRecord>(
         extraBufferCapacity = 1024,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
 
     /** All conversation events seen by this instance, regardless of which instance produced them. */
-    val events: SharedFlow<ConversationIdEvent> = _events.asSharedFlow()
+    val events: SharedFlow<ConversationEventRecord> = _events.asSharedFlow()
+
+    // Bounded, per-conversation replay buffer. Access-ordered so the least-recently-used
+    // conversation is evicted first once we hit MAX_TRACKED_CONVERSATIONS, capping memory use
+    // even if many conversations are opened without ever completing.
+    private val historyLock = Any()
+    private val history =
+        object : LinkedHashMap<ConversationId, ArrayDeque<ConversationEventRecord>>(16, 0.75f, true) {
+            override fun removeEldestEntry(
+                eldest: MutableMap.MutableEntry<ConversationId, ArrayDeque<ConversationEventRecord>>,
+            ): Boolean = size > MAX_TRACKED_CONVERSATIONS
+        }
+
+    private companion object {
+        // A single message/answer cycle is typically well under this many events; this just caps
+        // worst-case memory per conversation.
+        const val MAX_EVENTS_PER_CONVERSATION = 500
+
+        // Caps total memory across all conversations being tracked at once.
+        const val MAX_TRACKED_CONVERSATIONS = 2000
+    }
 
     private var consumerJob: Job? = null
 
@@ -90,12 +129,28 @@ class ConversationEventBus(
                 val records = consumer.poll(Duration.ofSeconds(1))
                 for (record in records) {
                     runCatching { Json.decodeFromString<ConversationIdEvent>(record.value()) }
-                        .onSuccess { _events.emit(it) }
+                        .onSuccess { decoded ->
+                            val eventRecord = ConversationEventRecord(record.offset(), decoded)
+                            synchronized(historyLock) {
+                                val deque = history.getOrPut(decoded.conversationId) { ArrayDeque() }
+                                deque.addLast(eventRecord)
+                                if (deque.size > MAX_EVENTS_PER_CONVERSATION) deque.removeFirst()
+                            }
+                            _events.emit(eventRecord)
+                        }
                         .onFailure { logger.warn(it) { "Failed to decode conversation event from Kafka" } }
                 }
             }
         }
     }
+
+    /**
+     * Every event recorded so far for [conversationId], oldest first. Used to "catch up" a
+     * newly-connected websocket before it starts forwarding [events] live - see ws.kt for how the
+     * two are stitched together without gaps or duplicates.
+     */
+    fun history(conversationId: ConversationId): List<ConversationEventRecord> =
+        synchronized(historyLock) { history[conversationId]?.toList() } ?: emptyList()
 
     /** Publishes an event without blocking the caller; failures are logged, not raised. */
     fun publish(conversationId: ConversationId, event: ConversationEvent) {
@@ -147,3 +202,4 @@ private fun consumerProperties(config: KafkaConfig, instanceId: String): Propert
     put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
     put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
 }
+

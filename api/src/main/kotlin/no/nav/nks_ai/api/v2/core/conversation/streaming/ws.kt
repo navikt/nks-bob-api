@@ -8,6 +8,7 @@ import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.filter
@@ -30,6 +31,12 @@ private val logger = KotlinLogging.logger { }
  * happens to hold the client's websocket connection simply filters the shared, in-process
  * [ConversationEventBus.events] flow down to the current conversation id and forwards matching
  * events to the client. This is what makes the feature work with multiple running instances.
+ *
+ * On connect, the client is first sent every event recorded so far for the conversation (see
+ * [ConversationEventBus.history]), before switching over to forwarding new events live. This
+ * covers the frontend being out of sync with the backend - e.g. it navigated away mid-answer and
+ * back, or has a slow/flaky connection - since it can otherwise miss chunks that were only ever
+ * sent once. The frontend is expected to filter out events it has already applied.
  */
 fun Route.conversationWebSocketV2(
     conversationService: ConversationService,
@@ -77,11 +84,28 @@ fun Route.conversationWebSocketV2(
                     }
                     incomingReaderJob.invokeOnCompletion { cancel() }
 
-                    conversationEventBus.events
-                        .filter { it.conversationId == conversationId }
-                        .collect { (_, event) ->
-                            send(Frame.Text(Json.encodeToString(event)))
-                        }
+                    // Start buffering live events *before* reading history below, so we never
+                    // miss an event that arrives in the gap between the history snapshot and the
+                    // point we start forwarding live events. Any overlap between history and the
+                    // live buffer is deduplicated below by Kafka offset.
+                    val liveEvents = Channel<ConversationEventRecord>(capacity = Channel.UNLIMITED)
+                    val liveEventsJob = launch {
+                        conversationEventBus.events
+                            .filter { it.idEvent.conversationId == conversationId }
+                            .collect { liveEvents.send(it) }
+                    }
+                    liveEventsJob.invokeOnCompletion { liveEvents.close() }
+
+                    val history = conversationEventBus.history(conversationId)
+                    for (record in history) {
+                        send(Frame.Text(Json.encodeToString(record.idEvent.event)))
+                    }
+                    val lastHistoryOffset = history.lastOrNull()?.offset ?: -1L
+
+                    for (record in liveEvents) {
+                        if (record.offset <= lastHistoryOffset) continue // already sent via history
+                        send(Frame.Text(Json.encodeToString(record.idEvent.event)))
+                    }
                 }
             } catch (t: Throwable) {
                 logger.error(t) { "Error in websocket session for conversation $conversationId" }
@@ -92,3 +116,4 @@ fun Route.conversationWebSocketV2(
         }
     }
 }
+
