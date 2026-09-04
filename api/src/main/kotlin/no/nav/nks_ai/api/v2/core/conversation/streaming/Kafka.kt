@@ -41,15 +41,17 @@ data class ConversationIdEvent(
 )
 
 /**
- * A [ConversationIdEvent] together with the Kafka offset it was read at. The offset is only used
- * locally (never serialized) to de-duplicate between the replayed [ConversationEventBus.history]
- * and the live [ConversationEventBus.events] flow when a websocket connects - see ws.kt. Since all
- * events for a given conversation are published with the conversation id as the record key, they
- * always land in the same partition, so the offset is a correct, strictly increasing
- * ordering/dedup key for that conversation regardless of which instance produced a given event.
+ * A [ConversationIdEvent] together with the Kafka offset and produce timestamp it was read at.
+ * Both are only used locally (never serialized): the offset to de-duplicate between the replayed
+ * [ConversationEventBus.history] and the live [ConversationEventBus.events] flow when a websocket
+ * connects, and the timestamp to cap how far back [history] replays - see ws.kt. Since all events
+ * for a given conversation are published with the conversation id as the record key, they always
+ * land in the same partition, so the offset is a correct, strictly increasing ordering/dedup key
+ * for that conversation regardless of which instance produced a given event.
  */
 data class ConversationEventRecord(
     val offset: Long,
+    val timestamp: Long,
     val idEvent: ConversationIdEvent,
 )
 
@@ -112,6 +114,11 @@ class ConversationEventBus(
 
         // Caps total memory across all conversations being tracked at once.
         const val MAX_TRACKED_CONVERSATIONS = 2000
+
+        // Replaying events older than this to a newly connected websocket isn't useful: an answer
+        // this old is long finished, and the frontend has almost certainly already fetched the
+        // final message via the regular REST endpoints by the time it (re)connects.
+        val MAX_HISTORY_AGE: Duration = Duration.ofMinutes(10)
     }
 
     private var consumerJob: Job? = null
@@ -130,7 +137,7 @@ class ConversationEventBus(
                 for (record in records) {
                     runCatching { Json.decodeFromString<ConversationIdEvent>(record.value()) }
                         .onSuccess { decoded ->
-                            val eventRecord = ConversationEventRecord(record.offset(), decoded)
+                            val eventRecord = ConversationEventRecord(record.offset(), record.timestamp(), decoded)
                             synchronized(historyLock) {
                                 val deque = history.getOrPut(decoded.conversationId) { ArrayDeque() }
                                 deque.addLast(eventRecord)
@@ -145,12 +152,15 @@ class ConversationEventBus(
     }
 
     /**
-     * Every event recorded so far for [conversationId], oldest first. Used to "catch up" a
-     * newly-connected websocket before it starts forwarding [events] live - see ws.kt for how the
-     * two are stitched together without gaps or duplicates.
+     * Every event recorded so far for [conversationId] that is younger than [MAX_HISTORY_AGE],
+     * oldest first. Used to "catch up" a newly-connected websocket before it starts forwarding
+     * [events] live - see ws.kt for how the two are stitched together without gaps or duplicates.
      */
-    fun history(conversationId: ConversationId): List<ConversationEventRecord> =
-        synchronized(historyLock) { history[conversationId]?.toList() } ?: emptyList()
+    fun history(conversationId: ConversationId): List<ConversationEventRecord> {
+        val cutoff = System.currentTimeMillis() - MAX_HISTORY_AGE.toMillis()
+        val snapshot = synchronized(historyLock) { history[conversationId]?.toList() } ?: emptyList()
+        return snapshot.filter { it.timestamp >= cutoff }
+    }
 
     /** Publishes an event without blocking the caller; failures are logged, not raised. */
     fun publish(conversationId: ConversationId, event: ConversationEvent) {
