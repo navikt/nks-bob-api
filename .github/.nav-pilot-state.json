@@ -1,45 +1,37 @@
 {
   "collection": "platform",
-  "version": "2026.07.01-205322-ecb3952",
+  "version": "2026.09.03-090743-6dabb69",
   "scope": "repo",
-  "source_sha": "ecb3952",
+  "source_sha": "6dabb69",
   "installed_at": "2026-05-18T08:45:57Z",
   "files": [
     {
-      "path": ".github/agents/nais.agent.md",
-      "hash": "c5a977cd971007ef"
-    },
-    {
-      "path": ".github/agents/observability.agent.md",
-      "hash": "790f7e03f52e44d8"
-    },
-    {
       "path": ".github/agents/security-champion.agent.md",
-      "hash": "5ccba48b66938fd0"
+      "hash": "a209e3ce5d93746d"
     },
     {
       "path": ".github/agents/nav-pilot.agent.md",
-      "hash": "09c7351bf3ceb03b"
+      "hash": "f381cdcba7fcb644"
     },
     {
       "path": ".github/skills/observability-setup/",
-      "hash": "78181a920d929a23"
+      "hash": "b16ee0c748b966bf"
     },
     {
       "path": ".github/skills/security-review/",
-      "hash": "c74a83a4e61fbf58"
+      "hash": "3c05f1012664e5c8"
     },
     {
       "path": ".github/skills/threat-model/",
-      "hash": "305fe669dec42981"
+      "hash": "8fd0fa04afd9b093"
     },
     {
       "path": ".github/skills/workstation-security/",
-      "hash": "75749c782af25813"
+      "hash": "6823a5d43e435bb7"
     },
     {
       "path": ".github/skills/nav-plan/",
-      "hash": "0a160744cf2b4e82"
+      "hash": "db7618d269cd2f07"
     },
     {
       "path": ".github/skills/nav-deep-interview/",
@@ -55,7 +47,7 @@
     },
     {
       "path": ".github/instructions/golang.instructions.md",
-      "hash": "8be854c7a6750941"
+      "hash": "b7bdff62f6964099"
     },
     {
       "path": ".github/instructions/security-owasp.instructions.md",
@@ -75,7 +67,7 @@
     },
     {
       "path": ".github/prompts/golang-service.prompt.md",
-      "hash": "42a507250b011dbd"
+      "hash": "6b0b8487f8cc481e"
     }
   ]
 }

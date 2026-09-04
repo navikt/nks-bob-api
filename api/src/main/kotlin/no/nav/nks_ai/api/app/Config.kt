@@ -17,6 +17,7 @@ data class Config (
     @SerialName("bigquery") val bigQuery: BigQueryConfig,
     val unleash: UnleashSettings,
     val metrics: MetricsConfig,
+    val kafka: KafkaConfig,
     ){
 
     companion object {
@@ -24,6 +25,27 @@ data class Config (
 
     val conversationsMaxAge: Duration = 30.days
     }
+}
+
+// Standard Nais/Aiven Kafka env vars, see https://doc.nais.io/persistence/kafka/
+@Serializable
+data class KafkaConfig(
+    val brokers: String,
+    val truststorePath: String = "",
+    val keystorePath: String = "",
+    val credstorePassword: String = "",
+    val conversationEventsTopic: String,
+    // Tests (and any environment without a real broker) set this to false so that
+    // ConversationEventBus never opens a real producer/consumer or touches the network.
+    // Without this, every test spinning up the application would create a Kafka client
+    // pointed at an unreachable broker, whose close()/leave-group calls block on network
+    // timeouts and make the whole suite hang.
+    val enabled: Boolean = true,
+) {
+    // Locally we run a plaintext single-node broker (see docker-compose.yaml), so there is
+    // nothing to configure beyond the broker address. On Nais, mTLS via Aiven-issued
+    // certificates is mandatory.
+    val securityEnabled: Boolean = truststorePath.isNotBlank()
 }
 
 @Serializable

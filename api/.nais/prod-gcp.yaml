@@ -23,6 +23,10 @@ spec:
     requests:
       cpu: 50m
       memory: 768Mi
+  # Aiven Kafka pool used for the conversation-events topic (see .nais/topic-prod.yaml).
+  # This gives the app the standard KAFKA_* env vars (brokers + mTLS cert/key/truststore).
+  kafka:
+    pool: nav-prod
   accessPolicy:
     inbound:
       rules:
@@ -61,6 +65,8 @@ spec:
     # Disable Ktor client instrumentation to prevent the agent from silently aborting requests.
     - name: OTEL_INSTRUMENTATION_KTOR_ENABLED
       value: "false"
+    - name: CONVERSATION_EVENTS_TOPIC
+      value: "nks-aiautomatisering.nks-bob-api.conversation-events"
   azure:
     application:
       tenant: nav.no
