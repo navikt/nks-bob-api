@@ -24,11 +24,15 @@ import io.ktor.server.routing.openapi.OpenApiDocSource
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.ktor.server.routing.routingRoot
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.api.app.Config
 import no.nav.nks_ai.api.app.FeatureToggles
 import no.nav.nks_ai.api.app.MetricRegister
+import no.nav.nks_ai.api.app.appMicrometerRegistry
 import no.nav.nks_ai.api.app.bq.getBigQueryClient
 import no.nav.nks_ai.api.app.getConfig
 import no.nav.nks_ai.api.app.plugins.configureAdminLogging
@@ -41,6 +45,8 @@ import no.nav.nks_ai.api.core.MarkMessageStarredService
 import no.nav.nks_ai.api.core.admin.AdminService
 import no.nav.nks_ai.api.core.admin.adminRoutes
 import no.nav.nks_ai.api.core.conversation.ConversationService
+import no.nav.nks_ai.api.core.conversation.active.ActiveConversationMetrics
+import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
 import no.nav.nks_ai.api.core.conversation.conversationRoutes
 import no.nav.nks_ai.api.core.feedback.feedbackAdminBatchRoutes
 import no.nav.nks_ai.api.core.feedback.feedbackAdminRoutes
@@ -111,6 +117,15 @@ fun Application.module() {
     val conversationEventBus = ConversationEventBus(config.kafka)
     conversationEventBus.start(this)
 
+    val activeConversationService = ActiveConversationService.create()
+    val activeConversationMetrics = ActiveConversationMetrics(appMicrometerRegistry.prometheusRegistry)
+    val activeConversationMetricsJob = launch {
+        while (isActive) {
+            activeConversationMetrics.refresh()
+            delay(ActiveConversationService.RENEW_INTERVAL)
+        }
+    }
+
     monitor.subscribe(ApplicationStopping) {
         logger.info {
             "Graceful shutdown initiated. Active SSE connections: ${MetricRegister.sseConnections.get()}, " +
@@ -122,6 +137,8 @@ fun Application.module() {
         httpClient.close()
         sseClient.close()
         conversationEventBus.close()
+        activeConversationMetricsJob.cancel()
+        activeConversationMetrics.close()
     }
 
     val conversationService = ConversationService()
@@ -133,7 +150,13 @@ fun Application.module() {
     val notificationService = notificationService()
     val feedbackService = feedbackService(messageService)
     val ignoredWordsService = ignoredWordsService()
-    val jobService = jobService(messageService, conversationService, markMessageStarredService, ignoredWordsService)
+    val jobService = jobService(
+        messageService,
+        conversationService,
+        markMessageStarredService,
+        ignoredWordsService,
+        activeConversationService,
+    )
 
     routing {
         route("/api/v1") {
@@ -158,7 +181,7 @@ fun Application.module() {
         route("/api/v2") {
             authenticate {
                 conversationSseV2(messageService, sendMessageService)
-                conversationWebSocketV2(conversationService, conversationEventBus)
+                conversationWebSocketV2(conversationService, conversationEventBus, activeConversationService)
             }
         }
         route("/internal") {
