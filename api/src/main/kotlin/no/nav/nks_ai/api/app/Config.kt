@@ -14,6 +14,7 @@ data class Config (
     val db: DbConfig,
     val nais: NaisConfig,
     val issuer: IssuerConfig,
+    val maskinporten: MaskinportenConfig,
     @SerialName("bigquery") val bigQuery: BigQueryConfig,
     val unleash: UnleashSettings,
     val metrics: MetricsConfig,
@@ -108,6 +109,22 @@ data class IssuerConfig(
     val discoveryurl: String,
     val jwksurl: String,
     val accepted_audience: String,
+)
+
+/**
+ * Config for validating incoming Maskinporten-tokens from eksterne partnere (f.eks. Salesforce),
+ * jf. `IntegrationConversationService`. NAIS injiserer `MASKINPORTEN_ISSUER` og
+ * `MASKINPORTEN_JWKS_URI` automatisk når `maskinporten.enabled: true` er satt i nais-manifestet,
+ * uavhengig av om appen konsumerer eller eksponerer scopes.
+ *
+ * `requiredScope` må matche navnet på scopet appen eksponerer under `maskinporten.scopes.exposes`
+ * i nais-manifestet.
+ */
+@Serializable
+data class MaskinportenConfig(
+    val issuer: String,
+    val jwksUri: String,
+    val requiredScope: String,
 )
 
 @Serializable

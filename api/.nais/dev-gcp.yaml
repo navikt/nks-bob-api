@@ -27,6 +27,19 @@ spec:
   # This gives the app the standard KAFKA_* env vars (brokers + mTLS cert/key/truststore).
   kafka:
     pool: nav-dev
+  # Maskinporten-token fra eksterne partnere (f.eks. Salesforce), se
+  # IntegrationConversationService / api/core/integration. `consumers` er bevisst tom —
+  # IKKE legg til Salesforce sitt org.nr. her før tilgang og miljøoppsett er avklart
+  # (se README, avsnittet "Integrasjonsendepunkter"). Uten en consumer kan ingen faktisk
+  # hente token for dette scopet, så koden er trygg å deploye uten å gi reell tilgang.
+  maskinporten:
+    enabled: true
+    scopes:
+      exposes:
+        - name: "integrations"
+          enabled: true
+          product: "nks-bob-api"
+          consumers: []
   accessPolicy:
     inbound:
       rules:
@@ -73,6 +86,9 @@ spec:
       value: "http://localhost:5173"
     - name: CONVERSATION_EVENTS_TOPIC
       value: "nks-aiautomatisering.nks-bob-api.conversation-events"
+    # Må matche "nav:<product>/<name>" for scopet under maskinporten.scopes.exposes over.
+    - name: NKS_BOB_API_MASKINPORTEN_SCOPE
+      value: "nav:nks-bob-api/integrations"
   azure:
     application:
       tenant: nav.no # Gjør at man kan logge på med vanlig konto i dev-gcp

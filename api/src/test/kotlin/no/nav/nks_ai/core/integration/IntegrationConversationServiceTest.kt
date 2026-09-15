@@ -101,7 +101,7 @@ class IntegrationConversationServiceTest {
         coVerify(exactly = 0) { sender.askQuestion(any(), any(), any(), any()) }
     }
 
-//    @Test
+    @Test
     fun `initial question is anonymized once and processing receives the stored text`() = integrationTest {
         every { toggles.isVaskemaskinAnonymizationEnabled() } returns true
         coEvery { vaskemaskin.anonymize("Original question") } returns "Processed question".right()
@@ -219,7 +219,7 @@ class IntegrationConversationServiceTest {
         assertTrue(messages.getMessage(accepted.messageId).value().errors.isNotEmpty())
     }
 
-//    @Test
+    @Test
     fun `shutdown marks an interrupted answer as failed and waits for cleanup`() = integrationTest {
         val started = CompletableDeferred<MessageId>()
         coEvery { sender.askQuestion(any(), any(), any(), any()) } coAnswers {
@@ -248,7 +248,7 @@ class IntegrationConversationServiceTest {
         assertTrue(messages.getMessage(accepted.messageId).value().errors.isNotEmpty())
     }
 
-//    @Test
+    @Test
     fun `rejected handoff reports the persisted resource ids instead of success`() = integrationTest {
         val controlledMessages = mockk<MessageService>()
         coEvery { controlledMessages.addQuestion(any(), any(), any()) } coAnswers {
@@ -258,7 +258,7 @@ class IntegrationConversationServiceTest {
             messages.updateMessageError(firstArg(), secondArg(), thirdArg())
         }
         val controlledService = IntegrationConversationService.create(
-            ConversationService(), controlledMessages, sender, events, CoroutineScope(parent),
+            ConversationService(), controlledMessages, sender, events, ActiveConversationService.create(), CoroutineScope(parent),
         )
         try {
             val error = assertIs<ApplicationError.MessageProcessingNotStarted>(
@@ -302,7 +302,7 @@ class IntegrationConversationServiceTest {
         }
         val events = mockk<ConversationEventBus>(relaxed = true)
         val service = IntegrationConversationService.create(
-            ConversationService(), messages, sender, events, CoroutineScope(parent),
+            ConversationService(), messages, sender, events, ActiveConversationService.create() ,CoroutineScope(parent),
         )
         lateinit var existing: Conversation
     }

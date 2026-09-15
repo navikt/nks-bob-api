@@ -12,6 +12,7 @@ import no.nav.nks_ai.api.app.IssuerConfig
 import no.nav.nks_ai.api.app.JwtConfig
 import no.nav.nks_ai.api.app.KafkaConfig
 import no.nav.nks_ai.api.app.KbsConfig
+import no.nav.nks_ai.api.app.MaskinportenConfig
 import no.nav.nks_ai.api.app.MetricsConfig
 import no.nav.nks_ai.api.app.NaisConfig
 import no.nav.nks_ai.api.app.UnleashSettings
@@ -35,6 +36,10 @@ object TestOAuth2Server {
     const val ADMIN_GROUP = "test-admin-group"
     const val NAV_IDENT = "A123456"
     const val ADMIN_NAV_IDENT = "B654321"
+
+    /** Eget issuer-id for Maskinporten-token, siden dette er et separat tillitsanker enn ISSUER_ID. */
+    const val MASKINPORTEN_ISSUER_ID = "test-maskinporten"
+    const val MASKINPORTEN_SCOPE = "nav:nks-bob-api/integrations"
 
     /** Utsteder et standard bruker-token (ingen admin-gruppe). */
     fun userToken(): String = tokenFor(NAV_IDENT)
@@ -84,6 +89,21 @@ object TestOAuth2Server {
                 "idtyp" to "app",
                 "azp" to azp,
             ),
+        )
+    ).serialize()
+
+    /**
+     * Utsteder et Maskinporten-token med påkrevd scope-claim, for integrasjonsendepunktene
+     * (authenticate("Maskinporten")). Utstedes fra et eget issuer-id enn de øvrige tokenene,
+     * siden Maskinporten er et separat tillitsanker.
+     */
+    fun maskinportenToken(scope: String = MASKINPORTEN_SCOPE): String = server.issueToken(
+        issuerId = MASKINPORTEN_ISSUER_ID,
+        clientId = "test-salesforce-client",
+        tokenCallback = DefaultOAuth2TokenCallback(
+            issuerId = MASKINPORTEN_ISSUER_ID,
+            subject = "test-salesforce-client",
+            claims = mapOf("scope" to scope),
         )
     ).serialize()
 }
@@ -142,6 +162,11 @@ fun testAppWithBigQuery(block: suspend ApplicationTestBuilder.(client: HttpClien
             discoveryurl = oauth.wellKnownUrl(TestOAuth2Server.ISSUER_ID).toString(),
             jwksurl = oauth.jwksUrl(TestOAuth2Server.ISSUER_ID).toString(),
             accepted_audience = TestOAuth2Server.AUDIENCE,
+        ),
+        maskinporten = MaskinportenConfig(
+            issuer = oauth.issuerUrl(TestOAuth2Server.MASKINPORTEN_ISSUER_ID).toString(),
+            jwksUri = oauth.jwksUrl(TestOAuth2Server.MASKINPORTEN_ISSUER_ID).toString(),
+            requiredScope = TestOAuth2Server.MASKINPORTEN_SCOPE,
         ),
         bigQuery = BigQueryConfig(
             projectId = "local",

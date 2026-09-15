@@ -54,9 +54,41 @@ bakgrunnsbehandling. Ved oppkobling må `shutdown()` kalles og fullføres før
 database, HTTP-klienter og Kafka lukkes. Metoden avviser nye oppgaver, avbryter
 pågående behandling og venter på opprydding.
 
-`IntegrationConversationService` er **fortsatt ikke koblet til applikasjonen**
-og har ingen ruter. Ikke gi Salesforce nye tilganger før dette og
-miljøoppsettet er avklart.
+### Integrasjonsendepunkter
+
+`IntegrationConversationService` er nå koblet inn i `Application.module()` og
+eksponert via `POST {ROOT}` og `POST {ROOT}/{id}/messages`
+(`ROOT = /api/v1/integrations/users/{navIdent}/conversations`, se
+`core/integration/Api.kt`). `shutdown()` kalles og avventes (`runBlocking`) i
+en `ApplicationStopping`-handler, slik at den fullfører før database,
+HTTP-klienter og Kafka lukkes i `ApplicationStopped`.
+
+Rutene er beskyttet av et nytt auth-scheme, `authenticate("Maskinporten")`
+(`app/plugins/Security.kt`), som validerer et Maskinporten-utstedt token mot et
+eget JWKS (`MaskinportenConfig`, env `MASKINPORTEN_ISSUER` / `MASKINPORTEN_JWKS_URI`
+— settes automatisk av Nais når `maskinporten.enabled: true`) og krever at
+`scope`-claimet inneholder `NKS_BOB_API_MASKINPORTEN_SCOPE`
+(`nav:nks-bob-api/integrations`). Feil returneres som `IntegrationProblem`
+(RFC 7807-stil) i stedet for appens vanlige `ErrorResponse`, slik at eksterne
+konsumenter får en stabil feilkontrakt.
+
+**Viktig: ingen reell tilgang er gitt ennå.** `maskinporten.scopes.exposes` i
+`api/.nais/{dev,prod}-gcp.yaml` har bevisst en tom `consumers`-liste — uten en
+registrert consumer (org.nr.) kan ingen faktisk hente et gyldig token for dette
+scopet, så koden kan deployes trygt uten å åpne for Salesforce. **Ikke legg til
+Salesforce sitt org.nr. i `consumers` før tilgang og miljøoppsett er avklart
+med sikkerhetsteamet.**
+
+Antakelser gjort ved implementasjon (bør verifiseres før reell utrulling):
+- Maskinporten er valgt fremfor Azure AD/TokenX fordi Salesforce er en ekstern
+  partner (jf. Nav-konvensjon for maskin-til-maskin fra eksterne organisasjoner).
+- Auth-valideringen sjekker kun `scope`-claimet, ikke hvilken organisasjon
+  (`consumer_org`) som kaller — bør vurderes om det trengs strengere binding
+  mot en spesifikk Salesforce-organisasjon.
+- Denne integrasjonsflaten er ny/uverifisert i dette repoet og bør
+  sikkerhetsgjennomgås før den tas i bruk i prod (🔴 rød sone for
+  auth-oppsettet, i tillegg til den eksisterende røde sonen i
+  `IntegrationConversationService` selv).
 
 `ActiveConversationStatisticsRepo` teller unike samtaler og forbindelser som
 er fornyet de siste fem minuttene. `ActiveConversationMetrics` eksponerer et

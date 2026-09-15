@@ -1,6 +1,7 @@
 package no.nav.nks_ai.api.core.integration
 
 import arrow.core.left
+import arrow.core.raise.context.bind
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.right
@@ -26,10 +27,15 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
+import no.nav.nks_ai.api.app.Page
 import no.nav.nks_ai.api.core.conversation.Conversation
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.conversation.ConversationService
 import no.nav.nks_ai.api.core.conversation.NewConversation
+import no.nav.nks_ai.api.core.conversation.active.ActiveConversation
+import no.nav.nks_ai.api.core.conversation.active.ActiveConversationPageRequest
+import no.nav.nks_ai.api.core.conversation.active.ActiveConversationRepo
+import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
 import no.nav.nks_ai.api.core.message.Message
 import no.nav.nks_ai.api.core.message.MessageError
 import no.nav.nks_ai.api.core.message.MessageId
@@ -56,6 +62,8 @@ interface IntegrationConversationService {
         message: NewMessage,
     ): ApplicationResult<AcceptedIntegrationMessage>
 
+    suspend fun getActiveConversations(owner: NavIdent, request: ActiveConversationPageRequest): ApplicationResult<Page<ActiveConversation>>
+
     suspend fun shutdown()
 
     companion object {
@@ -66,9 +74,10 @@ interface IntegrationConversationService {
             messageService: MessageService,
             sendMessageService: SendMessageService,
             conversationEventBus: ConversationEventBus,
+            activeConversationService: ActiveConversationService,
             backgroundScope: CoroutineScope,
         ): IntegrationConversationService = DefaultIntegrationConversationService(
-            conversationService, messageService, sendMessageService, conversationEventBus, backgroundScope,
+            conversationService, messageService, sendMessageService, conversationEventBus, activeConversationService, backgroundScope,
         )
     }
 }
@@ -78,6 +87,7 @@ private class DefaultIntegrationConversationService(
     private val messageService: MessageService,
     private val sendMessageService: SendMessageService,
     private val conversationEventBus: ConversationEventBus,
+    private val activeConversationService: ActiveConversationService,
     backgroundScope: CoroutineScope,
 ) : IntegrationConversationService {
     private val lifecycleMutex = Mutex()
@@ -124,6 +134,12 @@ private class DefaultIntegrationConversationService(
         val question = messageService.addQuestion(conversationId, owner, message.content).bind()
         startProcessing(owner, conversationId, question).bind()
         AcceptedIntegrationMessage(conversationId, question.id)
+    }
+
+    override suspend fun getActiveConversations(owner: NavIdent, request: ActiveConversationPageRequest): ApplicationResult<Page<ActiveConversation>> = either {
+        validateOwner(owner).bind()
+        ensure(serviceJob.isActive) { unavailable() }
+        activeConversationService.getActiveConversations(owner, request).bind()
     }
 
     override suspend fun shutdown() {

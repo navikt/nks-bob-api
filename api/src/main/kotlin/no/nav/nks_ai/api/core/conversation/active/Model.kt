@@ -19,6 +19,7 @@ enum class ActiveConversationSort {
     CONNECTED_AT_DESC,
 }
 
+@Serializable
 data class ActiveConversationPageRequest(
     val page: Int = 0,
     val size: Int = 100,

@@ -27,6 +27,7 @@ import io.ktor.server.routing.routingRoot
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.api.app.Config
@@ -54,6 +55,8 @@ import no.nav.nks_ai.api.core.feedback.feedbackService
 import no.nav.nks_ai.api.core.ignoredWords.ignoredWordsAdminRoutes
 import no.nav.nks_ai.api.core.ignoredWords.ignoredWordsRoutes
 import no.nav.nks_ai.api.core.ignoredWords.ignoredWordsService
+import no.nav.nks_ai.api.core.integration.IntegrationConversationService
+import no.nav.nks_ai.api.core.integration.integrationConversationRoutes
 import no.nav.nks_ai.api.core.jobs.jobService
 import no.nav.nks_ai.api.core.jobs.jobsRoutes
 import no.nav.nks_ai.api.core.message.MessageService
@@ -157,6 +160,24 @@ fun Application.module() {
         ignoredWordsService,
         activeConversationService,
     )
+    val integrationConversationService = IntegrationConversationService.create(
+        conversationService = conversationService,
+        messageService = messageService,
+        sendMessageService = sendMessageService,
+        conversationEventBus = conversationEventBus,
+        activeConversationService = activeConversationService,
+        backgroundScope = this,
+    )
+
+    // shutdown() må fullføre (avbryte/drenere pågående bakgrunnsbehandling) FØR database,
+    // HTTP-klienter og Kafka lukkes i ApplicationStopped-handleren under. runBlocking her er
+    // bevisst: ApplicationStopping-handlere kjøres sekvensielt av Ktor før ApplicationStopped,
+    // så dette gir den blokkerende barrieren shutdown() krever. shutdownTimeout (65s) og Nais'
+    // terminationGracePeriodSeconds gir headroom for dette.
+    monitor.subscribe(ApplicationStopping) {
+        logger.info { "Draining integration conversation processing before shutdown" }
+        runBlocking { integrationConversationService.shutdown() }
+    }
 
     routing {
         route("/api/v1") {
@@ -177,6 +198,9 @@ fun Application.module() {
             authenticate("MachineToken") {
                 jobsRoutes(jobService)
             }
+        }
+        authenticate("Maskinporten") {
+            integrationConversationRoutes(integrationConversationService,)
         }
         route("/api/v2") {
             authenticate {
