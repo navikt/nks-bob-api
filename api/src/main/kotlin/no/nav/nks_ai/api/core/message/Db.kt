@@ -16,6 +16,10 @@ import no.nav.nks_ai.api.app.suspendTransaction
 import no.nav.nks_ai.api.core.conversation.ConversationDAO
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.conversation.Conversations
+import no.nav.nks_ai.api.core.conversation.Conversation
+import no.nav.nks_ai.api.core.conversation.findByIdAndNavIdent
+import no.nav.nks_ai.api.core.conversation.toModel
+import no.nav.nks_ai.api.core.user.NavIdent
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
@@ -105,6 +109,43 @@ internal fun MessageDAO.toModel() = Message(
 )
 
 object MessageRepo {
+    internal suspend fun addQuestion(
+        conversationId: ConversationId,
+        owner: NavIdent,
+        content: String,
+    ): ApplicationResult<Message> = suspendTransaction {
+        either {
+            val conversation = ConversationDAO.findByIdAndNavIdent(conversationId, owner)
+                ?: raise(ApplicationError.ConversationNotFound(conversationId))
+            insertQuestion(conversation, owner, content)
+        }
+    }
+
+    internal suspend fun addConversationWithQuestion(
+        navIdent: NavIdent,
+        conversationTitle: String,
+        messageContent: String,
+    ): ApplicationResult<Pair<Conversation, Message>> = suspendTransaction {
+        either {
+            val conversation = ConversationDAO.new {
+                title = conversationTitle
+                owner = navIdent.hash
+            }
+            val question = insertQuestion(conversation, navIdent, messageContent)
+            conversation.toModel() to question
+        }
+    }
+
+    private fun insertQuestion(parent: ConversationDAO, owner: NavIdent, messageContent: String): Message =
+        MessageDAO.new {
+            conversation = parent
+            content = messageContent
+            createdBy = owner.hash
+            messageType = MessageType.Question
+            messageRole = MessageRole.Human
+            pending = false
+        }.toModel()
+
     suspend fun addMessage(
         conversationId: ConversationId,
         messageContent: String,

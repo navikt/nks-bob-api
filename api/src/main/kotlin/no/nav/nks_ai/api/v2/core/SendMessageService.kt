@@ -50,6 +50,7 @@ class SendMessageService(
         question: Message,
         conversationId: ConversationId,
         navIdent: NavIdent,
+        onAnswerCreated: (MessageId) -> Unit = {},
     ): ApplicationResult<Flow<ConversationEvent>> = either {
         if (question.messageType != MessageType.Question) {
             return ApplicationError.InvalidInput("Invalid input", "Provided message is not a question").left()
@@ -62,6 +63,7 @@ class SendMessageService(
 
         val initialAnswer = messageService.addEmptyAnswer(conversationId).bind()
         val messageId = initialAnswer.id
+        onAnswerCreated(messageId)
 
         val timer = MetricRegister.answerFinishedReceived()
         channelFlow {
@@ -232,4 +234,3 @@ fun responseToMessage(
         model = response.model,
     )
 }
-
