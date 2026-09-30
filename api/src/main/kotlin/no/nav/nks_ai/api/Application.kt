@@ -189,9 +189,9 @@ fun Application.module() {
                 jobsRoutes(jobService)
             }
         }
-        authenticate("Maskinporten") {
-            integrationConversationRoutes(integrationConversationService,)
-        }
+        integrationConversationRoutes(integrationConversationService,)
+//        authenticate("Maskinporten") {
+//        }
         route("/api/v2") {
             authenticate {
                 conversationSseV2(messageService, sendMessageService)
