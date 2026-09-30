@@ -114,6 +114,32 @@ fun Application.configureSecurity() {
                 call.respondError(ApplicationError.Unauthorized())
             }
         }
+        val maskinporten = config.maskinporten
+        val maskinportenJwkProvider = JwkProviderBuilder(URI.create(maskinporten.jwksUri).toURL())
+            .cached(10, 24, TimeUnit.HOURS)
+            .rateLimited(10, 1, TimeUnit.MINUTES)
+            .build()
+
+        jwt("Maskinporten") {
+            verifier(maskinportenJwkProvider, maskinporten.issuer) {
+                logger.debug { "Verifying maskinporten jwt" }
+            }
+
+            validate { credentials ->
+                logger.debug { "Validating maskinporten jwt" }
+                val scopes = credentials.payload.getClaim("scope")?.asString()?.split(" ").orEmpty()
+                if (maskinporten.requiredScope !in scopes) {
+                    logger.warn { "Maskinporten-token avvist: mangler påkrevd scope" }
+                    return@validate null
+                }
+                JWTPrincipal(credentials.payload)
+            }
+
+            challenge { _, _ ->
+                logger.debug { "Maskinporten jwt is invalid" }
+                call.respondError(ApplicationError.Unauthorized())
+            }
+        }
     }
     install(CORS) {
         allowHost("bob.ansatt.nav.no", schemes = listOf("https"))

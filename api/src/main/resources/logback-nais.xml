@@ -40,6 +40,9 @@
     <logger name="io.netty" level="INFO"/>
     <logger name="Exposed" level="INFO"/>
     <logger name="com.zaxxer.hikari" level="INFO"/>
+    <!-- The Kafka client (ConversationEventBus) is extremely chatty at debug level
+         (metadata refreshes, heartbeats, etc.) - keep it at WARN to cut noise. -->
+    <logger name="org.apache.kafka" level="WARN"/>
     <!-- Suppress noisy logs from Ktor plugins for internal endpoints -->
     <logger name="io.ktor.server.plugins" level="WARN"/>
     <logger name="io.ktor.routing" level="WARN"/>

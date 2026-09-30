@@ -83,7 +83,7 @@ jobs:
         env:
           IMAGE: ${{ needs.build.outputs.image }}
           CLUSTER: dev-gcp
-          RESOURCE: api/.nais/dev-gcp.yaml,api/.nais/unleash-apitoken-dev.yaml
+          RESOURCE: api/.nais/dev-gcp.yaml,api/.nais/unleash-apitoken-dev.yaml,api/.nais/topic-dev.yaml
           VAR: ingress=nks-bob-api.ansatt.dev.nav.no
       - name: Deploy production
         uses: nais/deploy/actions/deploy@027a91857992525139798892f2804b0ca21f4af6 # v2
@@ -91,6 +91,6 @@ jobs:
         env:
           IMAGE: ${{ needs.build.outputs.image }}
           CLUSTER: prod-gcp
-          RESOURCE: api/.nais/prod-gcp.yaml,api/.nais/unleash-apitoken-prod.yaml
+          RESOURCE: api/.nais/prod-gcp.yaml,api/.nais/unleash-apitoken-prod.yaml,api/.nais/topic-prod.yaml
           VAR: ingress=nks-bob-api.ansatt.nav.no
 

@@ -8,6 +8,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
 import no.nav.nks_ai.api.app.respondEither
+import no.nav.nks_ai.shared.DeleteExpiredActiveConnectionsSummary
 import no.nav.nks_ai.shared.DeleteIgnoredWordsSummary
 import no.nav.nks_ai.shared.DeleteOldConversationsSummary
 import no.nav.nks_ai.shared.UploadStarredMessagesSummary
@@ -51,6 +52,19 @@ fun Route.jobsRoutes(jobService: JobService) {
                 HttpStatusCode.OK {
                     schema = jsonSchema<DeleteIgnoredWordsSummary>()
                     description = "Summary of deleted ignored words"
+                }
+            }
+        }
+        post("/delete-expired-active-connections") {
+            call.respondEither {
+                jobService.deleteExpiredActiveConnections()
+            }
+        }.describe {
+            description = "Delete expired active conversation connections"
+            responses {
+                HttpStatusCode.OK {
+                    schema = jsonSchema<DeleteExpiredActiveConnectionsSummary>()
+                    description = "Summary of deleted expired active conversation connections"
                 }
             }
         }

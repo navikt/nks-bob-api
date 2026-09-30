@@ -3,6 +3,7 @@ arrow = "2.2.3"
 exposed = "1.4.0"
 flyway = "13.3.0"
 hikari = "7.1.0"
+kafka = "4.1.0"
 kotlin = "2.4.10"
 ktor = "3.5.2"
 logback = "1.6.3"
@@ -27,6 +28,7 @@ flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-database-postgres = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 google-cloud-bigquery = { module = "com.google.cloud:google-cloud-bigquery", version = "2.69.0" }
 hikari-cp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
+kafka-clients = { module = "org.apache.kafka:kafka-clients", version.ref = "kafka" }
 kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version = "8.0.4" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 mock-oauth2-server = { module = "no.nav.security:mock-oauth2-server", version.ref = "mock-oauth2-server" }

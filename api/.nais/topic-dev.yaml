@@ -1,0 +1,22 @@
+apiVersion: kafka.nais.io/v1
+kind: Topic
+metadata:
+  # Nais/Aiven prefixes this with the namespace, giving the fully-qualified topic name
+  # "nks-aiautomatisering.nks-bob-api.conversation-events" - must match CONVERSATION_EVENTS_TOPIC
+  # in dev-gcp.yaml/application.conf exactly, or the app gets UNKNOWN_TOPIC_OR_PARTITION.
+  name: nks-bob-api.conversation-events
+  namespace: nks-aiautomatisering
+  labels:
+    team: nks-aiautomatisering
+spec:
+  pool: nav-dev
+  config:
+    # Chunks are only useful for a short-lived websocket subscription; there is no need to
+    # replay old messages, so we keep retention short to limit storage cost.
+    retentionHours: 24
+    cleanupPolicy: delete
+    minimumInSyncReplicas: 1
+  acl:
+    - team: nks-aiautomatisering
+      application: nks-bob-api
+      access: readwrite

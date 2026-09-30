@@ -23,6 +23,7 @@ import io.ktor.server.routing.route
 import io.ktor.server.sse.SSE
 import io.ktor.server.sse.ServerSSESession
 import io.ktor.server.sse.sse
+import kotlinx.coroutines.CancellationException
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -59,7 +60,8 @@ suspend fun <T> suspendTransaction(block: Transaction.() -> ApplicationResult<T>
     Either.catch {
         suspendTransaction(statement = block)
     }.mapLeft { throwable ->
-        dbLogger.error(throwable) { "Database error: ${throwable.message}" }
+        if (throwable is CancellationException) throw throwable
+        dbLogger.error { "Database operation failed (${throwable::class.simpleName})" }
         ApplicationError.InternalServerError("Database error", "An internal error occurred")
     }.flatten()
 
