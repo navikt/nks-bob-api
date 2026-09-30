@@ -255,7 +255,7 @@ class IntegrationConversationServiceTest {
             messages.addQuestion(existing.id, owner, thirdArg()).also { parent.cancel() }
         }
         coEvery { controlledMessages.updateMessageError(any(), any(), any()) } coAnswers {
-            messages.updateMessageError(firstArg(), secondArg(), thirdArg())
+            messages.updateMessageError(MessageId(firstArg()), secondArg(), thirdArg())
         }
         val controlledService = IntegrationConversationService.create(
             ConversationService(), controlledMessages, sender, events, ActiveConversationService.create(), CoroutineScope(parent),
