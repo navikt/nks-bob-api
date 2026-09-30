@@ -1,8 +1,8 @@
 {
   "collection": "nav-pilot",
-  "version": "2026.09.17-101405-3e2b4b6",
+  "version": "2026.09.22-062309-8b9eaee",
   "scope": "repo",
-  "source_sha": "3e2b4b689b80069edbd718518342bf0f0327ff10",
+  "source_sha": "8b9eaee238af6ec63eea1ead9cb9c0936fcf8556",
   "installed_at": "2026-05-18T08:45:57Z",
   "files": [
     {
@@ -19,12 +19,13 @@
     },
     {
       "path": ".github/agents/forfatter.agent.md",
-      "hash": "4516167e39928ef2"
+      "hash": "7647c85972f59fa7",
+      "revision": "8b9eaee238af6ec63eea1ead9cb9c0936fcf8556"
     },
     {
       "path": ".github/agents/kafka.agent.md",
-      "hash": "fdf4869940190473",
-      "status": "conflict"
+      "hash": "f74565e00c5d0515",
+      "revision": "8b9eaee238af6ec63eea1ead9cb9c0936fcf8556"
     },
     {
       "path": ".github/agents/nav-pilot-opus.agent.md",
@@ -66,8 +67,8 @@
     },
     {
       "path": ".github/instructions/database.instructions.md",
-      "hash": "5b4639fd54c7b4f3",
-      "status": "conflict"
+      "hash": "9fc5267c1dc9dd01",
+      "revision": "8b9eaee238af6ec63eea1ead9cb9c0936fcf8556"
     },
     {
       "path": ".github/instructions/deliberate-ai-use.instructions.md",
@@ -95,7 +96,8 @@
     },
     {
       "path": ".github/instructions/norwegian-text.instructions.md",
-      "hash": "9fe4d16cff71a80e"
+      "hash": "ae153e646c932a28",
+      "revision": "8b9eaee238af6ec63eea1ead9cb9c0936fcf8556"
     },
     {
       "path": ".github/instructions/output-style.instructions.md",
@@ -111,8 +113,8 @@
     },
     {
       "path": ".github/instructions/testing-kotlin.instructions.md",
-      "hash": "13a5a10d86577f84",
-      "status": "conflict"
+      "hash": "183e7a28acecdbb5",
+      "revision": "8b9eaee238af6ec63eea1ead9cb9c0936fcf8556"
     },
     {
       "path": ".github/instructions/testing-typescript.instructions.md",
@@ -120,8 +122,8 @@
     },
     {
       "path": ".github/instructions/testing.instructions.md",
-      "hash": "4a6a7547a3701ce1",
-      "status": "conflict"
+      "hash": "ca2a23744bef3a2c",
+      "revision": "8b9eaee238af6ec63eea1ead9cb9c0936fcf8556"
     },
     {
       "path": ".github/prompts/golang-service.prompt.md",
@@ -163,8 +165,8 @@
     },
     {
       "path": ".github/skills/java-to-kotlin/",
-      "hash": "c312e45ae07d1e85",
-      "status": "conflict"
+      "hash": "52cd8180b93a846b",
+      "revision": "8b9eaee238af6ec63eea1ead9cb9c0936fcf8556"
     },
     {
       "path": ".github/skills/kafka/",
@@ -172,7 +174,8 @@
     },
     {
       "path": ".github/skills/klarsprak/",
-      "hash": "fb56b5d272b35480"
+      "hash": "c54427bb60f1c6e1",
+      "revision": "8b9eaee238af6ec63eea1ead9cb9c0936fcf8556"
     },
     {
       "path": ".github/skills/kotlin-app-config/",
@@ -213,7 +216,8 @@
     },
     {
       "path": ".github/skills/observability-debugging/",
-      "hash": "41b61e48a75fb149"
+      "hash": "d09dd467d7ce45a7",
+      "revision": "8b9eaee238af6ec63eea1ead9cb9c0936fcf8556"
     },
     {
       "path": ".github/skills/observability-setup/",
