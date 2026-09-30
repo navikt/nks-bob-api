@@ -44,7 +44,7 @@ data class ConversationIdEvent(
  * A [ConversationIdEvent] together with the Kafka offset and produce timestamp it was read at.
  * Both are only used locally (never serialized): the offset to de-duplicate between the replayed
  * [ConversationEventBus.history] and the live [ConversationEventBus.events] flow when a websocket
- * connects, and the timestamp to cap how far back [history] replays - see ws.kt. Since all events
+ * connects, and the timestamp to cap how far back [history] replays - see Ws.kt. Since all events
  * for a given conversation are published with the conversation id as the record key, they always
  * land in the same partition, so the offset is a correct, strictly increasing ordering/dedup key
  * for that conversation regardless of which instance produced a given event.
@@ -58,7 +58,7 @@ data class ConversationEventRecord(
 /**
  * Publishes [ConversationEvent]s produced by [no.nav.nks_ai.api.v2.core.SendMessageService] to a
  * shared Kafka topic, and re-broadcasts everything read back from that topic as an in-process
- * [SharedFlow] that the websocket endpoint (ws.kt) filters on conversation id.
+ * [SharedFlow] that the websocket endpoint (Ws.kt) filters on conversation id.
  *
  * Each instance subscribes with its own, randomly generated consumer group id. This is a
  * deliberate broadcast/fan-out pattern (not the usual competing-consumers pattern): every running
@@ -154,7 +154,7 @@ class ConversationEventBus(
     /**
      * Every event recorded so far for [conversationId] that is younger than [MAX_HISTORY_AGE],
      * oldest first. Used to "catch up" a newly-connected websocket before it starts forwarding
-     * [events] live - see ws.kt for how the two are stitched together without gaps or duplicates.
+     * [events] live - see Ws.kt for how the two are stitched together without gaps or duplicates.
      */
     fun history(conversationId: ConversationId): List<ConversationEventRecord> {
         val cutoff = System.currentTimeMillis() - MAX_HISTORY_AGE.toMillis()

@@ -46,7 +46,6 @@ import no.nav.nks_ai.api.core.MarkMessageStarredService
 import no.nav.nks_ai.api.core.admin.AdminService
 import no.nav.nks_ai.api.core.admin.adminRoutes
 import no.nav.nks_ai.api.core.conversation.ConversationService
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversationMetrics
 import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
 import no.nav.nks_ai.api.core.conversation.conversationRoutes
 import no.nav.nks_ai.api.core.feedback.feedbackAdminBatchRoutes
@@ -121,13 +120,6 @@ fun Application.module() {
     conversationEventBus.start(this)
 
     val activeConversationService = ActiveConversationService.create()
-    val activeConversationMetrics = ActiveConversationMetrics(appMicrometerRegistry.prometheusRegistry)
-    val activeConversationMetricsJob = launch {
-        while (isActive) {
-            activeConversationMetrics.refresh()
-            delay(ActiveConversationService.RENEW_INTERVAL)
-        }
-    }
 
     monitor.subscribe(ApplicationStopping) {
         logger.info {
@@ -140,8 +132,6 @@ fun Application.module() {
         httpClient.close()
         sseClient.close()
         conversationEventBus.close()
-        activeConversationMetricsJob.cancel()
-        activeConversationMetrics.close()
     }
 
     val conversationService = ConversationService()
