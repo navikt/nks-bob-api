@@ -32,14 +32,14 @@ spec:
   # IKKE legg til Salesforce sitt org.nr. her før tilgang og miljøoppsett er avklart
   # (se README, avsnittet "Integrasjonsendepunkter"). Uten en consumer kan ingen faktisk
   # hente token for dette scopet, så koden er trygg å deploye uten å gi reell tilgang.
-  maskinporten:
-    enabled: true
-    scopes:
-      exposes:
-        - name: "integrations"
-          enabled: true
-          product: "nks-bob-api"
-          consumers: []
+#  maskinporten:
+#    enabled: true
+#    scopes:
+#      exposes:
+#        - name: "integrations"
+#          enabled: true
+#          product: "nks-bob-api"
+#          consumers: []
   accessPolicy:
     inbound:
       rules:
