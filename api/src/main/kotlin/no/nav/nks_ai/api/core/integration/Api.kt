@@ -73,8 +73,7 @@ fun Route.integrationConversationRoutes(
         }
 
         route("/active") {
-//            query { TODO
-            post {
+            query {
                 call.respondIntegrationEither(HttpStatusCode.OK) {
                     val navIdent = call.pathNavIdent().bind()
                     val request = call.receive<ActiveConversationPageRequest>()
