@@ -23,6 +23,23 @@ spec:
     requests:
       cpu: 50m
       memory: 768Mi
+  # Aiven Kafka pool used for the conversation-events topic (see .nais/topic-prod.yaml).
+  # This gives the app the standard KAFKA_* env vars (brokers + mTLS cert/key/truststore).
+  kafka:
+    pool: nav-prod
+  # Maskinporten-token fra eksterne partnere (f.eks. Salesforce), se
+  # IntegrationConversationService / api/core/integration. `consumers` er bevisst tom —
+  # IKKE legg til Salesforce sitt org.nr. her før tilgang og miljøoppsett er avklart
+  # (se README, avsnittet "Integrasjonsendepunkter"). Uten en consumer kan ingen faktisk
+  # hente token for dette scopet, så koden er trygg å deploye uten å gi reell tilgang.
+  maskinporten:
+    enabled: true
+    scopes:
+      exposes:
+        - name: "integrations"
+          enabled: true
+          product: "nks-bob-api"
+          consumers: []
   accessPolicy:
     inbound:
       rules:
@@ -30,6 +47,7 @@ spec:
         - application: nks-bob-api-delete-old-conversations
         - application: nks-bob-api-upload-starred-messages
         - application: nks-bob-api-delete-ignored-words
+        - application: nks-bob-api-delete-active-connections
     outbound:
       external:
         - host: nks-aiautomatisering-unleash-api.nav.cloud.nais.io
@@ -61,6 +79,11 @@ spec:
     # Disable Ktor client instrumentation to prevent the agent from silently aborting requests.
     - name: OTEL_INSTRUMENTATION_KTOR_ENABLED
       value: "false"
+    - name: CONVERSATION_EVENTS_TOPIC
+      value: "nks-aiautomatisering.nks-bob-api.conversation-events"
+    # Må matche "nav:<product>/<name>" for scopet under maskinporten.scopes.exposes over.
+    - name: NKS_BOB_API_MASKINPORTEN_SCOPE
+      value: "nav:nks-bob-api/integrations"
   azure:
     application:
       tenant: nav.no

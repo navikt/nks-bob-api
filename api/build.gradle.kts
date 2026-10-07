@@ -39,6 +39,7 @@ dependencies {
     implementation(libs.google.cloud.bigquery)
     implementation(libs.hikari.cp)
     implementation(libs.kotlin.logging)
+    implementation(libs.kafka.clients)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.datetime)
     implementation(libs.ktor.client.call.id)

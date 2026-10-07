@@ -13,6 +13,8 @@ import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.FeatureToggles
 import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.core.conversation.ConversationId
+import no.nav.nks_ai.api.core.conversation.Conversation
+import no.nav.nks_ai.api.core.conversation.ConversationRepo
 import no.nav.nks_ai.api.core.user.NavIdent
 import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 
@@ -28,8 +30,27 @@ class MessageService(
         navIdent: NavIdent,
         messageContent: String,
     ): ApplicationResult<Message> = either {
-        MetricRegister.questionsCreated.inc()
-        val content = if (featureToggles.isVaskemaskinDetectionEnabled()) {
+        ConversationRepo.getConversation(conversationId, navIdent).bind()
+        val content = prepareQuestionContent(messageContent).bind()
+        MessageRepo.addQuestion(conversationId, navIdent, content).bind().also {
+            MetricRegister.questionsCreated.inc()
+        }
+    }
+
+    internal suspend fun addConversationWithQuestion(
+        owner: NavIdent,
+        title: String,
+        messageContent: String,
+    ): ApplicationResult<Pair<Conversation, Message>> = either {
+        val content = prepareQuestionContent(messageContent).bind()
+        MessageRepo.addConversationWithQuestion(owner, title, content).bind().also {
+            MetricRegister.conversationsCreated.inc()
+            MetricRegister.questionsCreated.inc()
+        }
+    }
+
+    private suspend fun prepareQuestionContent(messageContent: String): ApplicationResult<String> = either {
+        if (featureToggles.isVaskemaskinDetectionEnabled()) {
             // fire-and-forget: detect pii in background to gather metrics without blocking the request
             backgroundScope.launch { vaskemaskinClient.detect(messageContent) }
             messageContent
@@ -38,16 +59,6 @@ class MessageService(
         } else {
             messageContent
         }
-        MessageRepo.addMessage(
-            conversationId = conversationId,
-            messageContent = content,
-            createdBy = navIdent.hash,
-            messageType = MessageType.Question,
-            messageRole = MessageRole.Human,
-            context = emptyList(),
-            citations = emptyList(),
-            pending = false,
-        ).bind()
     }
 
     suspend fun addAnswer(
