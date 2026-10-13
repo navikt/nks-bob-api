@@ -96,5 +96,8 @@ dependencies {
         implementation("io.netty:netty-codec-compression:4.2.17.Final") {
             because("CVE-2026-59901")
         }
+        implementation("at.yawk.lz4:lz4-java:1.12.0") {
+            because("CVE-2026-106451, CVE-2026-106452, CVE-2026-106452 ++")
+        }
     }
 }
