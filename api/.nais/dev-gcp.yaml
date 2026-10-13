@@ -38,7 +38,8 @@ spec:
       exposes:
         - name: "integrations"
           enabled: true
-          product: "nks-bob-api"
+          separator: "/"
+          product: "nksbobapi"
           consumers: []
   accessPolicy:
     inbound:
