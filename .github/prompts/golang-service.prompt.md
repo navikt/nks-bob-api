@@ -1,7 +1,7 @@
 ---
 name: golang-service
 description: Scaffold ein Go HTTP-teneste med NAIS-mønster, pgx, sqlc og slog
-model: Claude Haiku 4.5
+model: GPT-5.6 Luna
 ---
 
 # Go NAIS Service
@@ -22,7 +22,8 @@ Generate a Go service with:
 4. **`sql/queries/*.sql`** — sqlc query definitions
 5. **`sql/migrations/001_initial.sql`** — goose migration
 6. **`sqlc.yaml`** — sqlc configuration
-7. **`.nais/app.yaml`** — NAIS manifest with PostgreSQL
+7. **`.nais/app.yaml`** — NAIS manifest with PostgreSQL. If that file already exists for a
+   different application, write `.nais/<app-name>.yaml` rather than editing it.
 8. **`Dockerfile`** — Multi-stage with Chainguard base images
 
 ## Patterns

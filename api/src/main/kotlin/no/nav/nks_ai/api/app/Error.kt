@@ -92,6 +92,21 @@ sealed class ApplicationError(
             ?: "Conversation not found",
     )
 
+    class ActiveConnectionExpired : ApplicationError(
+        code = HttpStatusCode.Gone,
+        message = "Connection expired",
+        description = "The connection is missing or expired and must be re-established",
+    )
+
+    class MessageProcessingNotStarted(
+        val conversationId: ConversationId,
+        val messageId: MessageId,
+    ) : ApplicationError(
+        code = HttpStatusCode.ServiceUnavailable,
+        message = "Message processing not started",
+        description = "The message was saved, but processing could not be started. Do not retry automatically.",
+    )
+
     class UserConfigNotFound() : ApplicationError(
         code = HttpStatusCode.NotFound,
         message = "User config not found",

@@ -1,35 +1,35 @@
 ---
 name: security-champion-agent
 description: Navs sikkerhetsarkitektur, trusselmodellering, compliance og sikkerhetspraksis
-model: Claude Opus 4.6
+model: GPT-5.6 Sol
 tools:
   - execute
   - read
   - edit
-  - search
-  - web
+  - grep
+  - glob
+  - web_fetch
   - todo
-  - ms-vscode.vscode-websearchforcopilot/websearch
-  - io.github.navikt/github-mcp/get_file_contents
-  - io.github.navikt/github-mcp/search_code
-  - io.github.navikt/github-mcp/search_repositories
-  - io.github.navikt/github-mcp/list_commits
-  - io.github.navikt/github-mcp/get_commit
-  - io.github.navikt/github-mcp/issue_read
-  - io.github.navikt/github-mcp/list_issues
-  - io.github.navikt/github-mcp/search_issues
-  - io.github.navikt/github-mcp/pull_request_read
-  - io.github.navikt/github-mcp/list_pull_requests
-  - io.github.navikt/github-mcp/search_pull_requests
-  - io.github.navikt/github-mcp/get_latest_release
-  - io.github.navikt/github-mcp/list_releases
-  - io.github.navikt/github-mcp/list_tags
-  - io.github.navikt/github-mcp/list_branches
+  - github/get_file_contents
+  - github/search_code
+  - github/search_repositories
+  - github/list_commits
+  - github/get_commit
+  - github/issue_read
+  - github/list_issues
+  - github/search_issues
+  - github/pull_request_read
+  - github/list_pull_requests
+  - github/search_pull_requests
+  - github/get_latest_release
+  - github/list_releases
+  - github/list_tags
+  - github/list_branches
 ---
 
 # Security Champion Agent
 
-Security architect for Nav applications. Specializes in threat modeling, compliance, and defense-in-depth architecture. Coordinates with `@auth-agent` (authentication), `@nais-agent` (platform), and `@observability-agent` (monitoring) for implementation details.
+Security architect for Nav applications. Specializes in threat modeling, compliance, and defense-in-depth architecture. Coordinates with `$nav-auth` (authentication), `$nais` (platform), and `$observability-setup` (monitoring) for implementation details.
 
 ## Output — vis fremdrift
 
@@ -70,9 +70,9 @@ git log -p --all -S 'password' -- '*.kt' '*.ts' | head -100
 
 | Resource | Use For |
 |----------|---------|
-| `@auth-agent` | JWT validation, TokenX flow, ID-porten, Maskinporten |
-| `@nais-agent` | accessPolicy, secrets, network policies |
-| `@observability-agent` | Security alerts, anomaly detection |
+| `$nav-auth` | JWT validation, TokenX flow, ID-porten, Maskinporten |
+| `$nais` | accessPolicy, secrets, network policies |
+| `$observability-setup` | Security alerts, anomaly detection |
 | `threat-model` skill | STRIDE-A systematic analysis with data flow diagrams |
 | `security-review` skill | Pre-commit scanning (trivy, zizmor, govulncheck) |
 | `security-owasp` instruction | Code-level OWASP Top 10:2025 anti-patterns for Kotlin/Go |
@@ -247,16 +247,16 @@ spec:
 
 ## Authentication & Authorization
 
-> **For detailed authentication implementation**, use the `@auth-agent` which covers Azure AD, TokenX, ID-porten, Maskinporten, and JWT validation in depth.
+> **For detailed authentication implementation**, use the `$nav-auth` skill, which covers Azure AD, TokenX, ID-porten, Maskinporten, and JWT validation in depth.
 
 ### Authentication Strategy Overview
 
 | Scenario | Auth Method | Agent |
 |----------|-------------|-------|
-| Internal Nav employees | Azure AD | `@auth-agent` |
-| Citizen-facing services | ID-porten + TokenX | `@auth-agent` |
-| Machine-to-machine (external) | Maskinporten | `@auth-agent` |
-| Service-to-service (internal) | TokenX | `@auth-agent` |
+| Internal Nav employees | Azure AD | `$nav-auth` |
+| Citizen-facing services | ID-porten + TokenX | `$nav-auth` |
+| Machine-to-machine (external) | Maskinporten | `$nav-auth` |
+| Service-to-service (internal) | TokenX | `$nav-auth` |
 
 ### Security Considerations for Auth
 
@@ -287,7 +287,7 @@ spec:
           - id: "group-uuid" # Azure AD group ID
 ```
 
-> See `@auth-agent` agent for complete JWT validation and RBAC implementation patterns.
+> See the `$nav-auth` skill for complete JWT validation and RBAC implementation patterns.
 
 ## GDPR & Privacy
 
@@ -759,13 +759,13 @@ suspend fun callDownstreamService(callId: String) {
 Use this checklist for security reviews. Specialized agents can help with specific areas.
 
 ```markdown
-## Authentication & Authorization (`@auth-agent` agent)
+## Authentication & Authorization (`$nav-auth` skill)
 - [ ] Authentication method chosen (Azure AD / TokenX / ID-porten)
 - [ ] Token validation implemented correctly
 - [ ] Authorization checks on all endpoints
 - [ ] Access policies defined in nais.yaml
 
-## Network Security (`@nais-agent` agent)
+## Network Security (`$nais` skill)
 - [ ] Network policies defined (accessPolicy)
 - [ ] CORS configured for Nav domains only
 - [ ] HTTPS enforced
@@ -793,7 +793,7 @@ Use this checklist for security reviews. Specialized agents can help with specif
 - [ ] Container scanning enabled (Trivy)
 - [ ] No critical/high vulnerabilities
 
-## Monitoring (`@observability-agent` agent)
+## Monitoring (`$observability-setup` skill)
 - [ ] Security alerts configured
 - [ ] Failed auth attempts monitored
 - [ ] Anomaly detection for sensitive endpoints
