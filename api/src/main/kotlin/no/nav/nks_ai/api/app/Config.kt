@@ -46,7 +46,7 @@ data class KafkaConfig(
     // Locally we run a plaintext single-node broker (see docker-compose.yaml), so there is
     // nothing to configure beyond the broker address. On Nais, mTLS via Aiven-issued
     // certificates is mandatory.
-    val securityEnabled: Boolean = truststorePath.isNotBlank()
+    val securityEnabled: Boolean = truststorePath.isNotBlank() && keystorePath.isNotBlank() && credstorePassword.isNotBlank()
 }
 
 @Serializable
