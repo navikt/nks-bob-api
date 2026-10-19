@@ -83,7 +83,7 @@ dependencies {
         implementation("tools.jackson.core:jackson-core:3.2.3") {
             because("CVE-2026-59889")
         }
-        implementation("org.apache.commons:commons-lang3:3.20.0") {
+        implementation("org.apache.commons:commons-lang3:3.21.0") {
             because("CVE-2025-48924")
         }
         implementation("com.fasterxml.jackson.core:jackson-databind:2.22.3") {
