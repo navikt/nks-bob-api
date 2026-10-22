@@ -9,9 +9,11 @@ import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.Config
 import no.nav.nks_ai.api.core.MarkMessageStarredService
 import no.nav.nks_ai.api.core.conversation.ConversationService
+import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
 import no.nav.nks_ai.api.core.ignoredWords.IgnoredWordsService
 import no.nav.nks_ai.api.core.message.MessageId
 import no.nav.nks_ai.api.core.message.MessageService
+import no.nav.nks_ai.shared.DeleteExpiredActiveConnectionsSummary
 import no.nav.nks_ai.shared.DeleteIgnoredWordsSummary
 import no.nav.nks_ai.shared.DeleteOldConversationsSummary
 import no.nav.nks_ai.shared.UploadStarredMessagesSummary
@@ -25,6 +27,8 @@ interface JobService {
     suspend fun uploadStarredMessages(): ApplicationResult<UploadStarredMessagesSummary>
 
     suspend fun deleteIgnoredWords(): ApplicationResult<DeleteIgnoredWordsSummary>
+
+    suspend fun deleteExpiredActiveConnections(): ApplicationResult<DeleteExpiredActiveConnectionsSummary>
 }
 
 fun jobService(
@@ -32,6 +36,7 @@ fun jobService(
     conversationService: ConversationService,
     markMessageStarredService: MarkMessageStarredService,
     ignoredWordsService: IgnoredWordsService,
+    activeConversationService: ActiveConversationService,
 ) = object : JobService {
     override suspend fun deleteOldConversations(): ApplicationResult<DeleteOldConversationsSummary> = either {
         val deleteBefore = Clock.System.now()
@@ -81,4 +86,11 @@ fun jobService(
 
         DeleteIgnoredWordsSummary(deletedWords = deletedIgnoredWords)
     }
+
+    override suspend fun deleteExpiredActiveConnections(): ApplicationResult<DeleteExpiredActiveConnectionsSummary> =
+        either {
+            val deletedConnections = activeConversationService.deleteExpiredConnections().bind()
+
+            DeleteExpiredActiveConnectionsSummary(deletedConnections = deletedConnections)
+        }
 }

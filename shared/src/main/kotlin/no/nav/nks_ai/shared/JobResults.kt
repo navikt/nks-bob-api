@@ -18,3 +18,8 @@ data class UploadStarredMessagesSummary(
 data class DeleteIgnoredWordsSummary(
     val deletedWords: Int,
 )
+
+@Serializable
+data class DeleteExpiredActiveConnectionsSummary(
+    val deletedConnections: Int,
+)
