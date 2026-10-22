@@ -45,9 +45,11 @@ eventbus og et applikasjonseid coroutine-scope. Den validerer input og
 kontrollerer eierskap før innholdsbehandling og skriving. Samtale med
 initialmelding lagres atomisk, og Vaskemaskin-policyen gjenbrukes uten dobbel
 behandling. KBS-behandling kjøres i et supervisert scope uavhengig av HTTP-kallet.
-Ved mislykket oppstart etter lagring returneres `MessageProcessingNotStarted`
-med lagrede ressurs-ID-er, ikke en vellykket kvittering. Behandlingen er
-best-effort, uten automatisk retry eller varig kø.
+Hvis oppstarten av behandlingen mislykkes etter at meldingen er lagret,
+returnerer vi `MessageProcessingNotStarted` med HTTP 409 og de lagrede
+ressurs-ID-ene, ikke en vellykket kvittering. Klienten skal ikke prøve på
+nytt, fordi meldingen allerede er lagret. Behandlingen er best-effort, uten
+automatisk retry eller varig kø.
 
 **Rød sone – forstå dette grundig:** eierskap, atomisk lagring og avbrutt
 bakgrunnsbehandling. Ved oppkobling må `shutdown()` kalles og fullføres før

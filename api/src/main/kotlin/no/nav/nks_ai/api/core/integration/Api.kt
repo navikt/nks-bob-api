@@ -7,6 +7,9 @@ import arrow.core.right
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.plugins.BadRequestException
+import io.ktor.server.plugins.CannotTransformContentToTypeException
+import io.ktor.server.plugins.UnsupportedMediaTypeException
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -15,6 +18,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.query
 import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.CancellationException
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.Page
@@ -23,6 +28,8 @@ import no.nav.nks_ai.api.core.conversation.active.ActiveConversation
 import no.nav.nks_ai.api.core.conversation.active.ActiveConversationPageRequest
 import no.nav.nks_ai.api.core.conversation.conversationId
 import no.nav.nks_ai.api.core.message.NewMessage
+
+private val logger = KotlinLogging.logger { }
 
 /**
  * Ruter for eksterne partnere (f.eks. Salesforce) til å opprette samtaler og meldinger på vegne
@@ -69,6 +76,18 @@ fun Route.integrationConversationRoutes(
                     schema = jsonSchema<IntegrationProblem>()
                     description = "Invalid input"
                 }
+                HttpStatusCode.Conflict {
+                    schema = jsonSchema<IntegrationProblem>()
+                    description = "The initial message was saved, but processing did not start. Do not retry."
+                }
+                HttpStatusCode.UnsupportedMediaType {
+                    schema = jsonSchema<IntegrationProblem>()
+                    description = "Content-Type must be application/json"
+                }
+                HttpStatusCode.InternalServerError {
+                    schema = jsonSchema<IntegrationProblem>()
+                    description = "An unexpected error occurred"
+                }
             }
         }
 
@@ -100,6 +119,18 @@ fun Route.integrationConversationRoutes(
                     HttpStatusCode.ServiceUnavailable {
                         schema = jsonSchema<IntegrationProblem>()
                         description = "Could not find active conversations"
+                    }
+                    HttpStatusCode.BadRequest {
+                        schema = jsonSchema<IntegrationProblem>()
+                        description = "Malformed request body"
+                    }
+                    HttpStatusCode.UnsupportedMediaType {
+                        schema = jsonSchema<IntegrationProblem>()
+                        description = "Content-Type must be application/json"
+                    }
+                    HttpStatusCode.InternalServerError {
+                        schema = jsonSchema<IntegrationProblem>()
+                        description = "An unexpected error occurred"
                     }
                 }
             }
@@ -134,9 +165,25 @@ fun Route.integrationConversationRoutes(
                         schema = jsonSchema<AcceptedIntegrationMessage>()
                         description = "The message was accepted and processing has started"
                     }
-                    HttpStatusCode.ServiceUnavailable {
+                    HttpStatusCode.Conflict {
                         schema = jsonSchema<IntegrationProblem>()
-                        description = "The message was saved, but processing could not be started"
+                        description = "The message was saved, but processing did not start. Do not retry."
+                    }
+                    HttpStatusCode.BadRequest {
+                        schema = jsonSchema<IntegrationProblem>()
+                        description = "Invalid request"
+                    }
+                    HttpStatusCode.NotFound {
+                        schema = jsonSchema<IntegrationProblem>()
+                        description = "Conversation not found"
+                    }
+                    HttpStatusCode.UnsupportedMediaType {
+                        schema = jsonSchema<IntegrationProblem>()
+                        description = "Content-Type must be application/json"
+                    }
+                    HttpStatusCode.InternalServerError {
+                        schema = jsonSchema<IntegrationProblem>()
+                        description = "An unexpected error occurred"
                     }
                 }
             }
@@ -147,10 +194,16 @@ fun Route.integrationConversationRoutes(
 private fun ApplicationError.toIntegrationProblem(): IntegrationProblem {
     val conversationId = (this as? ApplicationError.MessageProcessingNotStarted)?.conversationId
     val messageId = (this as? ApplicationError.MessageProcessingNotStarted)?.messageId
+    val processingNotStarted = this is ApplicationError.MessageProcessingNotStarted
     return IntegrationProblem(
         title = message,
         status = code.value,
-        detail = description,
+        detail = if (processingNotStarted) {
+            "The message was saved, but processing did not start. Do not retry this request."
+        } else {
+            description
+        },
+        type = if (processingNotStarted) "urn:nks-bob-api:message-processing-not-started" else "about:blank",
         conversationId = conversationId,
         messageId = messageId,
     )
@@ -160,9 +213,34 @@ private suspend inline fun <reified T : Any> ApplicationCall.respondIntegrationE
     statusCode: HttpStatusCode,
     noinline block: suspend Raise<ApplicationError>.() -> ApplicationResult<T>
 ) {
-    val result = either { block() }.flatten()
-    result.fold(
-        ifLeft = { error -> respond(error.code, error.toIntegrationProblem()) },
-        ifRight = { value -> respond(statusCode, value) },
-    )
+    try {
+        val result = either { block() }.flatten()
+        result.fold(
+            ifLeft = { error -> respond(error.code, error.toIntegrationProblem()) },
+            ifRight = { value -> respond(statusCode, value) },
+        )
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: UnsupportedMediaTypeException) {
+        respond(
+            HttpStatusCode.UnsupportedMediaType,
+            IntegrationProblem("Unsupported media type", 415, "Content-Type must be application/json"),
+        )
+    } catch (_: CannotTransformContentToTypeException) {
+        respond(
+            HttpStatusCode.UnsupportedMediaType,
+            IntegrationProblem("Unsupported media type", 415, "Content-Type must be application/json"),
+        )
+    } catch (_: BadRequestException) {
+        respond(
+            HttpStatusCode.BadRequest,
+            IntegrationProblem("Invalid request body", 400, "Malformed request body"),
+        )
+    } catch (exception: Exception) {
+        logger.error { "Integration request failed (${exception::class.simpleName})" }
+        respond(
+            HttpStatusCode.InternalServerError,
+            IntegrationProblem("Internal server error", 500, "An unexpected error occurred"),
+        )
+    }
 }

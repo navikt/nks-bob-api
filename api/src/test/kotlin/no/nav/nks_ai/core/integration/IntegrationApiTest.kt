@@ -66,6 +66,17 @@ class IntegrationApiTest {
         }
     }
 
+    @Test
+    fun `POST conversations - avviser tidligere scope uten bindestrek`() = testApp { client ->
+        client.post(root) {
+            bearerAuth(TestOAuth2Server.maskinportenToken(scope = "nav:nksbobapi/integrations"))
+            contentType(ContentType.Application.Json)
+            setBody(NewConversation(title = "Test", initialMessage = null))
+        }.apply {
+            assertEquals(HttpStatusCode.Unauthorized, status)
+        }
+    }
+
     // ─── Happy path ──────────────────────────────────────────────────────────
 
     @Test
@@ -111,6 +122,34 @@ class IntegrationApiTest {
             assertEquals(HttpStatusCode.NotFound, status)
             val problem = body<IntegrationProblem>()
             assertEquals(404, problem.status)
+        }
+    }
+
+    @Test
+    fun `POST conversations - ugyldig JSON gir sanitert integrasjonsfeil`() = testApp { client ->
+        client.post(root) {
+            bearerAuth(TestOAuth2Server.maskinportenToken())
+            contentType(ContentType.Application.Json)
+            setBody("{")
+        }.apply {
+            assertEquals(HttpStatusCode.BadRequest, status)
+            val problem = body<IntegrationProblem>()
+            assertEquals("Malformed request body", problem.detail)
+            assertEquals(400, problem.status)
+        }
+    }
+
+    @Test
+    fun `POST conversations - feil innholdstype gir integrasjonsfeil`() = testApp { client ->
+        client.post(root) {
+            bearerAuth(TestOAuth2Server.maskinportenToken())
+            contentType(ContentType.Text.Plain)
+            setBody("not json")
+        }.apply {
+            assertEquals(HttpStatusCode.UnsupportedMediaType, status)
+            val problem = body<IntegrationProblem>()
+            assertEquals("Content-Type must be application/json", problem.detail)
+            assertEquals(415, problem.status)
         }
     }
 }

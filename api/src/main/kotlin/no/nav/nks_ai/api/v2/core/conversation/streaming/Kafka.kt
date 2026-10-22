@@ -4,15 +4,20 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import java.time.Duration
 import java.util.Properties
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.api.app.KafkaConfig
@@ -23,6 +28,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.errors.WakeupException
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 
@@ -95,6 +101,7 @@ class ConversationEventBus(
 
     /** All conversation events seen by this instance, regardless of which instance produced them. */
     val events: SharedFlow<ConversationEventRecord> = _events.asSharedFlow()
+    internal val eventSubscriberCount: Int get() = _events.subscriptionCount.value
 
     // Bounded, per-conversation replay buffer. Access-ordered so the least-recently-used
     // conversation is evicted first once we hit MAX_TRACKED_CONVERSATIONS, capping memory use
@@ -122,33 +129,77 @@ class ConversationEventBus(
     }
 
     private var consumerJob: Job? = null
+    private val closing = AtomicBoolean(false)
+    private val consumerLifecycleLock = Any()
+    private var consumerLoopStarted = false
 
     fun start(scope: CoroutineScope) {
-        check(consumerJob == null) { "ConversationEventBus already started" }
-        val consumer = consumer ?: run {
-            logger.info { "Kafka disabled, ConversationEventBus will not consume any events" }
-            return
-        }
-        consumerJob = scope.launch(Dispatchers.IO) {
-            consumer.subscribe(listOf(config.conversationEventsTopic))
-            logger.info { "Subscribed to Kafka topic ${config.conversationEventsTopic}" }
-            while (isActive) {
-                val records = consumer.poll(Duration.ofSeconds(1))
-                for (record in records) {
-                    runCatching { Json.decodeFromString<ConversationIdEvent>(record.value()) }
-                        .onSuccess { decoded ->
-                            val eventRecord = ConversationEventRecord(record.offset(), record.timestamp(), decoded)
-                            synchronized(historyLock) {
-                                val deque = history.getOrPut(decoded.conversationId) { ArrayDeque() }
-                                deque.addLast(eventRecord)
-                                if (deque.size > MAX_EVENTS_PER_CONVERSATION) deque.removeFirst()
-                            }
-                            _events.emit(eventRecord)
+        synchronized(consumerLifecycleLock) {
+            check(!closing.get()) { "ConversationEventBus is closed" }
+            check(consumerJob == null) { "ConversationEventBus already started" }
+            val consumer = consumer ?: run {
+                logger.info { "Kafka disabled, ConversationEventBus will not consume any events" }
+                return
+            }
+            consumerJob = scope.launch(Dispatchers.IO) {
+                val shouldRun = synchronized(consumerLifecycleLock) {
+                    if (closing.get()) {
+                        false
+                    } else {
+                        consumerLoopStarted = true
+                        true
+                    }
+                }
+                if (!shouldRun) return@launch
+
+                try {
+                    consumer.subscribe(listOf(config.conversationEventsTopic))
+                    logger.info { "Subscribed to Kafka topic ${config.conversationEventsTopic}" }
+                    while (isActive) {
+                        val records = try {
+                            consumer.poll(Duration.ofSeconds(1))
+                        } catch (exception: WakeupException) {
+                            if (closing.get()) break else throw exception
                         }
-                        .onFailure { logger.warn(it) { "Failed to decode conversation event from Kafka" } }
+                        for (record in records) {
+                            try {
+                                val decoded = Json.decodeFromString<ConversationIdEvent>(record.value())
+                                val eventRecord = ConversationEventRecord(record.offset(), record.timestamp(), decoded)
+                                recordEvent(eventRecord)
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (exception: Exception) {
+                                logger.warn {
+                                    "Failed to decode conversation event from Kafka " +
+                                        "(partition ${record.partition()}, offset ${record.offset()}, " +
+                                        "${exception::class.simpleName})"
+                                }
+                            }
+                        }
+                    }
+                } finally {
+                    closeConsumer(consumer)
                 }
             }
         }
+    }
+
+    private fun closeConsumer(consumer: KafkaConsumer<String, String>) {
+        try {
+            consumer.close(Duration.ofSeconds(2))
+        } catch (exception: Exception) {
+            logger.error { "Failed to close Kafka consumer (${exception::class.simpleName})" }
+        }
+    }
+
+    internal suspend fun recordEvent(eventRecord: ConversationEventRecord) {
+        val conversationId = eventRecord.idEvent.conversationId
+        synchronized(historyLock) {
+            val deque = history.getOrPut(conversationId) { ArrayDeque() }
+            deque.addLast(eventRecord)
+            if (deque.size > MAX_EVENTS_PER_CONVERSATION) deque.removeFirst()
+        }
+        _events.emit(eventRecord)
     }
 
     /**
@@ -171,18 +222,42 @@ class ConversationEventBus(
         val record = ProducerRecord(config.conversationEventsTopic, conversationId.value.toString(), payload)
         producer.send(record) { _, exception ->
             if (exception != null) {
-                logger.error(exception) { "Failed to publish conversation event to Kafka" }
+                logger.error { "Failed to publish conversation event to Kafka (${exception::class.simpleName})" }
             }
         }
     }
 
     override fun close() {
-        consumerJob?.cancel()
-        // A short explicit timeout: the default close() tries to leave the consumer group and
-        // flush the producer, which blocks on network round-trips we may not get (e.g. broker
-        // unreachable). We would rather drop in-flight events on shutdown than hang.
-        runCatching { consumer?.close(Duration.ofSeconds(2)) }
-        runCatching { producer?.close(Duration.ofSeconds(2)) }
+        if (!closing.compareAndSet(false, true)) return
+
+        val job = synchronized(consumerLifecycleLock) { consumerJob }
+        if (job?.isActive == true) {
+            try {
+                consumer?.wakeup()
+            } catch (exception: Exception) {
+                logger.warn { "Failed to wake up Kafka consumer (${exception::class.simpleName})" }
+            }
+        }
+        job?.cancel()
+        if (job != null) {
+            runBlocking {
+                val stopped = withTimeoutOrNull(5_000) {
+                    job.join()
+                    true
+                } ?: false
+                if (!stopped) logger.error { "Timed out waiting for Kafka consumer shutdown" }
+            }
+        }
+        val needsClose = synchronized(consumerLifecycleLock) { !consumerLoopStarted }
+        if (needsClose) consumer?.let(::closeConsumer)
+
+        // A short timeout avoids blocking shutdown on broker round-trips. In-flight events may
+        // be dropped after this deadline.
+        try {
+            producer?.close(Duration.ofSeconds(2))
+        } catch (exception: Exception) {
+            logger.error { "Failed to close Kafka producer (${exception::class.simpleName})" }
+        }
     }
 }
 
@@ -200,8 +275,11 @@ private fun commonProperties(config: KafkaConfig): Properties = Properties().app
     }
 }
 
-private fun producerProperties(config: KafkaConfig): Properties = commonProperties(config).apply {
-    put(ProducerConfig.ACKS_CONFIG, "1")
+internal fun producerProperties(config: KafkaConfig): Properties = commonProperties(config).apply {
+    put(ProducerConfig.ACKS_CONFIG, "all")
+    put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true)
+    put(ProducerConfig.RETRIES_CONFIG, 5)
+    put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5)
     put(ProducerConfig.LINGER_MS_CONFIG, "5")
 }
 
@@ -212,4 +290,3 @@ private fun consumerProperties(config: KafkaConfig, instanceId: String): Propert
     put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
     put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
 }
-

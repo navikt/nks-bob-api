@@ -2,6 +2,7 @@ package no.nav.nks_ai.core.integration
 
 import arrow.core.left
 import arrow.core.right
+import io.ktor.http.HttpStatusCode
 import io.ktor.client.request.get
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -264,6 +265,7 @@ class IntegrationConversationServiceTest {
             val error = assertIs<ApplicationError.MessageProcessingNotStarted>(
                 controlledService.createMessage(owner, existing.id, NewMessage("Saved before shutdown")).leftOrNull()
             )
+            assertEquals(HttpStatusCode.Conflict, error.code)
             assertEquals(existing.id, error.conversationId)
             val saved = messages.getMessage(error.messageId).value()
             assertEquals("Saved before shutdown", saved.content)

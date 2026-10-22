@@ -102,9 +102,9 @@ sealed class ApplicationError(
         val conversationId: ConversationId,
         val messageId: MessageId,
     ) : ApplicationError(
-        code = HttpStatusCode.ServiceUnavailable,
+        code = HttpStatusCode.Conflict,
         message = "Message processing not started",
-        description = "The message was saved, but processing could not be started. Do not retry automatically.",
+        description = "The message was saved, but processing did not start. Do not retry this request.",
     )
 
     class UserConfigNotFound() : ApplicationError(

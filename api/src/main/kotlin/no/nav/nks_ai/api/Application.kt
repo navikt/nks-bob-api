@@ -195,7 +195,13 @@ fun Application.module() {
         route("/api/v2") {
             authenticate {
                 conversationSseV2(messageService, sendMessageService)
-                conversationWebSocketV2(conversationService, conversationEventBus, activeConversationService)
+                conversationWebSocketV2(
+                    canAccessConversation = { id, navIdent ->
+                        conversationService.getConversation(id, navIdent).isRight()
+                    },
+                    conversationEventBus = conversationEventBus,
+                    activeConversationService = activeConversationService,
+                )
             }
         }
         route("/internal") {

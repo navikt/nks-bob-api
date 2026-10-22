@@ -11,17 +11,24 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.app.getNavIdent
-import no.nav.nks_ai.api.core.conversation.ConversationService
+import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
 import no.nav.nks_ai.api.core.conversation.conversationId
+import no.nav.nks_ai.api.core.user.NavIdent
+import java.util.concurrent.atomic.AtomicBoolean
 
 private val logger = KotlinLogging.logger { }
+// History is capped at 500 events; the extra space covers live events arriving during replay.
+private const val LIVE_EVENTS_BUFFER_CAPACITY = 1024
 
 /**
  * Websocket endpoint that streams [ConversationEvent]s for a single conversation to the client.
@@ -41,7 +48,7 @@ private val logger = KotlinLogging.logger { }
  * sent once. The frontend is expected to filter out events it has already applied.
  */
 fun Route.conversationWebSocketV2(
-    conversationService: ConversationService,
+    canAccessConversation: suspend (ConversationId, NavIdent) -> Boolean,
     conversationEventBus: ConversationEventBus,
     activeConversationService: ActiveConversationService,
 ) {
@@ -61,7 +68,7 @@ fun Route.conversationWebSocketV2(
 
             // Reuse the same ownership check as the REST endpoints for this conversation, so a
             // user can't subscribe to another user's conversation just by knowing its id.
-            val hasAccess = conversationService.getConversation(conversationId, navIdent).isRight()
+            val hasAccess = canAccessConversation(conversationId, navIdent)
             if (!hasAccess) {
                 close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Conversation not found"))
                 return@webSocket
@@ -116,27 +123,46 @@ fun Route.conversationWebSocketV2(
                     // miss an event that arrives in the gap between the history snapshot and the
                     // point we start forwarding live events. Any overlap between history and the
                     // live buffer is deduplicated below by Kafka offset.
-                    val liveEvents = Channel<ConversationEventRecord>(capacity = Channel.UNLIMITED)
+                    val liveEvents = Channel<ConversationEventRecord>(capacity = LIVE_EVENTS_BUFFER_CAPACITY)
+                    val overflowed = AtomicBoolean(false)
                     val liveEventsJob = launch {
                         conversationEventBus.events
                             .filter { it.idEvent.conversationId == conversationId }
-                            .collect { liveEvents.send(it) }
+                            .collect {
+                                if (liveEvents.trySend(it).isFailure) {
+                                    overflowed.set(true)
+                                    liveEvents.close()
+                                    close(
+                                        CloseReason(
+                                            CloseReason.Codes.TRY_AGAIN_LATER,
+                                            "Websocket client cannot keep up",
+                                        )
+                                    )
+                                    currentCoroutineContext().cancel()
+                                }
+                            }
                     }
                     liveEventsJob.invokeOnCompletion { liveEvents.close() }
 
                     val history = conversationEventBus.history(conversationId)
                     for (record in history) {
+                        if (overflowed.get()) break
                         send(Frame.Text(Json.encodeToString(record.idEvent.event)))
                     }
                     val lastHistoryOffset = history.lastOrNull()?.offset ?: -1L
 
                     for (record in liveEvents) {
+                        if (overflowed.get()) break
                         if (record.offset <= lastHistoryOffset) continue // already sent via history
                         send(Frame.Text(Json.encodeToString(record.idEvent.event)))
                     }
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (t: Throwable) {
-                logger.error(t) { "Error in websocket session for conversation $conversationId" }
+                logger.error {
+                    "Error in websocket session for conversation $conversationId (${t::class.simpleName})"
+                }
             } finally {
                 activeConversationService.disconnect(connectionId)
                 MetricRegister.websocketConnections.dec()
@@ -145,4 +171,3 @@ fun Route.conversationWebSocketV2(
         }
     }
 }
-

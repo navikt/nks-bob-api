@@ -39,7 +39,7 @@ spec:
         - name: "integrations"
           enabled: true
           separator: "/"
-          product: "nksbobapi"
+          product: "nks-bob-api"
           consumers: []
   accessPolicy:
     inbound:
