@@ -39,7 +39,7 @@ spec:
         - name: "integrations"
           enabled: true
           separator: "/"
-          product: "nks-bob-api"
+          product: "nksbobapi"
           consumers: []
   accessPolicy:
     inbound:
@@ -89,7 +89,7 @@ spec:
       value: "nks-aiautomatisering.nks-bob-api.conversation-events"
     # Må matche "nav:<product>/<name>" for scopet under maskinporten.scopes.exposes over.
     - name: NKS_BOB_API_MASKINPORTEN_SCOPE
-      value: "nav:nks-bob-api/integrations"
+      value: "nav:nksbobapi/integrations"
   azure:
     application:
       tenant: nav.no # Gjør at man kan logge på med vanlig konto i dev-gcp

@@ -70,7 +70,8 @@ Rutene er beskyttet av et nytt auth-scheme, `authenticate("Maskinporten")`
 eget JWKS (`MaskinportenConfig`, env `MASKINPORTEN_ISSUER` / `MASKINPORTEN_JWKS_URI`
 — settes automatisk av Nais når `maskinporten.enabled: true`) og krever at
 `scope`-claimet inneholder `NKS_BOB_API_MASKINPORTEN_SCOPE`
-(`nav:nks-bob-api/integrations`). Feil returneres som `IntegrationProblem`
+(`nav:nksbobapi/integrations`, generert fra Nais-feltene `product: nksbobapi`
+og `name: integrations`). Feil returneres som `IntegrationProblem`
 (RFC 7807-stil) i stedet for appens vanlige `ErrorResponse`, slik at eksterne
 konsumenter får en stabil feilkontrakt.
 

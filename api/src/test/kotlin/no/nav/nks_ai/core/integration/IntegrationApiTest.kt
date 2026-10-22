@@ -67,9 +67,9 @@ class IntegrationApiTest {
     }
 
     @Test
-    fun `POST conversations - avviser tidligere scope uten bindestrek`() = testApp { client ->
+    fun `POST conversations - avviser tidligere scope med bindestrek`() = testApp { client ->
         client.post(root) {
-            bearerAuth(TestOAuth2Server.maskinportenToken(scope = "nav:nksbobapi/integrations"))
+            bearerAuth(TestOAuth2Server.maskinportenToken(scope = "nav:nks-bob-api/integrations"))
             contentType(ContentType.Application.Json)
             setBody(NewConversation(title = "Test", initialMessage = null))
         }.apply {

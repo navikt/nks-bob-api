@@ -39,7 +39,7 @@ object TestOAuth2Server {
 
     /** Eget issuer-id for Maskinporten-token, siden dette er et separat tillitsanker enn ISSUER_ID. */
     const val MASKINPORTEN_ISSUER_ID = "test-maskinporten"
-    const val MASKINPORTEN_SCOPE = "nav:nks-bob-api/integrations"
+    const val MASKINPORTEN_SCOPE = "nav:nksbobapi/integrations"
 
     /** Utsteder et standard bruker-token (ingen admin-gruppe). */
     fun userToken(): String = tokenFor(NAV_IDENT)
@@ -206,4 +206,3 @@ fun testAppWithBigQuery(block: suspend ApplicationTestBuilder.(client: HttpClien
         testBigQueryClientOverride = null
     }
 }
-
