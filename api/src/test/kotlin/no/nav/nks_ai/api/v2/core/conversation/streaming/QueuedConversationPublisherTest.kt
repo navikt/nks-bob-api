@@ -143,7 +143,7 @@ class QueuedConversationPublisherTest {
 
     private class TestProducer(
         private val beforeSend: (ProducerRecord<String, String>, Callback) -> Unit = { _, _ -> },
-    ) : MockProducer<String, String>(true, StringSerializer(), StringSerializer()) {
+    ) : MockProducer<String, String>(true, null, StringSerializer(), StringSerializer()) {
         override fun send(record: ProducerRecord<String, String>, callback: Callback): Future<RecordMetadata> {
             beforeSend(record, callback)
             return super.send(record, callback)
