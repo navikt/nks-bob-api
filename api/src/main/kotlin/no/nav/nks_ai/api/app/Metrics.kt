@@ -15,6 +15,12 @@ internal val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DE
 private const val METRICS_NS = "nksbobapi"
 
 object MetricRegister {
+    val kafkaPublishFailures: Counter = Counter.builder()
+        .name("${METRICS_NS}_kafka_publish_failures")
+        .help("Conversation events not delivered to Kafka")
+        .labelNames("reason")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
     val conversationsCreated: Counter = Counter.builder()
         .name("${METRICS_NS}_conversations")
         .help("Hvor mange samtaler som er blitt opprettet")

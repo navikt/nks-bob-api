@@ -27,7 +27,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.errors.WakeupException
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
@@ -84,8 +83,15 @@ class ConversationEventBus(
     // Lazily created (and entirely absent when config.enabled == false) so that environments
     // without a real broker - most importantly tests spinning up the full application - never
     // open a socket or attempt to talk to Kafka at all.
-    private val producer: KafkaProducer<String, String>? =
-        if (config.enabled) KafkaProducer(producerProperties(config), StringSerializer(), StringSerializer()) else null
+    private val publisher: QueuedConversationPublisher? =
+        if (config.enabled) {
+            QueuedConversationPublisher(
+                KafkaProducer(producerProperties(config), StringSerializer(), StringSerializer()),
+                config.conversationEventsTopic,
+            )
+        } else {
+            null
+        }
 
     private val consumer: KafkaConsumer<String, String>? =
         if (config.enabled) {
@@ -213,18 +219,9 @@ class ConversationEventBus(
         return snapshot.filter { it.timestamp >= cutoff }
     }
 
-    /** Publishes an event without blocking the caller; failures are logged, not raised. */
+    /** Enqueues without waiting for Kafka; delivery failures are logged and counted, not raised. */
     fun publish(conversationId: ConversationId, event: ConversationEvent) {
-        val producer = producer ?: return
-        if (event is ConversationEvent.NoOp) return
-
-        val payload = Json.encodeToString(ConversationIdEvent(conversationId, event))
-        val record = ProducerRecord(config.conversationEventsTopic, conversationId.value.toString(), payload)
-        producer.send(record) { _, exception ->
-            if (exception != null) {
-                logger.error { "Failed to publish conversation event to Kafka (${exception::class.simpleName})" }
-            }
-        }
+        publisher?.publish(conversationId, event)
     }
 
     override fun close() {
@@ -251,13 +248,7 @@ class ConversationEventBus(
         val needsClose = synchronized(consumerLifecycleLock) { !consumerLoopStarted }
         if (needsClose) consumer?.let(::closeConsumer)
 
-        // A short timeout avoids blocking shutdown on broker round-trips. In-flight events may
-        // be dropped after this deadline.
-        try {
-            producer?.close(Duration.ofSeconds(2))
-        } catch (exception: Exception) {
-            logger.error { "Failed to close Kafka producer (${exception::class.simpleName})" }
-        }
+        publisher?.close()
     }
 }
 

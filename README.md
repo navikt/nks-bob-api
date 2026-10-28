@@ -40,6 +40,14 @@ fornyes automatisk hvert `RENEW_INTERVAL` (60s) så lenge socketen er åpen, og
 fjernes når socketen lukkes. Om fornyelsen feiler (leasen har utløpt) lukkes
 socketen, og klienten må koble til på nytt.
 
+Kafka-publisering går via en minnekø med plass til 1024 hendelser og én
+bakgrunnsarbeider. Kafka-feil og full kø avbryter ikke SSE- eller KBS-behandlingen.
+Tapte hendelser telles i `nksbobapi_kafka_publish_failures_total` med årsak,
+og feil logges høyst hvert 30. sekund uten meldingsinnhold.
+Ved shutdown får køen to sekunder til å tømmes før resterende hendelser forkastes.
+Dette er best-effort-levering, ikke en varig kø. Websocket-klienter må kunne hente
+lagret meldingstilstand via REST etter et avbrudd.
+
 `IntegrationConversationService.create(...)` tar eksisterende services,
 eventbus og et applikasjonseid coroutine-scope. Den validerer input og
 kontrollerer eierskap før innholdsbehandling og skriving. Samtale med
