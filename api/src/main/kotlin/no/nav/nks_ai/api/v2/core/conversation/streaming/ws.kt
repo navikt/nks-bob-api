@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.app.getNavIdent
@@ -74,6 +75,12 @@ fun Route.conversationWebSocketV2(
                 return@webSocket
             }
 
+            val initialReadiness = conversationEventBus.readiness.value
+            if (!initialReadiness.isReady) {
+                close(CloseReason(CloseReason.Codes.TRY_AGAIN_LATER, "Conversation stream unavailable"))
+                return@webSocket
+            }
+
             // Registers this connection so it shows up as an active/live conversation elsewhere
             // (e.g. admin listing, statistics). connect() re-validates ownership against the
             // conversations table itself, so this also guards against a conversation being
@@ -89,6 +96,15 @@ fun Route.conversationWebSocketV2(
 
             try {
                 coroutineScope {
+                    launch(start = CoroutineStart.UNDISPATCHED) {
+                        conversationEventBus.readiness.collect { readiness ->
+                            if (!readiness.isReady || readiness.generation != initialReadiness.generation) {
+                                close(CloseReason(CloseReason.Codes.TRY_AGAIN_LATER, "Conversation stream unavailable"))
+                                this@coroutineScope.cancel()
+                            }
+                        }
+                    }
+
                     // This is a server-push-only endpoint: the client isn't expected to send any
                     // application data. We still need to drain `incoming` so we notice when the
                     // client disconnects (closes the tab, loses network, etc.), and cancel the

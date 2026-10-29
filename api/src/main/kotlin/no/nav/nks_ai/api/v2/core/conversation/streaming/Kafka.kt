@@ -13,6 +13,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -24,10 +27,14 @@ import no.nav.nks_ai.api.app.KafkaConfig
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.Consumer
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.errors.WakeupException
+import org.apache.kafka.common.errors.TimeoutException
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 
@@ -76,10 +83,19 @@ data class ConversationEventRecord(
  * events from the moment it connects. The frontend is expected to filter/dedupe on its side if it
  * only cares about events it hasn't already rendered.
  */
-class ConversationEventBus(
+class ConversationEventBus internal constructor(
     private val config: KafkaConfig,
-    instanceId: String = UUID.randomUUID().toString(),
+    private val consumer: Consumer<String, String>?,
 ) : AutoCloseable {
+    constructor(config: KafkaConfig, instanceId: String = UUID.randomUUID().toString()) : this(
+        config,
+        if (config.enabled) {
+            KafkaConsumer(consumerProperties(config, instanceId), StringDeserializer(), StringDeserializer())
+        } else {
+            null
+        },
+    )
+
     // Lazily created (and entirely absent when config.enabled == false) so that environments
     // without a real broker - most importantly tests spinning up the full application - never
     // open a socket or attempt to talk to Kafka at all.
@@ -93,12 +109,11 @@ class ConversationEventBus(
             null
         }
 
-    private val consumer: KafkaConsumer<String, String>? =
-        if (config.enabled) {
-            KafkaConsumer(consumerProperties(config, instanceId), StringDeserializer(), StringDeserializer())
-        } else {
-            null
-        }
+    private val consumerReadiness = ConsumerReadiness()
+
+    /** Ready only once this instance has an assignment and established its initial offsets. */
+    internal val readiness: StateFlow<ConsumerReadinessState> = consumerReadiness.state
+    val isReady: Boolean get() = readiness.value.isReady
 
     private val _events = MutableSharedFlow<ConversationEventRecord>(
         extraBufferCapacity = 1024,
@@ -159,7 +174,7 @@ class ConversationEventBus(
                 if (!shouldRun) return@launch
 
                 try {
-                    consumer.subscribe(listOf(config.conversationEventsTopic))
+                    consumer.subscribe(listOf(config.conversationEventsTopic), consumerReadiness)
                     logger.info { "Subscribed to Kafka topic ${config.conversationEventsTopic}" }
                     while (isActive) {
                         val records = try {
@@ -167,6 +182,7 @@ class ConversationEventBus(
                         } catch (exception: WakeupException) {
                             if (closing.get()) break else throw exception
                         }
+                        consumerReadiness.establishPositions(consumer)
                         for (record in records) {
                             try {
                                 val decoded = Json.decodeFromString<ConversationIdEvent>(record.value())
@@ -184,13 +200,14 @@ class ConversationEventBus(
                         }
                     }
                 } finally {
+                    consumerReadiness.stop()
                     closeConsumer(consumer)
                 }
             }
         }
     }
 
-    private fun closeConsumer(consumer: KafkaConsumer<String, String>) {
+    private fun closeConsumer(consumer: Consumer<String, String>) {
         try {
             consumer.close(Duration.ofSeconds(2))
         } catch (exception: Exception) {
@@ -226,6 +243,7 @@ class ConversationEventBus(
 
     override fun close() {
         if (!closing.compareAndSet(false, true)) return
+        consumerReadiness.stop()
 
         val job = synchronized(consumerLifecycleLock) { consumerJob }
         if (job?.isActive == true) {
@@ -249,6 +267,59 @@ class ConversationEventBus(
         if (needsClose) consumer?.let(::closeConsumer)
 
         publisher?.close()
+    }
+}
+
+internal data class ConsumerReadinessState(val isReady: Boolean = false, val generation: Long = 0)
+
+internal class ConsumerReadiness : ConsumerRebalanceListener {
+    private val mutableState = MutableStateFlow(ConsumerReadinessState())
+    val state: StateFlow<ConsumerReadinessState> = mutableState.asStateFlow()
+    val isReady: Boolean get() = state.value.isReady
+    private var stopped = false
+
+    override fun onPartitionsAssigned(partitions: Collection<TopicPartition>) = reset()
+
+    override fun onPartitionsRevoked(partitions: Collection<TopicPartition>) = reset()
+
+    override fun onPartitionsLost(partitions: Collection<TopicPartition>) = reset()
+
+    @Synchronized
+    private fun reset() {
+        val previous = mutableState.value
+        if (!previous.isReady) return
+        // A generation change survives StateFlow conflation of a fast revoke/reassignment.
+        mutableState.value = ConsumerReadinessState(generation = previous.generation + 1)
+    }
+
+    // Called only by the consumer IO loop, never by a websocket or the shutdown thread.
+    fun establishPositions(consumer: Consumer<String, String>, timeout: Duration = Duration.ofSeconds(2)) {
+        val partitions = consumer.assignment()
+        if (partitions.isEmpty()) {
+            reset()
+            return
+        }
+        if (isReady) return
+
+        val deadline = System.nanoTime() + timeout.toNanos()
+        try {
+            for (partition in partitions) {
+                val remaining = deadline - System.nanoTime()
+                if (remaining <= 0) return
+                consumer.position(partition, Duration.ofNanos(remaining))
+            }
+        } catch (_: TimeoutException) {
+            return // Retry on the next poll; assignment alone does not establish a latest offset.
+        }
+        synchronized(this) {
+            if (!stopped) mutableState.value = mutableState.value.copy(isReady = true)
+        }
+    }
+
+    @Synchronized
+    fun stop() {
+        stopped = true
+        reset()
     }
 }
 

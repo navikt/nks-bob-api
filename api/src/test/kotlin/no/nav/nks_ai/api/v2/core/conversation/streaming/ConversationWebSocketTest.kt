@@ -6,6 +6,7 @@ import io.ktor.client.plugins.websocket.WebSockets as ClientWebSockets
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.http.HttpHeaders
 import io.ktor.server.application.install
+import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.bearer
@@ -13,6 +14,7 @@ import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
+import io.ktor.server.testing.TestApplicationBuilder
 import io.ktor.server.websocket.WebSockets as ServerWebSockets
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
@@ -35,19 +37,17 @@ import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertFalse
+import java.util.concurrent.atomic.AtomicInteger
 
 class ConversationWebSocketTest {
     @Test
     fun `websocket replays history and forwards only events for its conversation`() = testApplication {
         val conversationId = ConversationId(UUID.randomUUID())
         val otherConversationId = ConversationId(UUID.randomUUID())
-        val bus = ConversationEventBus(
-            KafkaConfig(
-                brokers = "localhost:9092",
-                conversationEventsTopic = "test.conversation-events",
-                enabled = false,
-            )
-        )
+        val fixture = StreamingConsumerFixture()
+        fixture.start()
+        val bus = fixture.bus
         val historyEvent = ConversationEvent.ContentUpdated(MessageId(UUID.randomUUID()), "history")
         val liveEvent = ConversationEvent.ContentUpdated(MessageId(UUID.randomUUID()), "live")
         bus.recordEvent(
@@ -59,6 +59,7 @@ class ConversationWebSocketTest {
         )
 
         application {
+            monitor.subscribe(ApplicationStopped) { fixture.close() }
             install(Authentication) {
                 bearer("test") {
                     authenticate { credential -> JWTPrincipal(JWT.decode(credential.token)) }
@@ -170,13 +171,134 @@ class ConversationWebSocketTest {
         }
     }
 
+    @Test
+    fun `websocket is unavailable before assignment without registering an active connection`() = testApplication {
+        val conversationId = ConversationId(UUID.randomUUID())
+        val bus = ConversationEventBus(streamingTestConfig())
+        val active = ActiveConversationStub()
+        streamingApplication(bus, active)
+
+        createClient { install(ClientWebSockets) }.webSocket(
+            urlString = "/api/v2/conversations/${conversationId.value}/messages/ws",
+            request = { headers.append(HttpHeaders.Authorization, bearerToken()) },
+        ) {
+            val reason = withTimeout(3_000) { closeReason.await() }
+            assertEquals(CloseReason.Codes.TRY_AGAIN_LATER.code, reason?.code)
+            assertEquals(0, active.connections.get())
+            assertEquals(0, bus.eventSubscriberCount)
+        }
+    }
+
+    @Test
+    fun `websocket closes when consumer loses its assignment`() = testApplication {
+        val fixture = StreamingConsumerFixture()
+        fixture.start()
+        val active = ActiveConversationStub()
+        streamingApplication(fixture.bus, active)
+        application { monitor.subscribe(ApplicationStopped) { fixture.close() } }
+
+        createClient { install(ClientWebSockets) }.webSocket(
+            urlString = "/api/v2/conversations/${UUID.randomUUID()}/messages/ws",
+            request = { headers.append(HttpHeaders.Authorization, bearerToken()) },
+        ) {
+            withTimeout(3_000) {
+                while (fixture.bus.eventSubscriberCount == 0) delay(10)
+            }
+            fixture.consumer.schedulePollTask { fixture.consumer.rebalance(emptyList()) }
+            val reason = withTimeout(3_000) { closeReason.await() }
+            assertEquals(CloseReason.Codes.TRY_AGAIN_LATER.code, reason?.code)
+            assertFalse(fixture.bus.isReady)
+            withTimeout(3_000) {
+                while (active.disconnections.get() == 0) delay(10)
+            }
+            assertEquals(1, active.connections.get())
+            assertEquals(1, active.disconnections.get())
+        }
+    }
+
+    @Test
+    fun `websocket closes even if rebalance restores readiness before collection`() = testApplication {
+        val fixture = StreamingConsumerFixture()
+        fixture.start()
+        streamingApplication(fixture.bus, ActiveConversationStub())
+        application { monitor.subscribe(ApplicationStopped) { fixture.close() } }
+
+        createClient { install(ClientWebSockets) }.webSocket(
+            urlString = "/api/v2/conversations/${UUID.randomUUID()}/messages/ws",
+            request = { headers.append(HttpHeaders.Authorization, bearerToken()) },
+        ) {
+            withTimeout(3_000) {
+                while (fixture.bus.eventSubscriberCount == 0) delay(10)
+            }
+            fixture.consumer.schedulePollTask {
+                fixture.consumer.rebalance(fixture.consumer.assignment().toList())
+            }
+            val reason = withTimeout(3_000) { closeReason.await() }
+            assertEquals(CloseReason.Codes.TRY_AGAIN_LATER.code, reason?.code)
+            withTimeout(3_000) {
+                while (!fixture.bus.isReady) delay(10)
+            }
+        }
+    }
+
+    @Test
+    fun `websocket closes when consumer shuts down`() = testApplication {
+        val fixture = StreamingConsumerFixture()
+        fixture.start()
+        streamingApplication(fixture.bus, ActiveConversationStub())
+        application { monitor.subscribe(ApplicationStopped) { fixture.close() } }
+
+        createClient { install(ClientWebSockets) }.webSocket(
+            urlString = "/api/v2/conversations/${UUID.randomUUID()}/messages/ws",
+            request = { headers.append(HttpHeaders.Authorization, bearerToken()) },
+        ) {
+            withTimeout(3_000) {
+                while (fixture.bus.eventSubscriberCount == 0) delay(10)
+            }
+            fixture.close()
+            val reason = withTimeout(3_000) { closeReason.await() }
+            assertEquals(CloseReason.Codes.TRY_AGAIN_LATER.code, reason?.code)
+        }
+    }
+
+    private fun bearerToken(): String = "Bearer ${TestOAuth2Server.userToken()}"
+
+    private fun TestApplicationBuilder.streamingApplication(
+        bus: ConversationEventBus,
+        active: ActiveConversationService,
+    ) {
+        application {
+            install(Authentication) {
+                bearer("test") {
+                    authenticate { credential -> JWTPrincipal(JWT.decode(credential.token)) }
+                }
+            }
+            install(ServerWebSockets)
+            routing {
+                route("/api/v2") {
+                    authenticate("test") {
+                        conversationWebSocketV2({ _, _ -> true }, bus, active)
+                    }
+                }
+            }
+        }
+    }
+
     private class ActiveConversationStub : ActiveConversationService {
-        override suspend fun connect(conversationId: ConversationId, owner: NavIdent): ApplicationResult<UUID> =
-            UUID.randomUUID().right()
+        val connections = AtomicInteger()
+        val disconnections = AtomicInteger()
+
+        override suspend fun connect(conversationId: ConversationId, owner: NavIdent): ApplicationResult<UUID> {
+            connections.incrementAndGet()
+            return UUID.randomUUID().right()
+        }
 
         override suspend fun renew(connectionId: UUID): ApplicationResult<Unit> = Unit.right()
 
-        override suspend fun disconnect(connectionId: UUID): ApplicationResult<Unit> = Unit.right()
+        override suspend fun disconnect(connectionId: UUID): ApplicationResult<Unit> {
+            disconnections.incrementAndGet()
+            return Unit.right()
+        }
 
         override suspend fun getActiveConversations(
             owner: NavIdent,

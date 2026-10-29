@@ -40,6 +40,13 @@ fornyes automatisk hvert `RENEW_INTERVAL` (60s) så lenge socketen er åpen, og
 fjernes når socketen lukkes. Om fornyelsen feiler (leasen har utløpt) lukkes
 socketen, og klienten må koble til på nytt.
 
+WebSocket-endepunktet åpner ikke strømmen før poddens Kafka-consumer har fått
+partisjoner og etablert startposisjonen for alle partisjonene. Før det lukkes
+tilkoblingen med kode `1013` (`TRY_AGAIN_LATER`), uten aktiv registrering.
+Eksisterende tilkoblinger lukkes med samme kode ved rebalance eller når consumeren
+stopper. Klienten må koble til på nytt og hente lagret meldingstilstand via REST.
+Dette gjelder også når Kafka er deaktivert. Appens globale readiness er uendret.
+
 Kafka-publisering går via en minnekø med plass til 1024 hendelser og én
 bakgrunnsarbeider. Kafka-feil og full kø avbryter ikke SSE- eller KBS-behandlingen.
 Tapte hendelser telles i `nksbobapi_kafka_publish_failures_total` med årsak,
