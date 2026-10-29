@@ -17,6 +17,7 @@ import no.nav.nks_ai.api.core.message.Message
 import no.nav.nks_ai.api.core.message.MessageRole
 import no.nav.nks_ai.api.core.message.NewMessage
 import no.nav.nks_ai.api.core.message.UpdateMessage
+import no.nav.nks_ai.shared.DeleteExpiredActiveConnectionsSummary
 import no.nav.nks_ai.shared.DeleteIgnoredWordsSummary
 import no.nav.nks_ai.shared.DeleteOldConversationsSummary
 import no.nav.nks_ai.shared.UploadStarredMessagesSummary
@@ -31,8 +32,9 @@ import kotlin.test.assertTrue
  * Integrasjonstester for jobs-API.
  *
  * Tester POST /admin/jobs/delete-old-conversations,
- *             /admin/jobs/upload-starred-messages og
- *             /admin/jobs/delete-ignored-words.
+ *             /admin/jobs/upload-starred-messages,
+ *             /admin/jobs/delete-ignored-words og
+ *             /admin/jobs/delete-expired-active-connections.
  *
  * Endepunktene krever MachineToken (idtyp=app + azp-claim).
  *
@@ -66,6 +68,13 @@ class JobsApiTest {
     }
 
     @Test
+    fun `POST delete-expired-active-connections - krever autentisering`() = testApp { client ->
+        client.post("/api/v1/admin/jobs/delete-expired-active-connections").apply {
+            assertEquals(HttpStatusCode.Unauthorized, status)
+        }
+    }
+
+    @Test
     fun `POST delete-old-conversations - avviser bruker-token`() = testApp { client ->
         client.post("/api/v1/admin/jobs/delete-old-conversations") {
             bearerAuth(TestOAuth2Server.userToken())
@@ -77,6 +86,24 @@ class JobsApiTest {
     @Test
     fun `POST delete-old-conversations - avviser admin-token`() = testApp { client ->
         client.post("/api/v1/admin/jobs/delete-old-conversations") {
+            bearerAuth(TestOAuth2Server.adminToken())
+        }.apply {
+            assertEquals(HttpStatusCode.Unauthorized, status)
+        }
+    }
+
+    @Test
+    fun `POST delete-expired-active-connections - avviser bruker-token`() = testApp { client ->
+        client.post("/api/v1/admin/jobs/delete-expired-active-connections") {
+            bearerAuth(TestOAuth2Server.userToken())
+        }.apply {
+            assertEquals(HttpStatusCode.Unauthorized, status)
+        }
+    }
+
+    @Test
+    fun `POST delete-expired-active-connections - avviser admin-token`() = testApp { client ->
+        client.post("/api/v1/admin/jobs/delete-expired-active-connections") {
             bearerAuth(TestOAuth2Server.adminToken())
         }.apply {
             assertEquals(HttpStatusCode.Unauthorized, status)
@@ -258,4 +285,18 @@ class JobsApiTest {
 
         assertEquals(0, summary.deletedWords)
     }
+
+    // ─── delete-expired-active-connections ───────────────────────────────────
+
+    @Test
+    fun `POST delete-expired-active-connections - returnerer 200 med tom summary naar ingen tilkoblinger er utlopt`() =
+        testApp { client ->
+            val summary = client.post("/api/v1/admin/jobs/delete-expired-active-connections") {
+                bearerAuth(TestOAuth2Server.machineToken())
+            }.apply {
+                assertEquals(HttpStatusCode.OK, status)
+            }.body<DeleteExpiredActiveConnectionsSummary>()
+
+            assertEquals(0, summary.deletedConnections)
+        }
 }
