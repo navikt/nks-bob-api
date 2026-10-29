@@ -28,9 +28,9 @@ WebSocket-forbindelse, bcrypt-eier og tidsstempler. Tabellen har ingen unik
 begrensning per bruker/samtale, siden flere faner kan holde samme samtale åpen.
 
 `ActiveConversationService.create()` registrerer forbindelser etter
-eierskapskontroll, fornyer gyldige forbindelser, fjerner frakoblede/utløpte
-forbindelser og henter unike aktive samtaler. Listen støtter fire
-sorteringsretninger og paginering med samme databasesnapshot for side og total.
+eierskapskontroll, fornyer gyldige forbindelser og fjerner frakoblede/utløpte
+forbindelser. Oppslag, sortering, paginering og statistikk for aktive samtaler
+er fjernet fordi integrasjonen ikke lenger bruker dem.
 En utløpt eller slettet forbindelse kan ikke fornyes; klienten må koble til på nytt.
 
 Tjenesten er koblet inn i WebSocket-endepunktet
@@ -140,15 +140,6 @@ Antakelser gjort ved implementasjon (bør verifiseres før reell utrulling):
   sikkerhetsgjennomgås før den tas i bruk i prod (🔴 rød sone for
   auth-oppsettet, i tillegg til den eksisterende røde sonen i
   `IntegrationConversationService` selv).
-
-`ActiveConversationStatisticsRepo` teller unike samtaler og forbindelser som
-er fornyet de siste fem minuttene. `ActiveConversationMetrics` eksponerer et
-konsistent snapshot og beholder siste måling ved feil. Innhenting skjer nå
-periodisk (hvert `RENEW_INTERVAL`) fra en bakgrunnsjobb startet i
-`Application.module()`, som registrerer/avregistrerer samlerne i appens
-Prometheus-register og avbrytes ved graceful shutdown.
-Globale verdier fra flere podder skal aggregeres med `max`, ikke `sum`, og
-målinger eldre enn 120 sekunder skal vises som ukjente.
 
 Modulen `jobs/delete-active-connections` kaller
 `POST /api/v1/admin/jobs/delete-expired-active-connections` med Texas-maskintoken.

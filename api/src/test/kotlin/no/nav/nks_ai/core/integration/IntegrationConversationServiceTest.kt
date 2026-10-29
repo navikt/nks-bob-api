@@ -25,8 +25,6 @@ import no.nav.nks_ai.api.core.conversation.Conversation
 import no.nav.nks_ai.api.core.conversation.ConversationRepo
 import no.nav.nks_ai.api.core.conversation.ConversationService
 import no.nav.nks_ai.api.core.conversation.NewConversation
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversationPageRequest
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
 import no.nav.nks_ai.api.core.integration.IntegrationConversationService
 import no.nav.nks_ai.api.core.message.Message
 import no.nav.nks_ai.api.core.message.MessageId
@@ -104,16 +102,11 @@ class IntegrationConversationServiceTest {
     }
 
     @Test
-    fun `new conversation preserves a maximum length title and is not active`() = integrationTest {
+    fun `new conversation preserves a maximum length title without starting processing`() = integrationTest {
         val title = "x".repeat(255)
         val created = service.createConversation(owner, NewConversation(title, null)).value()
         assertEquals(title, created.title)
         assertTrue(MessageRepo.getMessagesByConversation(created.id).value().isEmpty())
-        assertEquals(
-            0L,
-            ActiveConversationService.create()
-                .getActiveConversations(owner, ActiveConversationPageRequest()).value().total,
-        )
         coVerify(exactly = 0) { sender.askQuestion(any(), any(), any(), any()) }
     }
 
@@ -206,7 +199,6 @@ class IntegrationConversationServiceTest {
             val published = CompletableDeferred<Unit>()
             every { events.publish(any(), any()) } answers {
                 if (secondArg<ConversationEvent>() is ConversationEvent.ErrorsUpdated) published.complete(Unit)
-                Unit
             }
             coEvery { sender.askQuestion(any(), any(), any(), any()) } coAnswers {
                 if (!duringCollection) throw IllegalStateException("Sensitive upstream detail")
@@ -229,7 +221,6 @@ class IntegrationConversationServiceTest {
         val published = CompletableDeferred<Unit>()
         every { events.publish(any(), any()) } answers {
             if (secondArg<ConversationEvent>() is ConversationEvent.ErrorsUpdated) published.complete(Unit)
-            Unit
         }
         coEvery { sender.askQuestion(any(), any(), any(), any()) } returns
             ApplicationError.InternalServerError("Unavailable", "Failed to create answer").left()

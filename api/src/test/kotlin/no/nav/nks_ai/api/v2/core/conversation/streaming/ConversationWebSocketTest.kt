@@ -25,10 +25,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.KafkaConfig
-import no.nav.nks_ai.api.app.Page
 import no.nav.nks_ai.api.core.conversation.ConversationId
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversation
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversationPageRequest
 import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
 import no.nav.nks_ai.api.core.message.MessageId
 import no.nav.nks_ai.api.core.user.NavIdent
@@ -299,13 +296,6 @@ class ConversationWebSocketTest {
             disconnections.incrementAndGet()
             return Unit.right()
         }
-
-        override suspend fun getActiveConversations(
-            owner: NavIdent,
-            request: ActiveConversationPageRequest,
-        ): ApplicationResult<Page<ActiveConversation>> = error("Not used by this test")
-
-        override suspend fun getStatistics() = error("Not used by this test")
 
         override suspend fun deleteExpiredConnections() = error("Not used by this test")
     }

@@ -1,7 +1,6 @@
 package no.nav.nks_ai.api.core.conversation.active
 
 import no.nav.nks_ai.api.app.ApplicationResult
-import no.nav.nks_ai.api.app.Page
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.user.NavIdent
 import java.util.UUID
@@ -14,13 +13,6 @@ interface ActiveConversationService {
     suspend fun renew(connectionId: UUID): ApplicationResult<Unit>
 
     suspend fun disconnect(connectionId: UUID): ApplicationResult<Unit>
-
-    suspend fun getActiveConversations(
-        owner: NavIdent,
-        request: ActiveConversationPageRequest,
-    ): ApplicationResult<Page<ActiveConversation>>
-
-    suspend fun getStatistics(): ApplicationResult<ActiveConversationStatistics>
 
     suspend fun deleteExpiredConnections(): ApplicationResult<Int>
 
@@ -39,11 +31,6 @@ private class DefaultActiveConversationService : ActiveConversationService {
     override suspend fun renew(connectionId: UUID) = ActiveConversationRepo.renew(connectionId)
 
     override suspend fun disconnect(connectionId: UUID) = ActiveConversationRepo.disconnect(connectionId)
-
-    override suspend fun getActiveConversations(owner: NavIdent, request: ActiveConversationPageRequest) =
-        ActiveConversationRepo.getActiveConversations(owner, request)
-
-    override suspend fun getStatistics() = ActiveConversationStatisticsRepo.getStatistics()
 
     override suspend fun deleteExpiredConnections() = ActiveConversationRepo.deleteExpiredConnections()
 }

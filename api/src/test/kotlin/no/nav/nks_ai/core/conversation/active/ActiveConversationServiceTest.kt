@@ -4,11 +4,10 @@ import io.ktor.client.request.get
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.core.conversation.Conversation
+import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.conversation.ConversationRepo
 import no.nav.nks_ai.api.core.conversation.NewConversation
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversationPageRequest
 import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversationSort
 import no.nav.nks_ai.api.core.user.NavIdent
 import no.nav.nks_ai.testutil.TestDatabase
 import no.nav.nks_ai.testutil.testApp
@@ -24,32 +23,33 @@ import kotlin.test.assertTrue
 
 class ActiveConversationServiceTest {
     @Test
-    fun `multiple tabs are deduplicated and reconnect is independent of old disconnect`() = activeTest {
+    fun `multiple tabs and reconnect are independent of old disconnect`() = activeTest {
         val conversation = conversations.first()
         val first = service.connect(conversation.id, owner).value()
         val sameOwner = NavIdent("T200001")
         assertNotEquals(owner.hash, sameOwner.hash)
         val second = service.connect(conversation.id, sameOwner).value()
         assertNotEquals(first, second)
-        assertEquals(listOf(conversation.id), page().data.map { it.id })
-        assertEquals(1L, page().total)
+        assertEquals(setOf(first, second), connectionIds(conversation.id))
 
         service.disconnect(first).value()
         service.disconnect(first).value()
-        assertEquals(1L, page().total)
+        assertEquals(setOf(second), connectionIds(conversation.id))
+        service.renew(second).value()
         service.disconnect(second).value()
-        assertEquals(0L, page().total)
+        assertTrue(connectionIds(conversation.id).isEmpty())
         assertIs<ApplicationError.ActiveConnectionExpired>(service.renew(second).leftOrNull())
     }
 
     @Test
-    fun `wrong owner cannot register or list another users conversations`() = activeTest {
+    fun `wrong owner cannot register another users conversation`() = activeTest {
         val other = NavIdent("T200002")
         assertIs<ApplicationError.ConversationNotFound>(
             service.connect(conversations.first().id, other).leftOrNull()
         )
-        service.connect(conversations.first().id, owner).value()
-        assertEquals(0L, service.getActiveConversations(other, ActiveConversationPageRequest()).value().total)
+        assertTrue(connectionIds(conversations.first().id).isEmpty())
+        val connectionId = service.connect(conversations.first().id, owner).value()
+        assertEquals(setOf(connectionId), connectionIds(conversations.first().id))
     }
 
     @Test
@@ -61,95 +61,29 @@ class ActiveConversationServiceTest {
 
         assertIs<ApplicationError.ActiveConnectionExpired>(service.renew(expired).leftOrNull())
         service.renew(live).value()
-        assertEquals(listOf(conversations[0].id), page().data.map { it.id })
         assertEquals(1, service.deleteExpiredConnections().value())
         assertEquals(0, service.deleteExpiredConnections().value())
+        assertEquals(setOf(live), connectionIds(conversations[0].id))
+        assertTrue(connectionIds(conversations[1].id).isEmpty())
         service.renew(live).value()
         assertIs<ApplicationError.ActiveConnectionExpired>(service.renew(expired).leftOrNull())
     }
 
     @Test
-    fun `all sort orders use live connections and total is independent of page size`() = activeTest {
-        val ids = conversations.map { it.id }
-        for ((index, conversation) in conversations.withIndex()) {
-            database.prepareStatement(
-                "update conversations set created_at = current_timestamp - (? * interval '1 second') where id = ?"
-            ).use {
-                it.setInt(1, 300 - index * 100)
-                it.setObject(2, conversation.id.value)
-                it.executeUpdate()
-            }
-            val connectionId = service.connect(conversation.id, owner).value()
-            age(connectionId, listOf(20, 10, 30)[index], 0)
-        }
-        age(service.connect(ids[0], owner).value(), 5, 0)
-        age(service.connect(ids[1], owner).value(), 600, 600)
-
-        val expected = mapOf(
-            ActiveConversationSort.CREATED_AT_ASC to ids,
-            ActiveConversationSort.CREATED_AT_DESC to ids.reversed(),
-            ActiveConversationSort.CONNECTED_AT_ASC to listOf(ids[2], ids[0], ids[1]),
-            ActiveConversationSort.CONNECTED_AT_DESC to listOf(ids[1], ids[0], ids[2]),
-        )
-        for ((sort, order) in expected) {
-            val actual = service.getActiveConversations(owner, ActiveConversationPageRequest(sort = sort)).value()
-            assertEquals(order, actual.data.map { it.id })
-            assertEquals(3L, actual.total)
-            val middle = service.getActiveConversations(owner, ActiveConversationPageRequest(1, 1, sort)).value()
-            assertEquals(listOf(order[1]), middle.data.map { it.id })
-            assertEquals(3L, middle.total)
-        }
-        val beyondLast = service.getActiveConversations(owner, ActiveConversationPageRequest(100, 1)).value()
-        assertTrue(beyondLast.data.isEmpty())
-        assertEquals(3L, beyondLast.total)
-    }
-
-    @Test
-    fun `equal timestamps use stable conversation id ordering`() = activeTest {
-        for (conversation in conversations) {
-            val connectionId = service.connect(conversation.id, owner).value()
-            database.prepareStatement("update conversations set created_at = '2020-01-01' where id = ?").use {
-                it.setObject(1, conversation.id.value)
-                it.executeUpdate()
-            }
-            database.prepareStatement(
-                "update active_conversation_connections set created_at = '2020-01-01' where id = ?"
-            ).use {
-                it.setObject(1, connectionId)
-                it.executeUpdate()
-            }
-        }
-        for (sort in ActiveConversationSort.entries) {
-            assertEquals(
-                conversations.map { it.id }.sortedBy { it.value.toString() },
-                service.getActiveConversations(owner, ActiveConversationPageRequest(sort = sort)).value().data.map { it.id },
-            )
-        }
-    }
-
-    @Test
-    fun `deleting a conversation removes connections and statistics count unique conversations`() = activeTest {
-        val baseline = service.getStatistics().value()
+    fun `deleting a conversation removes only its connections`() = activeTest {
         val first = service.connect(conversations[0].id, owner).value()
-        service.connect(conversations[0].id, owner).value()
-        service.connect(conversations[1].id, owner).value()
-        val actual = service.getStatistics().value()
-        assertEquals(baseline.conversations + 2, actual.conversations)
-        assertEquals(baseline.connections + 3, actual.connections)
-        ConversationRepo.deleteConversation(conversations[0].id, owner).value()
-        assertIs<ApplicationError.ActiveConnectionExpired>(service.renew(first).leftOrNull())
-        assertEquals(1L, page().total)
-    }
+        val second = service.connect(conversations[0].id, owner).value()
+        val other = service.connect(conversations[1].id, owner).value()
+        assertEquals(setOf(first, second), connectionIds(conversations[0].id))
+        assertEquals(setOf(other), connectionIds(conversations[1].id))
 
-    @Test
-    fun `invalid pagination is rejected`() = activeTest {
-        for (request in listOf(
-            ActiveConversationPageRequest(page = -1),
-            ActiveConversationPageRequest(size = 0),
-            ActiveConversationPageRequest(size = 1001),
-        )) {
-            assertIs<ApplicationError.BadRequest>(service.getActiveConversations(owner, request).leftOrNull())
-        }
+        ConversationRepo.deleteConversation(conversations[0].id, owner).value()
+
+        assertTrue(connectionIds(conversations[0].id).isEmpty())
+        assertEquals(setOf(other), connectionIds(conversations[1].id))
+        assertIs<ApplicationError.ActiveConnectionExpired>(service.renew(first).leftOrNull())
+        assertIs<ApplicationError.ActiveConnectionExpired>(service.renew(second).leftOrNull())
+        service.renew(other).value()
     }
 
     private fun activeTest(block: suspend Fixture.() -> Unit) = testApp { client ->
@@ -177,7 +111,17 @@ class ActiveConversationServiceTest {
         val conversations: List<Conversation>,
         val database: Connection,
     ) {
-        suspend fun page() = service.getActiveConversations(owner, ActiveConversationPageRequest()).value()
+        fun connectionIds(conversationId: ConversationId): Set<UUID> =
+            database.prepareStatement(
+                "select id from active_conversation_connections where conversation_id = ?"
+            ).use { statement ->
+                statement.setObject(1, conversationId.value)
+                statement.executeQuery().use { result ->
+                    buildSet {
+                        while (result.next()) add(result.getObject("id", UUID::class.java))
+                    }
+                }
+            }
 
         fun age(connectionId: UUID, createdSeconds: Int, updatedSeconds: Int) {
             database.prepareStatement(
