@@ -155,7 +155,6 @@ fun Application.module() {
         messageService = messageService,
         sendMessageService = sendMessageService,
         conversationEventBus = conversationEventBus,
-        activeConversationService = activeConversationService,
         backgroundScope = this,
     )
 

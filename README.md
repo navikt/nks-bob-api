@@ -22,8 +22,8 @@ Serveren kjøres på http://localhost:8080.
 
 ## Aktive samtaler
 
-Grunnlaget for aktive samtaler ligger i `core/conversation/active` og
-`core/integration`. Flyway-migrasjon `V29` oppretter en tabell med én rad per
+Grunnlaget for aktive forbindelser ligger i `core/conversation/active`.
+Integrasjons-API-et bruker ikke registeret. Flyway-migrasjon `V29` oppretter en tabell med én rad per
 WebSocket-forbindelse, bcrypt-eier og tidsstempler. Tabellen har ingen unik
 begrensning per bruker/samtale, siden flere faner kan holde samme samtale åpen.
 
@@ -74,11 +74,44 @@ pågående behandling og venter på opprydding.
 ### Integrasjonsendepunkter
 
 `IntegrationConversationService` er nå koblet inn i `Application.module()` og
-eksponert via `POST {ROOT}` og `POST {ROOT}/{id}/messages`
+eksponert via `POST {ROOT}`
 (`ROOT = /api/v1/integrations/users/{navIdent}/conversations`, se
 `core/integration/Api.kt`). `shutdown()` kalles og avventes (`runBlocking`) i
 en `ApplicationStopping`-handler, slik at den fullfører før database,
 HTTP-klienter og Kafka lukkes i `ApplicationStopped`.
+
+Salesforce oppretter en ny samtale med `title` og `initialMessage`. Hver
+opprettelse gir en ny samtale-ID; integrasjonen kan ikke velge en aktiv
+samtale eller legge meldinger i en eksisterende samtale. Rutene
+`POST {ROOT}/active` og `POST {ROOT}/{id}/messages` er fjernet.
+Den ordinære chatten kan fortsatt legge meldinger i eksisterende samtaler.
+Payloaden støtter fortsatt opprettelse uten initialmelding.
+
+Frontend-varsling er ikke implementert i dette repoet. Frontend må oppdage
+nye samtaler og vise en lenke uten å bytte samtale automatisk. Eksisterende
+WebSocket-strøm gjelder én samtale og varsler ikke om nye samtaler.
+Et mulig første steg er å oppdatere den innloggede brukerens samtaleliste
+mens appen er synlig og ved retur til fanen. Første innlasting må ikke varsle
+om alle historiske samtaler. Dette gir ikke varige varsler eller et skille
+mellom Salesforce-samtaler og samtaler opprettet i andre faner.
+
+Opprettelse har ingen idempotensnøkkel. En gjentatt POST kan opprette en
+duplikat samtale, også hvis klienten ikke mottok svaret på første forsøk.
+Salesforce må ikke innføre automatisk retry uten en avtalt løsning for dette.
+
+Før deployment må Salesforce slutte å kalle de fjernede rutene. Verifiser
+i dev at to opprettelser gir ulike samtaler, at en eksisterende samtale
+ikke endres, og at vanlig chat og WebSocket-strømming fortsatt virker.
+Bruk syntetiske testdata. Frontend-varsling må verifiseres separat i
+frontend-repoet før hele brukerflyten er klar.
+
+Forbindelsesregisteret, cleanup-jobben og V29 beholdes i denne endringen.
+Ikke stopp cleanup mens registeret fortsatt brukes eller inneholder rader
+som skal utløpe. Ingen databasemigrasjon eller auth-endring inngår, så
+rollback av backend-koden krever ikke rollback av databaseskjemaet.
+Rollback må samordnes med Salesforce. Følg med på feil ved opprettelse og
+oppstart av behandling gjennom eksisterende logger og metrikker, uten
+mottaker eller meldingsinnhold som labels.
 
 Rutene er beskyttet av et nytt auth-scheme, `authenticate("Maskinporten")`
 (`app/plugins/Security.kt`), som validerer et Maskinporten-utstedt token mot et

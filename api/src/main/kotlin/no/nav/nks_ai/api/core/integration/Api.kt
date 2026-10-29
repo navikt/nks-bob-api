@@ -15,19 +15,13 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.openapi.describe
 import io.ktor.server.routing.post
-import io.ktor.server.routing.query
 import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CancellationException
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
-import no.nav.nks_ai.api.app.Page
 import no.nav.nks_ai.api.core.conversation.NewConversation
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversation
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversationPageRequest
-import no.nav.nks_ai.api.core.conversation.conversationId
-import no.nav.nks_ai.api.core.message.NewMessage
 
 private val logger = KotlinLogging.logger { }
 
@@ -87,104 +81,6 @@ fun Route.integrationConversationRoutes(
                 HttpStatusCode.InternalServerError {
                     schema = jsonSchema<IntegrationProblem>()
                     description = "An unexpected error occurred"
-                }
-            }
-        }
-
-        route("/active") {
-//            query { TODO
-            post {
-                call.respondIntegrationEither(HttpStatusCode.OK) {
-                    val navIdent = call.pathNavIdent().bind()
-                    val request = call.receive<ActiveConversationPageRequest>()
-                    service.getActiveConversations(navIdent, request).bind().right()
-                }
-            }.describe {
-                description = "Get all active conversations for a user"
-                parameters {
-                    path("navIdent") {
-                        schema = jsonSchema<String>()
-                        description = "The NAV-ident of the veileder that owns the conversation"
-                    }
-                }
-                requestBody {
-                    schema = jsonSchema<ActiveConversationPageRequest>()
-                    description = "Paginated request"
-                }
-                responses {
-                    HttpStatusCode.OK {
-                        schema = jsonSchema<Page<ActiveConversation>>()
-                        description = "A page of active conversations"
-                    }
-                    HttpStatusCode.ServiceUnavailable {
-                        schema = jsonSchema<IntegrationProblem>()
-                        description = "Could not find active conversations"
-                    }
-                    HttpStatusCode.BadRequest {
-                        schema = jsonSchema<IntegrationProblem>()
-                        description = "Malformed request body"
-                    }
-                    HttpStatusCode.UnsupportedMediaType {
-                        schema = jsonSchema<IntegrationProblem>()
-                        description = "Content-Type must be application/json"
-                    }
-                    HttpStatusCode.InternalServerError {
-                        schema = jsonSchema<IntegrationProblem>()
-                        description = "An unexpected error occurred"
-                    }
-                }
-            }
-        }
-
-        route("/{id}/messages") {
-            post {
-                call.respondIntegrationEither(HttpStatusCode.Accepted) {
-                    val navIdent = call.pathNavIdent().bind()
-                    val conversationId = call.conversationId().bind()
-                    val newMessage = call.receive<NewMessage>()
-                    service.createMessage(navIdent, conversationId, newMessage).bind().right()
-                }
-            }.describe {
-                description = "Create a new message in an existing conversation (integration)"
-                parameters {
-                    path("navIdent") {
-                        schema = jsonSchema<String>()
-                        description = "The NAV-ident of the veileder that owns the conversation"
-                    }
-                    path("id") {
-                        schema = jsonSchema<String>()
-                        description = "The ID of the conversation"
-                    }
-                }
-                requestBody {
-                    schema = jsonSchema<NewMessage>()
-                    description = "The message to be created"
-                }
-                responses {
-                    HttpStatusCode.Accepted {
-                        schema = jsonSchema<AcceptedIntegrationMessage>()
-                        description = "The message was accepted and processing has started"
-                    }
-                    HttpStatusCode.Conflict {
-                        schema = jsonSchema<IntegrationProblem>()
-                        description = "The message was saved, but processing did not start. Do not retry."
-                    }
-                    HttpStatusCode.BadRequest {
-                        schema = jsonSchema<IntegrationProblem>()
-                        description = "Invalid request"
-                    }
-                    HttpStatusCode.NotFound {
-                        schema = jsonSchema<IntegrationProblem>()
-                        description = "Conversation not found"
-                    }
-                    HttpStatusCode.UnsupportedMediaType {
-                        schema = jsonSchema<IntegrationProblem>()
-                        description = "Content-Type must be application/json"
-                    }
-                    HttpStatusCode.InternalServerError {
-                        schema = jsonSchema<IntegrationProblem>()
-                        description = "An unexpected error occurred"
-                    }
                 }
             }
         }

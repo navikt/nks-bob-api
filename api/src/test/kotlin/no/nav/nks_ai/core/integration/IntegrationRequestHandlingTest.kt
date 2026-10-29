@@ -15,18 +15,13 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
-import no.nav.nks_ai.api.app.Page
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.conversation.Conversation
 import no.nav.nks_ai.api.core.conversation.NewConversation
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversation
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversationPageRequest
-import no.nav.nks_ai.api.core.integration.AcceptedIntegrationMessage
 import no.nav.nks_ai.api.core.integration.IntegrationConversationService
 import no.nav.nks_ai.api.core.integration.IntegrationProblem
 import no.nav.nks_ai.api.core.integration.integrationConversationRoutes
 import no.nav.nks_ai.api.core.message.MessageId
-import no.nav.nks_ai.api.core.message.NewMessage
 import no.nav.nks_ai.api.core.user.NavIdent
 import java.util.UUID
 import kotlin.test.Test
@@ -64,9 +59,9 @@ class IntegrationRequestHandlingTest {
     @Test
     fun `unexpected integration error does not expose exception details`() {
         withService(StubService(failure = IllegalStateException("private request data"))) { client ->
-            client.post("$root/${UUID.randomUUID()}/messages") {
+            client.post(root) {
                 contentType(ContentType.Application.Json)
-                setBody("""{"content":"Hello"}""")
+                setBody("""{"title":"Test","initialMessage":null}""")
             }.apply {
                 assertEquals(HttpStatusCode.InternalServerError, status)
                 val problem = body<IntegrationProblem>()
@@ -77,17 +72,17 @@ class IntegrationRequestHandlingTest {
     }
 
     @Test
-    fun `persisted message processing failure returns conflict and ids`() {
+    fun `initial message processing failure returns conflict and ids`() {
         val conversationId = ConversationId(UUID.randomUUID())
         val messageId = MessageId(UUID.randomUUID())
         val service = StubService(
-            messageResult = ApplicationError.MessageProcessingNotStarted(conversationId, messageId).left(),
+            conversationResult = ApplicationError.MessageProcessingNotStarted(conversationId, messageId).left(),
         )
 
         withService(service) { client ->
-            client.post("$root/${conversationId.value}/messages") {
+            client.post(root) {
                 contentType(ContentType.Application.Json)
-                setBody("""{"content":"Hello"}""")
+                setBody("""{"title":"Test","initialMessage":{"content":"Hello"}}""")
             }.apply {
                 assertEquals(HttpStatusCode.Conflict, status)
                 val problem = body<IntegrationProblem>()
@@ -100,6 +95,16 @@ class IntegrationRequestHandlingTest {
                     problem.detail,
                 )
             }
+        }
+    }
+
+    @Test
+    fun `active and existing conversation message routes are not registered`() = withService(StubService()) { client ->
+        client.post("$root/active").apply {
+            assertEquals(HttpStatusCode.NotFound, status)
+        }
+        client.post("$root/${UUID.randomUUID()}/messages").apply {
+            assertEquals(HttpStatusCode.NotFound, status)
         }
     }
 
@@ -124,25 +129,14 @@ class IntegrationRequestHandlingTest {
     }
 
     private class StubService(
-        private val messageResult: ApplicationResult<AcceptedIntegrationMessage>? = null,
+        private val conversationResult: ApplicationResult<Conversation>? = null,
         private val failure: Exception? = null,
     ) : IntegrationConversationService {
         override suspend fun createConversation(
             owner: NavIdent,
             conversation: NewConversation,
-        ): ApplicationResult<Conversation> = error("Not used by this test")
-
-        override suspend fun createMessage(
-            owner: NavIdent,
-            conversationId: ConversationId,
-            message: NewMessage,
-        ): ApplicationResult<AcceptedIntegrationMessage> =
-            failure?.let { throw it } ?: checkNotNull(messageResult) { "Unexpected createMessage call" }
-
-        override suspend fun getActiveConversations(
-            owner: NavIdent,
-            request: ActiveConversationPageRequest,
-        ): ApplicationResult<Page<ActiveConversation>> = error("Not used by this test")
+        ): ApplicationResult<Conversation> =
+            failure?.let { throw it } ?: checkNotNull(conversationResult) { "Unexpected createConversation call" }
 
         override suspend fun shutdown() = Unit
     }

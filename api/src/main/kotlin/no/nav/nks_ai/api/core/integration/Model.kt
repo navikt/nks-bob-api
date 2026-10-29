@@ -10,12 +10,6 @@ import no.nav.nks_ai.api.core.user.NavIdent
 import arrow.core.raise.either
 
 @Serializable
-data class AcceptedIntegrationMessage(
-    val conversationId: ConversationId,
-    val messageId: MessageId,
-)
-
-@Serializable
 data class IntegrationProblem(
     val title: String,
     val status: Int,

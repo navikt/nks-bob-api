@@ -46,32 +46,28 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 
 class IntegrationConversationServiceTest {
     @Test
-    fun `wrong owner is rejected before content processing and writing`() = integrationTest {
+    fun `invalid owner is rejected before content processing and writing`() = integrationTest {
         every { toggles.isVaskemaskinAnonymizationEnabled() } returns true
-        val result = service.createMessage(NavIdent("T300002"), existing.id, NewMessage("Do not process"))
+        val result = service.createConversation(
+            NavIdent("not-an-ident"),
+            NewConversation("Do not process", NewMessage("Question")),
+        )
 
-        assertIs<ApplicationError.ConversationNotFound>(result.leftOrNull())
+        assertIs<ApplicationError.BadRequest>(result.leftOrNull())
         assertTrue(MessageRepo.getMessagesByConversation(existing.id).value().isEmpty())
         coVerify(exactly = 0) { vaskemaskin.anonymize(any()) }
         coVerify(exactly = 0) { vaskemaskin.detect(any()) }
         coVerify(exactly = 0) { sender.askQuestion(any(), any(), any(), any()) }
-        assertIs<ApplicationError.ConversationNotFound>(
-            MessageRepo.addQuestion(existing.id, NavIdent("T300002"), "Denied at repository").leftOrNull()
-        )
     }
 
     @Test
     fun `invalid input is rejected without writing resources`() = integrationTest {
-        for (content in listOf("", "   ", "x".repeat(20_001))) {
-            assertIs<ApplicationError.BadRequest>(
-                service.createMessage(owner, existing.id, NewMessage(content)).leftOrNull()
-            )
-        }
         for (title in listOf("", "  ", "x".repeat(256))) {
             assertIs<ApplicationError.BadRequest>(
                 service.createConversation(owner, NewConversation(title, null)).leftOrNull()
@@ -81,11 +77,30 @@ class IntegrationConversationServiceTest {
             service.createConversation(owner, NewConversation("Valid title", NewMessage(" "))).leftOrNull()
         )
         assertIs<ApplicationError.BadRequest>(
-            service.createMessage(NavIdent("not-an-ident"), existing.id, NewMessage("Question")).leftOrNull()
+            service.createConversation(
+                owner,
+                NewConversation("Valid title", NewMessage("x".repeat(20_001))),
+            ).leftOrNull()
         )
         assertEquals(1, ConversationRepo.getAllConversations(owner).value().size)
         assertTrue(MessageRepo.getMessagesByConversation(existing.id).value().isEmpty())
         coVerify(exactly = 0) { sender.askQuestion(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `separate creations have different ids and leave an existing conversation unchanged`() = integrationTest {
+        val existingMessage = MessageRepo.addQuestion(existing.id, owner, "Existing question").value()
+        val existingBefore = ConversationRepo.getConversation(existing.id, owner).value()
+
+        val first = service.createConversation(owner, NewConversation("First new conversation", null)).value()
+        val second = service.createConversation(owner, NewConversation("Second new conversation", null)).value()
+
+        assertNotEquals(first.id, second.id)
+        assertEquals(existingBefore, ConversationRepo.getConversation(existing.id, owner).value())
+        assertEquals(listOf(existingMessage), MessageRepo.getMessagesByConversation(existing.id).value())
+        assertTrue(MessageRepo.getMessagesByConversation(first.id).value().isEmpty())
+        assertTrue(MessageRepo.getMessagesByConversation(second.id).value().isEmpty())
+        assertEquals(3, ConversationRepo.getAllConversations(owner).value().size)
     }
 
     @Test
@@ -159,7 +174,7 @@ class IntegrationConversationServiceTest {
     }
 
     @Test
-    fun `accepted processing survives the request scope and does not require an active conversation`() = integrationTest {
+    fun `initial message processing survives the request scope and does not require an active conversation`() = integrationTest {
         val started = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()
         val finished = CompletableDeferred<Unit>()
@@ -170,11 +185,11 @@ class IntegrationConversationServiceTest {
         }.right()
         val requestJob = Job()
         try {
-            val accepted = withContext(requestJob) {
-                service.createMessage(owner, existing.id, NewMessage("Question")).value()
+            val created = withContext(requestJob) {
+                service.createConversation(owner, NewConversation("New conversation", NewMessage("Question"))).value()
             }
-            assertEquals(existing.id, accepted.conversationId)
-            assertEquals("Question", messages.getMessage(accepted.messageId).value().content)
+            val question = MessageRepo.getMessagesByConversation(created.id).value().single()
+            assertEquals("Question", messages.getMessage(question.id).value().content)
             withTimeout(5_000.milliseconds) { started.await() }
             requestJob.cancelAndJoin()
             assertFalse(finished.isCompleted)
@@ -197,9 +212,12 @@ class IntegrationConversationServiceTest {
                 if (!duringCollection) throw IllegalStateException("Sensitive upstream detail")
                 flow<ConversationEvent> { throw IllegalStateException("Sensitive upstream detail") }.right()
             }
-            val accepted = service.createMessage(owner, existing.id, NewMessage("Question")).value()
+            val created = service.createConversation(
+                owner,
+                NewConversation("New conversation", NewMessage("Question")),
+            ).value()
             withTimeout(5_000) { published.await() }
-            val failed = messages.getMessage(accepted.messageId).value()
+            val failed = MessageRepo.getMessagesByConversation(created.id).value().single()
             assertFalse(failed.pending)
             assertTrue(failed.errors.isNotEmpty())
             assertTrue(failed.errors.none { it.description.contains("Sensitive upstream detail") })
@@ -215,58 +233,73 @@ class IntegrationConversationServiceTest {
         }
         coEvery { sender.askQuestion(any(), any(), any(), any()) } returns
             ApplicationError.InternalServerError("Unavailable", "Failed to create answer").left()
-        val accepted = service.createMessage(owner, existing.id, NewMessage("Question")).value()
+        val created = service.createConversation(
+            owner,
+            NewConversation("New conversation", NewMessage("Question")),
+        ).value()
         withTimeout(5_000.milliseconds) { published.await() }
-        assertTrue(messages.getMessage(accepted.messageId).value().errors.isNotEmpty())
+        assertTrue(MessageRepo.getMessagesByConversation(created.id).value().single().errors.isNotEmpty())
     }
 
     @Test
-    fun `shutdown marks an interrupted answer as failed and waits for cleanup`() = integrationTest {
+    fun `shutdown marks an interrupted initial answer as failed and waits for cleanup`() = integrationTest {
         val started = CompletableDeferred<MessageId>()
         coEvery { sender.askQuestion(any(), any(), any(), any()) } coAnswers {
-            val answer = messages.addEmptyAnswer(existing.id).value()
+            val conversationId = secondArg<no.nav.nks_ai.api.core.conversation.ConversationId>()
+            val answer = messages.addEmptyAnswer(conversationId).value()
             arg<(MessageId) -> Unit>(3)(answer.id)
             flow<ConversationEvent> {
                 started.complete(answer.id)
                 awaitCancellation()
             }.right()
         }
-        service.createMessage(owner, existing.id, NewMessage("Question")).value()
+        service.createConversation(
+            owner,
+            NewConversation("New conversation", NewMessage("Question")),
+        ).value()
         val answerId = withTimeout(5_000.milliseconds) { started.await() }
         service.shutdown()
         val failed = messages.getMessage(answerId).value()
         assertFalse(failed.pending)
         assertTrue(failed.errors.isNotEmpty())
-        assertTrue(service.createMessage(owner, existing.id, NewMessage("Too late")).isLeft())
+        assertTrue(
+            service.createConversation(owner, NewConversation("Too late", NewMessage("Question"))).isLeft()
+        )
     }
 
     @Test
     fun `immediate shutdown also records failure for an accepted task waiting to run`() = integrationTest {
         coEvery { sender.askQuestion(any(), any(), any(), any()) } returns
             flow<ConversationEvent> { awaitCancellation() }.right()
-        val accepted = service.createMessage(owner, existing.id, NewMessage("Question")).value()
+        val created = service.createConversation(
+            owner,
+            NewConversation("New conversation", NewMessage("Question")),
+        ).value()
         service.shutdown()
-        assertTrue(messages.getMessage(accepted.messageId).value().errors.isNotEmpty())
+        assertTrue(MessageRepo.getMessagesByConversation(created.id).value().single().errors.isNotEmpty())
     }
 
     @Test
     fun `rejected handoff reports the persisted resource ids instead of success`() = integrationTest {
         val controlledMessages = mockk<MessageService>()
-        coEvery { controlledMessages.addQuestion(any(), any(), any()) } coAnswers {
-            messages.addQuestion(existing.id, owner, thirdArg()).also { parent.cancel() }
+        coEvery { controlledMessages.addConversationWithQuestion(any(), any(), any()) } coAnswers {
+            messages.addConversationWithQuestion(firstArg(), secondArg(), thirdArg()).also { parent.cancel() }
         }
         coEvery { controlledMessages.updateMessageError(any(), any(), any()) } coAnswers {
             messages.updateMessageError(MessageId(firstArg()), secondArg(), thirdArg())
         }
         val controlledService = IntegrationConversationService.create(
-            ConversationService(), controlledMessages, sender, events, ActiveConversationService.create(), CoroutineScope(parent),
+            ConversationService(), controlledMessages, sender, events, CoroutineScope(parent),
         )
         try {
             val error = assertIs<ApplicationError.MessageProcessingNotStarted>(
-                controlledService.createMessage(owner, existing.id, NewMessage("Saved before shutdown")).leftOrNull()
+                controlledService.createConversation(
+                    owner,
+                    NewConversation("New before shutdown", NewMessage("Saved before shutdown")),
+                ).leftOrNull()
             )
             assertEquals(HttpStatusCode.Conflict, error.code)
-            assertEquals(existing.id, error.conversationId)
+            assertNotEquals(existing.id, error.conversationId)
             val saved = messages.getMessage(error.messageId).value()
             assertEquals("Saved before shutdown", saved.content)
             assertTrue(saved.errors.isNotEmpty())
@@ -304,7 +337,7 @@ class IntegrationConversationServiceTest {
         }
         val events = mockk<ConversationEventBus>(relaxed = true)
         val service = IntegrationConversationService.create(
-            ConversationService(), messages, sender, events, ActiveConversationService.create() ,CoroutineScope(parent),
+            ConversationService(), messages, sender, events, CoroutineScope(parent),
         )
         lateinit var existing: Conversation
     }
