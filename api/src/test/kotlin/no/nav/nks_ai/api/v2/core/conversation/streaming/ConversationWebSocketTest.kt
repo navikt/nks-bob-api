@@ -46,6 +46,7 @@ class ConversationWebSocketTest {
         fixture.start()
         val bus = fixture.bus
         val historyEvent = ConversationEvent.ContentUpdated(MessageId(UUID.randomUUID()), "history")
+        val createdEvent = ConversationEvent.ConversationCreated
         val liveEvent = ConversationEvent.ContentUpdated(MessageId(UUID.randomUUID()), "live")
         bus.recordEvent(
             ConversationEventRecord(
@@ -104,12 +105,19 @@ class ConversationWebSocketTest {
                 ConversationEventRecord(
                     offset = 11,
                     timestamp = System.currentTimeMillis(),
-                    idEvent = ConversationIdEvent(otherConversationId, historyEvent),
+                    idEvent = ConversationIdEvent(conversationId, createdEvent),
                 )
             )
             bus.recordEvent(
                 ConversationEventRecord(
                     offset = 12,
+                    timestamp = System.currentTimeMillis(),
+                    idEvent = ConversationIdEvent(otherConversationId, historyEvent),
+                )
+            )
+            bus.recordEvent(
+                ConversationEventRecord(
+                    offset = 13,
                     timestamp = System.currentTimeMillis(),
                     idEvent = ConversationIdEvent(conversationId, liveEvent),
                 )

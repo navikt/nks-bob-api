@@ -143,7 +143,10 @@ fun Route.conversationWebSocketV2(
                     val overflowed = AtomicBoolean(false)
                     val liveEventsJob = launch {
                         conversationEventBus.events
-                            .filter { it.idEvent.conversationId == conversationId }
+                            .filter {
+                                it.idEvent.conversationId == conversationId &&
+                                    it.idEvent.event !is ConversationEvent.ConversationCreated
+                            }
                             .collect {
                                 if (liveEvents.trySend(it).isFailure) {
                                     overflowed.set(true)
@@ -163,6 +166,7 @@ fun Route.conversationWebSocketV2(
                     val history = conversationEventBus.history(conversationId)
                     for (record in history) {
                         if (overflowed.get()) break
+                        if (record.idEvent.event is ConversationEvent.ConversationCreated) continue
                         send(Frame.Text(Json.encodeToString(record.idEvent.event)))
                     }
                     val lastHistoryOffset = history.lastOrNull()?.offset ?: -1L

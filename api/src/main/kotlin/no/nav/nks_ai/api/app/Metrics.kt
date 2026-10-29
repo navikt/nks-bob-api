@@ -15,6 +15,22 @@ internal val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DE
 private const val METRICS_NS = "nksbobapi"
 
 object MetricRegister {
+    val notificationWebsocketConnections: Gauge = Gauge.builder()
+        .name("${METRICS_NS}_notification_websocket_connections")
+        .help("Active conversation notification websocket connections")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    val notificationsSent: Counter = Counter.builder()
+        .name("${METRICS_NS}_conversation_notifications_sent")
+        .help("Conversation creation notifications sent to websocket clients")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
+    val notificationStreamFailures: Counter = Counter.builder()
+        .name("${METRICS_NS}_notification_stream_failures")
+        .help("Conversation notification stream failures")
+        .labelNames("reason")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
     val kafkaPublishFailures: Counter = Counter.builder()
         .name("${METRICS_NS}_kafka_publish_failures")
         .help("Conversation events not delivered to Kafka")

@@ -87,13 +87,60 @@ samtale eller legge meldinger i en eksisterende samtale. Rutene
 Den ordinære chatten kan fortsatt legge meldinger i eksisterende samtaler.
 Payloaden støtter fortsatt opprettelse uten initialmelding.
 
-Frontend-varsling er ikke implementert i dette repoet. Frontend må oppdage
-nye samtaler og vise en lenke uten å bytte samtale automatisk. Eksisterende
-WebSocket-strøm gjelder én samtale og varsler ikke om nye samtaler.
-Et mulig første steg er å oppdatere den innloggede brukerens samtaleliste
-mens appen er synlig og ved retur til fanen. Første innlasting må ikke varsle
-om alle historiske samtaler. Dette gir ikke varige varsler eller et skille
-mellom Salesforce-samtaler og samtaler opprettet i andre faner.
+### WebSocket-varsling om nye integrasjonssamtaler
+
+Frontend kan abonnere på `GET /api/v2/conversations/notifications/ws` med
+WebSocket-upgrade, gjennom samme innloggingsmekanisme som vanlig chat.
+Ruten krever bruker-token med `NAVident` og fremtidig `exp`, samt en
+`Origin` fra samme allowlist som CORS. Ikke legg token i URL.
+Forbindelsen lukkes når tokenet utløper.
+
+Etter at integrasjonen har lagret en ny samtale, mottar tilkoblede klienter
+for samtalens eier en tekst-frame:
+
+```json
+{"type":"ConversationCreated","conversationId":"00000000-0000-0000-0000-000000000001"}
+```
+
+Varslet inneholder verken mottaker, tittel eller meldingsinnhold. Backend
+publiserer også når samtalen er lagret, men etterfølgende KBS-behandling
+ikke starter. Feil før lagring gir ikke varsel. Samtaler opprettet gjennom
+den ordinære chatten utløser ikke dette varslet.
+
+Kafka distribuerer hendelsen til alle API-podder. Hver pod henter samtalens
+eierhash én gang per hendelse og sammenligner med de lokalt tilkoblede
+brukerne før sending. Hendelsen legges ikke i samtalenes replay-historikk
+og sendes ikke på den eksisterende meldings-WebSocketen.
+
+Varslingsstrømmen er live-only og best-effort, uten polling. Hendelser fra
+før oppkobling eller under nettverksbrudd, Kafka-feil eller deployment kan
+gå tapt. Det finnes ingen varig varslingsstatus eller levering ved neste
+innlogging. Samtalene ligger fortsatt i den vanlige historikken.
+
+Ruten tillater maksimalt 512 forbindelser per pod og fem per bruker per
+pod. Hver forbindelse har en buffer på 32 varsler. Ved manglende
+Kafka-readiness, eierskapsoppslagsfeil, full buffer eller kapasitetsgrense
+lukkes forbindelsen med kode `1013`. Klienten skal koble til igjen med
+eksponentiell backoff og jitter, uten å anta at tapte varsler spilles av.
+Den lokale fordeleren har plass til 128 ventende opprettelseshendelser.
+Hvis den mister hendelser ved overbelastning, lukkes varslingsforbindelsene
+med `1013` i stedet for at tapet skjules. En lokal sekvensgrense hindrer at
+en ny forbindelse får hendelser mottatt før forbindelsen ble registrert.
+Kode `1008` betyr blant annet manglende/utløpt brukeridentitet, avvist
+Origin eller at klienten sendte applikasjonsdata på server-push-strømmen.
+
+Frontend-koblingen gjenstår i `navikt/nks-bob-frontend`: Hold forbindelsen
+på appnivå, håndter tokenfornyelse og gjenoppkobling, og unngå doble varsler
+for samme samtale-ID. Vis en beskjed med en intern lenke til samtalen uten
+å bytte samtale automatisk. Når lenken følges, brukes eksisterende
+eierskapsbeskyttet REST og meldingsstrømming.
+
+Observerbarhet uten brukeridentifikatorer finnes i
+`nksbobapi_notification_websocket_connections`,
+`nksbobapi_conversation_notifications_sent_total` og
+`nksbobapi_notification_stream_failures_total` (fast `reason`-label).
+Kafka-publiseringsfeil telles fortsatt i
+`nksbobapi_kafka_publish_failures_total`.
 
 Opprettelse har ingen idempotensnøkkel. En gjentatt POST kan opprette en
 duplikat samtale, også hvis klienten ikke mottok svaret på første forsøk.
@@ -105,15 +152,21 @@ ikke endres, og at vanlig chat og WebSocket-strømming fortsatt virker.
 Bruk syntetiske testdata. Frontend-varsling må verifiseres separat i
 frontend-repoet før hele brukerflyten er klar.
 
+Deploy backend til alle podder før frontend tar varslingsruten i bruk.
+Verifiser med to brukere at bare riktig eier får varsel, også når
+opprettelse og WebSocket håndteres av ulike podder. Kontroller
+gjenoppkobling, tokenutløp og uendret meldingsstrømming. Ved rollback
+deaktiveres frontend-abonnementet før backend reverseres.
+
 Forbindelsesregisteret, cleanup-jobben og V29 beholdes i denne endringen.
 Ikke stopp cleanup mens registeret fortsatt brukes eller inneholder rader
-som skal utløpe. Ingen databasemigrasjon eller auth-endring inngår, så
+som skal utløpe. Ingen databasemigrasjon eller endring av tokenvalideringen inngår, så
 rollback av backend-koden krever ikke rollback av databaseskjemaet.
 Rollback må samordnes med Salesforce. Følg med på feil ved opprettelse og
 oppstart av behandling gjennom eksisterende logger og metrikker, uten
 mottaker eller meldingsinnhold som labels.
 
-Rutene er beskyttet av et nytt auth-scheme, `authenticate("Maskinporten")`
+Integrasjonens opprettelsesrute er beskyttet av `authenticate("Maskinporten")`
 (`app/plugins/Security.kt`), som validerer et Maskinporten-utstedt token mot et
 eget JWKS (`MaskinportenConfig`, env `MASKINPORTEN_ISSUER` / `MASKINPORTEN_JWKS_URI`
 — settes automatisk av Nais når `maskinporten.enabled: true`) og krever at

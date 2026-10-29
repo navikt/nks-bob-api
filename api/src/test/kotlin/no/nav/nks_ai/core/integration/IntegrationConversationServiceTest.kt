@@ -8,6 +8,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -84,6 +85,7 @@ class IntegrationConversationServiceTest {
         assertEquals(1, ConversationRepo.getAllConversations(owner).value().size)
         assertTrue(MessageRepo.getMessagesByConversation(existing.id).value().isEmpty())
         coVerify(exactly = 0) { sender.askQuestion(any(), any(), any(), any()) }
+        verify(exactly = 0) { events.publish(any(), ConversationEvent.ConversationCreated) }
     }
 
     @Test
@@ -109,6 +111,17 @@ class IntegrationConversationServiceTest {
         assertEquals(title, created.title)
         assertTrue(MessageRepo.getMessagesByConversation(created.id).value().isEmpty())
         coVerify(exactly = 0) { sender.askQuestion(any(), any(), any(), any()) }
+        verify(exactly = 1) { events.publish(created.id, ConversationEvent.ConversationCreated) }
+    }
+
+    @Test
+    fun `notification owner lookup returns the stored hash and rejects missing conversations`() = integrationTest {
+        val hash = ConversationRepo.getOwnerHash(existing.id).value()
+        assertTrue(owner.isVerified(hash))
+        assertFalse(NavIdent("T300002").isVerified(hash))
+        assertIs<ApplicationError.ConversationNotFound>(
+            ConversationRepo.getOwnerHash(ConversationId(java.util.UUID.randomUUID())).leftOrNull()
+        )
     }
 
     @Test
@@ -127,6 +140,7 @@ class IntegrationConversationServiceTest {
         assertEquals("Processed question", question.content)
         assertEquals(question.content, withTimeout(5_000) { started.await() })
         coVerify(exactly = 1) { vaskemaskin.anonymize("Original question") }
+        verify(exactly = 1) { events.publish(created.id, ConversationEvent.ConversationCreated) }
     }
 
     @Test
@@ -140,6 +154,7 @@ class IntegrationConversationServiceTest {
         )
         assertEquals(1, ConversationRepo.getAllConversations(owner).value().size)
         coVerify(exactly = 0) { sender.askQuestion(any(), any(), any(), any()) }
+        verify(exactly = 0) { events.publish(any(), ConversationEvent.ConversationCreated) }
     }
 
     @Test
@@ -159,6 +174,7 @@ class IntegrationConversationServiceTest {
                 assertTrue(result.isLeft())
                 assertEquals(listOf(existing.id), ConversationRepo.getAllConversations(owner).value().map { it.id })
                 coVerify(exactly = 0) { sender.askQuestion(any(), any(), any(), any()) }
+                verify(exactly = 0) { events.publish(any(), ConversationEvent.ConversationCreated) }
             } finally {
                 connection.createStatement().use {
                     it.execute("alter table messages drop constraint integration_initial_message_test")
@@ -296,6 +312,7 @@ class IntegrationConversationServiceTest {
             assertEquals("Saved before shutdown", saved.content)
             assertTrue(saved.errors.isNotEmpty())
             coVerify(exactly = 0) { sender.askQuestion(any(), any(), any(), any()) }
+            verify(exactly = 1) { events.publish(error.conversationId, ConversationEvent.ConversationCreated) }
         } finally {
             controlledService.shutdown()
         }

@@ -5,6 +5,7 @@ import java.time.Duration
 import java.util.Properties
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -67,6 +68,8 @@ data class ConversationEventRecord(
     val idEvent: ConversationIdEvent,
 )
 
+internal data class ConversationCreationRecord(val sequence: Long, val conversationId: ConversationId)
+
 /**
  * Publishes [ConversationEvent]s produced by [no.nav.nks_ai.api.v2.core.SendMessageService] to a
  * shared Kafka topic, and re-broadcasts everything read back from that topic as an in-process
@@ -123,6 +126,14 @@ class ConversationEventBus internal constructor(
     /** All conversation events seen by this instance, regardless of which instance produced them. */
     val events: SharedFlow<ConversationEventRecord> = _events.asSharedFlow()
     internal val eventSubscriberCount: Int get() = _events.subscriptionCount.value
+
+    private val creationSequence = AtomicLong()
+    internal val latestCreationSequence: Long get() = creationSequence.get()
+    private val _creations = MutableSharedFlow<ConversationCreationRecord>(
+        extraBufferCapacity = 128,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    internal val creations = _creations.asSharedFlow()
 
     // Bounded, per-conversation replay buffer. Access-ordered so the least-recently-used
     // conversation is evicted first once we hit MAX_TRACKED_CONVERSATIONS, capping memory use
@@ -216,11 +227,18 @@ class ConversationEventBus internal constructor(
     }
 
     internal suspend fun recordEvent(eventRecord: ConversationEventRecord) {
+        if (eventRecord.idEvent.event == ConversationEvent.ConversationCreated) {
+            _creations.emit(
+                ConversationCreationRecord(creationSequence.incrementAndGet(), eventRecord.idEvent.conversationId),
+            )
+        }
         val conversationId = eventRecord.idEvent.conversationId
-        synchronized(historyLock) {
-            val deque = history.getOrPut(conversationId) { ArrayDeque() }
-            deque.addLast(eventRecord)
-            if (deque.size > MAX_EVENTS_PER_CONVERSATION) deque.removeFirst()
+        if (eventRecord.idEvent.event !is ConversationEvent.ConversationCreated) {
+            synchronized(historyLock) {
+                val deque = history.getOrPut(conversationId) { ArrayDeque() }
+                deque.addLast(eventRecord)
+                if (deque.size > MAX_EVENTS_PER_CONVERSATION) deque.removeFirst()
+            }
         }
         _events.emit(eventRecord)
     }

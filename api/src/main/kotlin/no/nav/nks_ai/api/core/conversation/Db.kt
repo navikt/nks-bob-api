@@ -56,6 +56,16 @@ internal fun ConversationDAO.toModel() = Conversation(
 )
 
 object ConversationRepo {
+    internal suspend fun getOwnerHash(conversationId: ConversationId): ApplicationResult<String> =
+        suspendTransaction {
+            either {
+                Conversations.select(Conversations.owner)
+                    .where { Conversations.id eq conversationId.value }
+                    .singleOrNull()?.get(Conversations.owner)
+                    ?: raise(ApplicationError.ConversationNotFound(conversationId))
+            }
+        }
+
     suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): ApplicationResult<Conversation> =
         suspendTransaction {
             either {

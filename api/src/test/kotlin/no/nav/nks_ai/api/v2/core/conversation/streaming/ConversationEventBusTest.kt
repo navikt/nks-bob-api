@@ -10,14 +10,20 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.flow.first
+import kotlinx.serialization.json.Json
+import no.nav.nks_ai.api.core.conversation.ConversationId
 import org.apache.kafka.clients.consumer.MockConsumer
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException
 import org.apache.kafka.clients.producer.ProducerConfig
+import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -25,6 +31,34 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 
 class ConversationEventBusTest {
+    @Test
+    fun `conversation created is serialized and emitted live without being recorded in history`() = runBlocking {
+        val fixture = StreamingConsumerFixture()
+        try {
+            fixture.start()
+            val conversationId = ConversationId(UUID.randomUUID())
+            val envelope = ConversationIdEvent(conversationId, ConversationEvent.ConversationCreated)
+            val serialized = Json.encodeToString(envelope)
+            assertTrue(serialized.contains("\"type\":\"ConversationCreated\""))
+            assertEquals(envelope, Json.decodeFromString<ConversationIdEvent>(serialized))
+
+            val record = ConversationEventRecord(
+                offset = 1,
+                timestamp = System.currentTimeMillis(),
+                idEvent = envelope,
+            )
+            val received = async(start = CoroutineStart.UNDISPATCHED) {
+                fixture.bus.events.first { it == record }
+            }
+            fixture.bus.recordEvent(record)
+
+            assertEquals(record, withTimeout(3_000) { received.await() })
+            assertTrue(fixture.bus.history(conversationId).isEmpty())
+        } finally {
+            fixture.close()
+        }
+    }
+
     @Test
     fun `consumer establishes positions on IO loop before accepting connections`() = runBlocking {
         val entered = CountDownLatch(1)

@@ -97,12 +97,15 @@ private class DefaultIntegrationConversationService(
         }
         val initialMessage = conversation.initialMessage
         if (initialMessage == null) {
-            conversationService.addConversation(owner, conversation).bind()
+            conversationService.addConversation(owner, conversation).bind().also {
+                conversationEventBus.publish(it.id, ConversationEvent.ConversationCreated)
+            }
         } else {
             validateMessage(initialMessage).bind()
             val (created, question) = messageService.addConversationWithQuestion(
                 owner, conversation.title, initialMessage.content,
             ).bind()
+            conversationEventBus.publish(created.id, ConversationEvent.ConversationCreated)
             startProcessing(owner, created.id, question).bind()
             created
         }

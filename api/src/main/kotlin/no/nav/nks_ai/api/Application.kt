@@ -41,11 +41,13 @@ import no.nav.nks_ai.api.app.plugins.configureDatabases
 import no.nav.nks_ai.api.app.plugins.configureMonitoring
 import no.nav.nks_ai.api.app.plugins.configureSecurity
 import no.nav.nks_ai.api.app.plugins.configureSerialization
+import no.nav.nks_ai.api.app.plugins.frontendOrigins
 import no.nav.nks_ai.api.app.plugins.healthRoutes
 import no.nav.nks_ai.api.core.MarkMessageStarredService
 import no.nav.nks_ai.api.core.admin.AdminService
 import no.nav.nks_ai.api.core.admin.adminRoutes
 import no.nav.nks_ai.api.core.conversation.ConversationService
+import no.nav.nks_ai.api.core.conversation.ConversationRepo
 import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
 import no.nav.nks_ai.api.core.conversation.conversationRoutes
 import no.nav.nks_ai.api.core.feedback.feedbackAdminBatchRoutes
@@ -67,6 +69,8 @@ import no.nav.nks_ai.api.core.user.UserConfigService
 import no.nav.nks_ai.api.core.user.userConfigRoutes
 import no.nav.nks_ai.api.v2.core.SendMessageService
 import no.nav.nks_ai.api.v2.core.conversation.streaming.ConversationEventBus
+import no.nav.nks_ai.api.v2.core.conversation.streaming.ConversationNotificationHub
+import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationNotificationsWebSocketV2
 import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationSseV2
 import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationWebSocketV2
 import no.nav.nks_ai.api.v2.kbs.KbsClient
@@ -118,6 +122,8 @@ fun Application.module() {
 
     val conversationEventBus = ConversationEventBus(config.kafka)
     conversationEventBus.start(this)
+    val conversationNotificationHub = ConversationNotificationHub(conversationEventBus, ConversationRepo::getOwnerHash)
+    conversationNotificationHub.start(this)
 
     val activeConversationService = ActiveConversationService.create()
 
@@ -166,6 +172,7 @@ fun Application.module() {
     monitor.subscribe(ApplicationStopping) {
         logger.info { "Draining integration conversation processing before shutdown" }
         runBlocking { integrationConversationService.shutdown() }
+        conversationNotificationHub.close()
     }
 
     routing {
@@ -193,6 +200,9 @@ fun Application.module() {
         }
         route("/api/v2") {
             authenticate {
+                conversationNotificationsWebSocketV2(
+                    conversationEventBus, conversationNotificationHub, frontendOrigins(config.nais),
+                )
                 conversationSseV2(messageService, sendMessageService)
                 conversationWebSocketV2(
                     canAccessConversation = { id, navIdent ->
