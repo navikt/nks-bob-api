@@ -22,6 +22,7 @@ import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.FeatureToggles
 import no.nav.nks_ai.api.core.conversation.Conversation
+import no.nav.nks_ai.api.core.conversation.ConversationId
 import no.nav.nks_ai.api.core.conversation.ConversationRepo
 import no.nav.nks_ai.api.core.conversation.ConversationService
 import no.nav.nks_ai.api.core.conversation.NewConversation
@@ -236,7 +237,7 @@ class IntegrationConversationServiceTest {
     fun `shutdown marks an interrupted initial answer as failed and waits for cleanup`() = integrationTest {
         val started = CompletableDeferred<MessageId>()
         coEvery { sender.askQuestion(any(), any(), any(), any()) } coAnswers {
-            val conversationId = secondArg<no.nav.nks_ai.api.core.conversation.ConversationId>()
+            val conversationId = ConversationId(secondArg())
             val answer = messages.addEmptyAnswer(conversationId).value()
             arg<(MessageId) -> Unit>(3)(answer.id)
             flow<ConversationEvent> {
