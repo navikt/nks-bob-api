@@ -1,10 +1,12 @@
 ---
+name: Database Migration Standards
+description: "Standarder for databasemigrasjoner med Flyway: navnekonvensjoner, sikre endringer og idempotente skript."
 applyTo: "**/db/migration/**/*.sql"
 ---
 
 # Database Migration Standards (Flyway)
 
-Standarder for databasemigrasjoner med Flyway: navnekonvensjoner, sikre endringer og idempotente skript.
+Standards for database migrations with Flyway: naming conventions, safe changes, and idempotent scripts.
 
 ## Migration File Naming
 
@@ -317,5 +319,5 @@ class MigrationTest {
 | Resource | Use For |
 |----------|---------|
 | `flyway-migration` skill | Flyway migration patterns and best practices |
-| `@nais-agent` | GCP Cloud SQL configuration in Nais manifests |
+| `$nais` | GCP Cloud SQL configuration in Nais manifests |
 | `postgresql-review` skill | Query optimization and indexing strategy |

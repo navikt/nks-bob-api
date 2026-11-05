@@ -14,12 +14,23 @@ import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.routing.RoutingContext
 import no.nav.nks_ai.api.app.ApplicationError
+import no.nav.nks_ai.api.app.NaisConfig
 import no.nav.nks_ai.api.app.getConfig
 import no.nav.nks_ai.api.app.respondError
 import java.net.URI
 import java.util.concurrent.TimeUnit
 
 private val logger = KotlinLogging.logger {}
+
+internal fun frontendOrigins(config: NaisConfig): Set<String> =
+    setOf(
+        "https://bob.ansatt.nav.no",
+        "https://bob.ansatt.dev.nav.no",
+        "https://nks-bob-api.ansatt.dev.nav.no",
+    ) + config.corsExtraOriginList.map { origin ->
+        val uri = URI(origin)
+        "${uri.scheme ?: "https"}://${uri.host}${if (uri.port != -1) ":${uri.port}" else ""}"
+    }
 
 fun Application.configureSecurity() {
 // NOTE: Not compatible with Ktor 3.0.0 at the moment.
@@ -114,17 +125,37 @@ fun Application.configureSecurity() {
                 call.respondError(ApplicationError.Unauthorized())
             }
         }
+        val maskinporten = config.maskinporten
+        val maskinportenJwkProvider = JwkProviderBuilder(URI.create(maskinporten.jwksUri).toURL())
+            .cached(10, 24, TimeUnit.HOURS)
+            .rateLimited(10, 1, TimeUnit.MINUTES)
+            .build()
+
+        jwt("Maskinporten") {
+            verifier(maskinportenJwkProvider, maskinporten.issuer) {
+                logger.debug { "Verifying maskinporten jwt" }
+            }
+
+            validate { credentials ->
+                logger.debug { "Validating maskinporten jwt" }
+                val scopes = credentials.payload.getClaim("scope")?.asString()?.split(" ").orEmpty()
+                if (maskinporten.requiredScope !in scopes) {
+                    logger.warn { "Maskinporten-token avvist: mangler påkrevd scope" }
+                    return@validate null
+                }
+                JWTPrincipal(credentials.payload)
+            }
+
+            challenge { _, _ ->
+                logger.debug { "Maskinporten jwt is invalid" }
+                call.respondError(ApplicationError.Unauthorized())
+            }
+        }
     }
     install(CORS) {
-        allowHost("bob.ansatt.nav.no", schemes = listOf("https"))
-        allowHost("bob.ansatt.dev.nav.no", schemes = listOf("https"))
-        allowHost("nks-bob-api.ansatt.dev.nav.no", schemes = listOf("https"))
-
-        // Allow extra origins
-        config.nais.corsExtraOriginList.forEach { origin ->
+        frontendOrigins(config.nais).forEach { origin ->
             val uri = URI(origin)
-            val schemes = if (uri.scheme != null) listOf(uri.scheme) else listOf("https")
-            allowHost(uri.host + (if (uri.port != -1) ":${uri.port}" else ""), schemes = schemes)
+            allowHost(uri.host + (if (uri.port != -1) ":${uri.port}" else ""), schemes = listOf(uri.scheme))
         }
 
         allowMethod(HttpMethod.Options)

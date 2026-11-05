@@ -32,6 +32,7 @@ import no.nav.nks_ai.api.kbs.KbsChatMessage
 import no.nav.nks_ai.api.kbs.KbsErrorResponse
 import no.nav.nks_ai.api.kbs.fromMessage
 import no.nav.nks_ai.api.v2.core.conversation.streaming.ConversationEvent
+import no.nav.nks_ai.api.v2.core.conversation.streaming.ConversationEventBus
 import no.nav.nks_ai.api.v2.core.conversation.streaming.diff
 import no.nav.nks_ai.api.v2.kbs.KbsClient
 import no.nav.nks_ai.api.v2.kbs.KbsStreamResponse
@@ -42,16 +43,19 @@ private val logger = KotlinLogging.logger { }
 class SendMessageService(
     private val conversationService: ConversationService,
     private val messageService: MessageService,
-    private val kbsClient: KbsClient
+    private val kbsClient: KbsClient,
+    private val conversationEventBus: ConversationEventBus,
 ) {
     suspend fun askQuestion(
         question: Message,
         conversationId: ConversationId,
         navIdent: NavIdent,
+        onAnswerCreated: (MessageId) -> Unit = {},
     ): ApplicationResult<Flow<ConversationEvent>> = either {
         if (question.messageType != MessageType.Question) {
             return ApplicationError.InvalidInput("Invalid input", "Provided message is not a question").left()
         }
+        conversationEventBus.publish(conversationId, ConversationEvent.NewMessage(question.id, question))
 
         val history = conversationService.getConversationMessages(conversationId, navIdent).bind()
             .filter { it.id != question.id }
@@ -59,6 +63,7 @@ class SendMessageService(
 
         val initialAnswer = messageService.addEmptyAnswer(conversationId).bind()
         val messageId = initialAnswer.id
+        onAnswerCreated(messageId)
 
         val timer = MetricRegister.answerFinishedReceived()
         channelFlow {
@@ -120,7 +125,10 @@ class SendMessageService(
                 .onCompletion {
                     latestMessage.let { message ->
                         MetricRegister.answersReceived
-                            .labelValues(message.model ?: "unknown", navIdent.deterministicHash(getConfig().metrics.navIdentSecret)) // TODO: Remove "initiator" label when debugging is done
+                            .labelValues(
+                                message.model ?: "unknown",
+                                navIdent.deterministicHash(getConfig().metrics.navIdentSecret)
+                            ) // TODO: Remove "initiator" label when debugging is done
                             .inc()
                         messageService.updateAnswer(
                             messageId = messageId,
@@ -143,6 +151,9 @@ class SendMessageService(
         }.catch { throwable ->
             emit(ConversationEvent.ErrorsUpdated(messageId, handleError(throwable, messageId).bind().errors))
         }.onCompletion { timer.stop() }
+            // Fan out every event to Kafka so any running instance holding a websocket for this
+            // conversation can forward it to the user, regardless of which instance is talking to KBS.
+            .onEach { event -> conversationEventBus.publish(conversationId, event) }
     }
 
     private suspend fun handleError(
@@ -223,4 +234,3 @@ fun responseToMessage(
         model = response.model,
     )
 }
-

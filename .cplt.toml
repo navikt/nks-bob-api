@@ -1,0 +1,4 @@
+[propose]
+allow_localhost_any = true
+[propose.allow]
+localhost = [8080]

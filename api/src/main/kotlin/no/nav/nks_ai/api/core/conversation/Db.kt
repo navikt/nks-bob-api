@@ -36,7 +36,7 @@ internal class ConversationDAO(id: EntityID<UUID>) : BaseEntity(id, Conversation
     var owner by Conversations.owner
 }
 
-private fun ConversationDAO.Companion.findByIdAndNavIdent(
+internal fun ConversationDAO.Companion.findByIdAndNavIdent(
     conversationId: ConversationId,
     navIdent: NavIdent,
 ): ConversationDAO? =
@@ -49,18 +49,29 @@ private fun ConversationDAO.Companion.findAllByNavIdent(
 ): SizedIterable<ConversationDAO> =
     find { Conversations.owner bcryptVerified navIdent }
 
-private fun ConversationDAO.toModel() = Conversation(
+internal fun ConversationDAO.toModel() = Conversation(
     id = id.value.toConversationId(),
     title = title,
     createdAt = createdAt,
 )
 
 object ConversationRepo {
+    internal suspend fun getOwnerHash(conversationId: ConversationId): ApplicationResult<String> =
+        suspendTransaction {
+            either {
+                Conversations.select(Conversations.owner)
+                    .where { Conversations.id eq conversationId.value }
+                    .singleOrNull()?.get(Conversations.owner)
+                    ?: raise(ApplicationError.ConversationNotFound(conversationId))
+            }
+        }
+
     suspend fun addConversation(navIdent: NavIdent, conversation: NewConversation): ApplicationResult<Conversation> =
         suspendTransaction {
             either {
                 ConversationDAO.new {
-                    title = conversation.title.truncate(255)
+                    title = if (conversation.title.length > 255) conversation.title.truncate(255)
+                    else conversation.title
                     owner = navIdent.hash
                 }.toModel()
             }

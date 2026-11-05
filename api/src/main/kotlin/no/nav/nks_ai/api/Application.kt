@@ -24,11 +24,16 @@ import io.ktor.server.routing.openapi.OpenApiDocSource
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.ktor.server.routing.routingRoot
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonBuilder
 import no.nav.nks_ai.api.app.Config
 import no.nav.nks_ai.api.app.FeatureToggles
 import no.nav.nks_ai.api.app.MetricRegister
+import no.nav.nks_ai.api.app.appMicrometerRegistry
 import no.nav.nks_ai.api.app.bq.getBigQueryClient
 import no.nav.nks_ai.api.app.getConfig
 import no.nav.nks_ai.api.app.plugins.configureAdminLogging
@@ -36,11 +41,14 @@ import no.nav.nks_ai.api.app.plugins.configureDatabases
 import no.nav.nks_ai.api.app.plugins.configureMonitoring
 import no.nav.nks_ai.api.app.plugins.configureSecurity
 import no.nav.nks_ai.api.app.plugins.configureSerialization
+import no.nav.nks_ai.api.app.plugins.frontendOrigins
 import no.nav.nks_ai.api.app.plugins.healthRoutes
 import no.nav.nks_ai.api.core.MarkMessageStarredService
 import no.nav.nks_ai.api.core.admin.AdminService
 import no.nav.nks_ai.api.core.admin.adminRoutes
 import no.nav.nks_ai.api.core.conversation.ConversationService
+import no.nav.nks_ai.api.core.conversation.ConversationRepo
+import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
 import no.nav.nks_ai.api.core.conversation.conversationRoutes
 import no.nav.nks_ai.api.core.feedback.feedbackAdminBatchRoutes
 import no.nav.nks_ai.api.core.feedback.feedbackAdminRoutes
@@ -48,6 +56,8 @@ import no.nav.nks_ai.api.core.feedback.feedbackService
 import no.nav.nks_ai.api.core.ignoredWords.ignoredWordsAdminRoutes
 import no.nav.nks_ai.api.core.ignoredWords.ignoredWordsRoutes
 import no.nav.nks_ai.api.core.ignoredWords.ignoredWordsService
+import no.nav.nks_ai.api.core.integration.IntegrationConversationService
+import no.nav.nks_ai.api.core.integration.integrationConversationRoutes
 import no.nav.nks_ai.api.core.jobs.jobService
 import no.nav.nks_ai.api.core.jobs.jobsRoutes
 import no.nav.nks_ai.api.core.message.MessageService
@@ -58,7 +68,11 @@ import no.nav.nks_ai.api.core.notification.notificationUserRoutes
 import no.nav.nks_ai.api.core.user.UserConfigService
 import no.nav.nks_ai.api.core.user.userConfigRoutes
 import no.nav.nks_ai.api.v2.core.SendMessageService
+import no.nav.nks_ai.api.v2.core.conversation.streaming.ConversationEventBus
+import no.nav.nks_ai.api.v2.core.conversation.streaming.ConversationNotificationHub
+import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationNotificationsWebSocketV2
 import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationSseV2
+import no.nav.nks_ai.api.v2.core.conversation.streaming.conversationWebSocketV2
 import no.nav.nks_ai.api.v2.kbs.KbsClient
 import no.nav.nks_ai.api.vaskemaskin.VaskemaskinClient
 import no.nav.nks_ai.shared.auth.TexasClient
@@ -106,27 +120,60 @@ fun Application.module() {
 
     val featureToggles = FeatureToggles.create(config.unleash)
 
+    val conversationEventBus = ConversationEventBus(config.kafka)
+    conversationEventBus.start(this)
+    val conversationNotificationHub = ConversationNotificationHub(conversationEventBus, ConversationRepo::getOwnerHash)
+    conversationNotificationHub.start(this)
+
+    val activeConversationService = ActiveConversationService.create()
+
     monitor.subscribe(ApplicationStopping) {
         logger.info {
-            "Graceful shutdown initiated. Active SSE connections: ${MetricRegister.sseConnections.get()}"
+            "Graceful shutdown initiated. Active SSE connections: ${MetricRegister.sseConnections.get()}, " +
+                "active websocket connections: ${MetricRegister.websocketConnections.get()}"
         }
     }
 
     monitor.subscribe(ApplicationStopped) {
         httpClient.close()
         sseClient.close()
+        conversationEventBus.close()
     }
 
     val conversationService = ConversationService()
     val messageService = MessageService(vaskemaskinClient, featureToggles, this)
-    val sendMessageService = SendMessageService(conversationService, messageService, kbsClient)
+    val sendMessageService = SendMessageService(conversationService, messageService, kbsClient, conversationEventBus)
     val adminService = AdminService()
     val userConfigService = UserConfigService()
     val markMessageStarredService = MarkMessageStarredService(bigQueryClient, messageService)
     val notificationService = notificationService()
     val feedbackService = feedbackService(messageService)
     val ignoredWordsService = ignoredWordsService()
-    val jobService = jobService(messageService, conversationService, markMessageStarredService, ignoredWordsService)
+    val jobService = jobService(
+        messageService,
+        conversationService,
+        markMessageStarredService,
+        ignoredWordsService,
+        activeConversationService,
+    )
+    val integrationConversationService = IntegrationConversationService.create(
+        conversationService = conversationService,
+        messageService = messageService,
+        sendMessageService = sendMessageService,
+        conversationEventBus = conversationEventBus,
+        backgroundScope = this,
+    )
+
+    // shutdown() må fullføre (avbryte/drenere pågående bakgrunnsbehandling) FØR database,
+    // HTTP-klienter og Kafka lukkes i ApplicationStopped-handleren under. runBlocking her er
+    // bevisst: ApplicationStopping-handlere kjøres sekvensielt av Ktor før ApplicationStopped,
+    // så dette gir den blokkerende barrieren shutdown() krever. shutdownTimeout (65s) og Nais'
+    // terminationGracePeriodSeconds gir headroom for dette.
+    monitor.subscribe(ApplicationStopping) {
+        logger.info { "Draining integration conversation processing before shutdown" }
+        runBlocking { integrationConversationService.shutdown() }
+        conversationNotificationHub.close()
+    }
 
     routing {
         route("/api/v1") {
@@ -148,9 +195,22 @@ fun Application.module() {
                 jobsRoutes(jobService)
             }
         }
+        authenticate("Maskinporten") {
+            integrationConversationRoutes(integrationConversationService,)
+        }
         route("/api/v2") {
             authenticate {
+                conversationNotificationsWebSocketV2(
+                    conversationEventBus, conversationNotificationHub, frontendOrigins(config.nais),
+                )
                 conversationSseV2(messageService, sendMessageService)
+                conversationWebSocketV2(
+                    canAccessConversation = { id, navIdent ->
+                        conversationService.getConversation(id, navIdent).isRight()
+                    },
+                    conversationEventBus = conversationEventBus,
+                    activeConversationService = activeConversationService,
+                )
             }
         }
         route("/internal") {
