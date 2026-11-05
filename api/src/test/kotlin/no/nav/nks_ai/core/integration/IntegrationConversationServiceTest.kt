@@ -90,7 +90,9 @@ class IntegrationConversationServiceTest {
 
     @Test
     fun `separate creations have different ids and leave an existing conversation unchanged`() = integrationTest {
-        val existingMessage = MessageRepo.addQuestion(existing.id, owner, "Existing question").value()
+        MessageRepo.addQuestion(existing.id, owner, "Existing question").value()
+        val existingMessagesBefore = MessageRepo.getMessagesByConversation(existing.id).value()
+        assertEquals("Existing question", existingMessagesBefore.single().content)
         val existingBefore = ConversationRepo.getConversation(existing.id, owner).value()
 
         val first = service.createConversation(owner, NewConversation("First new conversation", null)).value()
@@ -98,7 +100,7 @@ class IntegrationConversationServiceTest {
 
         assertNotEquals(first.id, second.id)
         assertEquals(existingBefore, ConversationRepo.getConversation(existing.id, owner).value())
-        assertEquals(listOf(existingMessage), MessageRepo.getMessagesByConversation(existing.id).value())
+        assertEquals(existingMessagesBefore, MessageRepo.getMessagesByConversation(existing.id).value())
         assertTrue(MessageRepo.getMessagesByConversation(first.id).value().isEmpty())
         assertTrue(MessageRepo.getMessagesByConversation(second.id).value().isEmpty())
         assertEquals(3, ConversationRepo.getAllConversations(owner).value().size)
