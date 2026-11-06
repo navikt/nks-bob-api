@@ -10,6 +10,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -23,6 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.api.app.KafkaConfig
 import no.nav.nks_ai.api.core.conversation.ConversationId
@@ -51,6 +53,8 @@ private val logger = KotlinLogging.logger { }
 data class ConversationIdEvent(
     val conversationId: ConversationId,
     val event: ConversationEvent,
+    @Transient val publisherId: String? = null,
+    @Transient val publisherGeneration: Long? = null,
 )
 
 /**
@@ -89,6 +93,7 @@ internal data class ConversationCreationRecord(val sequence: Long, val conversat
 class ConversationEventBus internal constructor(
     private val config: KafkaConfig,
     private val consumer: Consumer<String, String>?,
+    streamHealthLeaseMillis: Long = STREAM_HEARTBEAT_LEASE_MILLIS,
 ) : AutoCloseable {
     constructor(config: KafkaConfig, instanceId: String = UUID.randomUUID().toString()) : this(
         config,
@@ -120,7 +125,6 @@ class ConversationEventBus internal constructor(
 
     private val _events = MutableSharedFlow<ConversationEventRecord>(
         extraBufferCapacity = 1024,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
 
     /** All conversation events seen by this instance, regardless of which instance produced them. */
@@ -145,6 +149,13 @@ class ConversationEventBus internal constructor(
                 eldest: MutableMap.MutableEntry<ConversationId, ArrayDeque<ConversationEventRecord>>,
             ): Boolean = size > MAX_TRACKED_CONVERSATIONS
         }
+    private val streamHealthTracker = ConversationStreamHealth(
+        publisher?.publisherId,
+        { synchronized(historyLock) { history.clear() } },
+        leaseMillis = streamHealthLeaseMillis,
+    )
+    internal val streamHealth = streamHealthTracker.state
+    private var healthJob: Job? = null
 
     private companion object {
         // A single message/answer cycle is typically well under this many events; this just caps
@@ -173,6 +184,12 @@ class ConversationEventBus internal constructor(
                 logger.info { "Kafka disabled, ConversationEventBus will not consume any events" }
                 return
             }
+            healthJob = scope.launch {
+                while (isActive) {
+                    delay(1_000)
+                    streamHealthTracker.expire()
+                }
+            }
             consumerJob = scope.launch(Dispatchers.IO) {
                 val shouldRun = synchronized(consumerLifecycleLock) {
                     if (closing.get()) {
@@ -196,12 +213,16 @@ class ConversationEventBus internal constructor(
                         consumerReadiness.establishPositions(consumer)
                         for (record in records) {
                             try {
-                                val decoded = Json.decodeFromString<ConversationIdEvent>(record.value())
-                                val eventRecord = ConversationEventRecord(record.offset(), record.timestamp(), decoded)
-                                recordEvent(eventRecord)
+                                recordKafkaValue(
+                                    record.offset(), record.timestamp(), record.value(),
+                                    record.headers().lastHeader(STREAM_PUBLISHER_HEADER)?.value()?.decodeToString(),
+                                    record.headers().lastHeader(STREAM_GENERATION_HEADER)?.value()?.decodeToString(),
+                                    record.headers().lastHeader(STREAM_HEARTBEAT_HEADER)?.value()?.decodeToString(),
+                                )
                             } catch (cancelled: CancellationException) {
                                 throw cancelled
                             } catch (exception: Exception) {
+                                streamHealthTracker.invalidate("decode")
                                 logger.warn {
                                     "Failed to decode conversation event from Kafka " +
                                         "(partition ${record.partition()}, offset ${record.offset()}, " +
@@ -227,6 +248,10 @@ class ConversationEventBus internal constructor(
     }
 
     internal suspend fun recordEvent(eventRecord: ConversationEventRecord) {
+        if (!streamHealthTracker.observePublisher(
+                eventRecord.idEvent.publisherId, eventRecord.idEvent.publisherGeneration,
+            )
+        ) return
         if (eventRecord.idEvent.event == ConversationEvent.ConversationCreated) {
             _creations.emit(
                 ConversationCreationRecord(creationSequence.incrementAndGet(), eventRecord.idEvent.conversationId),
@@ -240,7 +265,29 @@ class ConversationEventBus internal constructor(
                 if (deque.size > MAX_EVENTS_PER_CONVERSATION) deque.removeFirst()
             }
         }
-        _events.emit(eventRecord)
+        if (!_events.tryEmit(eventRecord)) streamHealthTracker.invalidate("local_overflow")
+    }
+
+    internal suspend fun recordKafkaValue(
+        offset: Long,
+        timestamp: Long,
+        value: String,
+        publisherId: String? = null,
+        publisherGeneration: String? = null,
+        heartbeatSentAt: String? = null,
+    ) {
+        require((publisherId == null) == (publisherGeneration == null))
+        if (heartbeatSentAt != null) {
+            require(publisherId != null && publisherGeneration != null)
+            streamHealthTracker.observe(
+                ConversationStreamHeartbeat(publisherId, publisherGeneration.toLong(), heartbeatSentAt.toLong()),
+            )
+        } else {
+            val decoded = Json.decodeFromString<ConversationIdEvent>(value).copy(
+                publisherId = publisherId, publisherGeneration = publisherGeneration?.toLong(),
+            )
+            recordEvent(ConversationEventRecord(offset, timestamp, decoded))
+        }
     }
 
     /**
@@ -254,7 +301,7 @@ class ConversationEventBus internal constructor(
         return snapshot.filter { it.timestamp >= cutoff }
     }
 
-    /** Enqueues without waiting for Kafka; delivery failures are logged and counted, not raised. */
+    /** Enqueues without waiting for Kafka; losses invalidate streams through heartbeat generations. */
     fun publish(conversationId: ConversationId, event: ConversationEvent) {
         publisher?.publish(conversationId, event)
     }
@@ -262,6 +309,7 @@ class ConversationEventBus internal constructor(
     override fun close() {
         if (!closing.compareAndSet(false, true)) return
         consumerReadiness.stop()
+        healthJob?.cancel()
 
         val job = synchronized(consumerLifecycleLock) { consumerJob }
         if (job?.isActive == true) {

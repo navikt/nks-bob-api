@@ -76,7 +76,8 @@ fun Route.conversationWebSocketV2(
             }
 
             val initialReadiness = conversationEventBus.readiness.value
-            if (!initialReadiness.isReady) {
+            val initialHealth = conversationEventBus.streamHealth.value
+            if (!initialReadiness.isReady || !initialHealth.isHealthy) {
                 close(CloseReason(CloseReason.Codes.TRY_AGAIN_LATER, "Conversation stream unavailable"))
                 return@webSocket
             }
@@ -96,6 +97,14 @@ fun Route.conversationWebSocketV2(
 
             try {
                 coroutineScope {
+                    launch(start = CoroutineStart.UNDISPATCHED) {
+                        conversationEventBus.streamHealth.collect { health ->
+                            if (!health.isHealthy || health.generation != initialHealth.generation) {
+                                close(CloseReason(CloseReason.Codes.TRY_AGAIN_LATER, "Conversation resynchronization required"))
+                                this@coroutineScope.cancel()
+                            }
+                        }
+                    }
                     launch(start = CoroutineStart.UNDISPATCHED) {
                         conversationEventBus.readiness.collect { readiness ->
                             if (!readiness.isReady || readiness.generation != initialReadiness.generation) {

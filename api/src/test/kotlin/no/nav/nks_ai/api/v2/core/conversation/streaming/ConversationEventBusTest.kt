@@ -17,6 +17,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import no.nav.nks_ai.api.core.conversation.ConversationId
 import org.apache.kafka.clients.consumer.MockConsumer
@@ -31,6 +33,72 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 
 class ConversationEventBusTest {
+    @Test
+    fun `local dispatcher overflow invalidates streams instead of silently dropping data`() = runBlocking {
+        val bus = ConversationEventBus(streamingTestConfig())
+        val entered = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            bus.events.collect {
+                entered.complete(Unit)
+                release.await()
+            }
+        }
+        val conversationId = ConversationId(UUID.randomUUID())
+        try {
+            bus.recordEvent(
+                ConversationEventRecord(0, System.currentTimeMillis(), ConversationIdEvent(conversationId, ConversationEvent.NoOp())),
+            )
+            withTimeout(3_000) { entered.await() }
+            repeat(1025) { index ->
+                bus.recordEvent(
+                    ConversationEventRecord(
+                        index + 1L, System.currentTimeMillis(),
+                        ConversationIdEvent(conversationId, ConversationEvent.NoOp()),
+                    ),
+                )
+            }
+            assertEquals(1, bus.streamHealth.value.generation)
+            assertTrue(bus.history(conversationId).isEmpty())
+        } finally {
+            release.complete(Unit)
+            collector.cancel()
+            bus.close()
+        }
+    }
+
+    @Test
+    fun `remote loss clears replay on every instance and rejects delayed pre-loss events`() = runBlocking {
+        val source = UUID.randomUUID().toString()
+        val conversationId = ConversationId(UUID.randomUUID())
+        val event = ConversationEvent.ContentUpdated(
+            no.nav.nks_ai.api.core.message.MessageId(UUID.randomUUID()), "Before loss",
+        )
+        val buses = List(2) { ConversationEventBus(streamingTestConfig()) }
+        try {
+            for (bus in buses) {
+                bus.recordKafkaValue(
+                    1, System.currentTimeMillis(), Json.encodeToString(ConversationIdEvent(conversationId, event)),
+                    source, "0",
+                )
+                assertEquals(1, bus.history(conversationId).size)
+                bus.recordKafkaValue(
+                    2, System.currentTimeMillis(), "",
+                    source, "1", System.currentTimeMillis().toString(),
+                )
+                assertEquals(1, bus.streamHealth.value.generation)
+                assertTrue(bus.history(conversationId).isEmpty())
+                bus.recordKafkaValue(
+                    3, System.currentTimeMillis(), Json.encodeToString(ConversationIdEvent(conversationId, event)),
+                    source, "0",
+                )
+                assertTrue(bus.history(conversationId).isEmpty(), "Stale data repopulated invalidated replay")
+            }
+        } finally {
+            buses.forEach { it.close() }
+        }
+    }
+
     @Test
     fun `conversation created is serialized and emitted live without being recorded in history`() = runBlocking {
         val fixture = StreamingConsumerFixture()
@@ -222,12 +290,13 @@ internal fun streamingTestConfig() = KafkaConfig(
 
 internal class StreamingConsumerFixture(
     val consumer: MockConsumer<String, String> = MockConsumer<String, String>("latest"),
+    leaseMillis: Long = STREAM_HEARTBEAT_LEASE_MILLIS,
 ) : AutoCloseable {
     val failure = CompletableDeferred<Throwable>()
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, error ->
         failure.complete(error)
     })
-    val bus = ConversationEventBus(streamingTestConfig(), consumer)
+    val bus = ConversationEventBus(streamingTestConfig(), consumer, leaseMillis)
 
     suspend fun start() {
         val partition = TopicPartition(streamingTestConfig().conversationEventsTopic, 0)

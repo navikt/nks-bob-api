@@ -37,6 +37,12 @@ object MetricRegister {
         .labelNames("reason")
         .register(appMicrometerRegistry.prometheusRegistry)
 
+    val kafkaStreamInvalidations: Counter = Counter.builder()
+        .name("${METRICS_NS}_kafka_stream_invalidations")
+        .help("Conversation streams requiring REST resynchronization")
+        .labelNames("reason")
+        .register(appMicrometerRegistry.prometheusRegistry)
+
     val conversationsCreated: Counter = Counter.builder()
         .name("${METRICS_NS}_conversations")
         .help("Hvor mange samtaler som er blitt opprettet")

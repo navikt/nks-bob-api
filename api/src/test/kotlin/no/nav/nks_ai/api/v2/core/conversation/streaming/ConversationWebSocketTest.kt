@@ -35,9 +35,70 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import java.util.concurrent.atomic.AtomicInteger
 
 class ConversationWebSocketTest {
+    @Test
+    fun `remote publication loss closes websocket and invalidates replay`() = testApplication {
+        val fixture = StreamingConsumerFixture()
+        fixture.start()
+        val source = UUID.randomUUID().toString()
+        val conversationId = ConversationId(UUID.randomUUID())
+        fixture.bus.recordKafkaValue(
+            0, System.currentTimeMillis(), "",
+            source, "0", System.currentTimeMillis().toString(),
+        )
+        fixture.bus.recordEvent(
+            ConversationEventRecord(
+                1, System.currentTimeMillis(),
+                ConversationIdEvent(
+                    conversationId, ConversationEvent.ContentUpdated(MessageId(UUID.randomUUID()), "Answer"),
+                    source, 0,
+                ),
+            )
+        )
+        streamingApplication(fixture.bus, ActiveConversationStub())
+        application { monitor.subscribe(ApplicationStopped) { fixture.close() } }
+        createClient { install(ClientWebSockets) }.webSocket(
+            urlString = "/api/v2/conversations/${conversationId.value}/messages/ws",
+            request = { headers.append(HttpHeaders.Authorization, bearerToken()) },
+        ) {
+            assertIs<Frame.Text>(withTimeout(3_000) { incoming.receive() })
+            fixture.bus.recordKafkaValue(
+                2, System.currentTimeMillis(), "",
+                source, "1", System.currentTimeMillis().toString(),
+            )
+            val reason = withTimeout(3_000) { closeReason.await() }
+            assertEquals(CloseReason.Codes.TRY_AGAIN_LATER.code, reason?.code)
+            assertEquals("Conversation resynchronization required", reason?.message)
+            assertTrue(fixture.bus.history(conversationId).isEmpty())
+        }
+    }
+
+    @Test
+    fun `missing remote heartbeat closes websocket without a delivered gap signal`() = testApplication {
+        val fixture = StreamingConsumerFixture(leaseMillis = 100)
+        fixture.start()
+        streamingApplication(fixture.bus, ActiveConversationStub())
+        application { monitor.subscribe(ApplicationStopped) { fixture.close() } }
+        createClient { install(ClientWebSockets) }.webSocket(
+            urlString = "/api/v2/conversations/${UUID.randomUUID()}/messages/ws",
+            request = { headers.append(HttpHeaders.Authorization, bearerToken()) },
+        ) {
+            withTimeout(3_000) {
+                while (fixture.bus.eventSubscriberCount == 0) delay(10)
+            }
+            fixture.bus.recordKafkaValue(
+                0, System.currentTimeMillis(), "",
+                UUID.randomUUID().toString(), "0", System.currentTimeMillis().toString(),
+            )
+            val reason = withTimeout(3_000) { closeReason.await() }
+            assertEquals(CloseReason.Codes.TRY_AGAIN_LATER.code, reason?.code)
+            assertEquals("Conversation resynchronization required", reason?.message)
+        }
+    }
+
     @Test
     fun `websocket replays history and forwards only events for its conversation`() = testApplication {
         val conversationId = ConversationId(UUID.randomUUID())

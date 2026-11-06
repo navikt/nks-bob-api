@@ -50,7 +50,8 @@ fun Route.conversationNotificationsWebSocketV2(
             return@webSocket
         }
         val initialReadiness = eventBus.readiness.value
-        if (!initialReadiness.isReady) {
+        val initialHealth = eventBus.streamHealth.value
+        if (!initialReadiness.isReady || !initialHealth.isHealthy) {
             close(CloseReason(CloseReason.Codes.TRY_AGAIN_LATER, "Notification stream unavailable"))
             return@webSocket
         }
@@ -65,6 +66,14 @@ fun Route.conversationNotificationsWebSocketV2(
         MetricRegister.notificationWebsocketConnections.inc()
         try {
             coroutineScope {
+                launch(start = CoroutineStart.UNDISPATCHED) {
+                    eventBus.streamHealth.collect { health ->
+                        if (!health.isHealthy || health.generation != initialHealth.generation) {
+                            close(CloseReason(CloseReason.Codes.TRY_AGAIN_LATER, "Notification stream unavailable"))
+                            this@coroutineScope.cancel()
+                        }
+                    }
+                }
                 launch {
                     delay((expiresAt.toEpochMilli() - System.currentTimeMillis()).coerceAtLeast(0))
                     close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Authentication expired"))

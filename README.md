@@ -55,6 +55,37 @@ Ved shutdown får køen to sekunder til å tømmes før resterende hendelser for
 Dette er best-effort-levering, ikke en varig kø. Websocket-klienter må kunne hente
 lagret meldingstilstand via REST etter et avbrudd.
 
+Tap øker en publiseringsgenerasjon som følger Kafka-recordene i headere,
+uten å endre JSON-payloaden. En egen arbeider sender en `NoOp`-heartbeat
+hvert femte sekund med publisher-ID, generasjon og sendetid i headere.
+Heartbeats går utenom den vanlige hendelseskøen og sendes ikke til frontend.
+Alle API-podder observerer disse, også når svaret produseres på en annen pod.
+Ved ny tapsgenerasjon tømmes replay-bufferen, og åpne meldings- og
+varslings-WebSocketer lukkes med `1013`. Forsinkede hendelser fra eldre
+publiseringsgenerasjoner forkastes.
+
+Hvis Kafka ikke kan levere et tapsignal, utløper publisherens heartbeat-lease
+etter 30 sekunder. En lokal sjekk hvert sekund lukker da forbindelsene og
+tømmer replay. Oppkobling krever også at podden har konsumert sin egen
+ferske heartbeat. Dette oppdager producer-/consumer-avbrudd uten polling
+fra frontend. Remote leases registreres gjennom heartbeat eller første
+hendelse med publisher-headere. Publisher-sporing er begrenset til 512 ID-er; overskridelse
+utløser samme resynkronisering. Heartbeat-ferskhet forutsetter
+synkroniserte klokker på API-poddene. Utløp måles med en monoton klokke.
+
+Resynkronisering gjelder konservativt alle åpne strømmer på en pod, ikke
+bare samtalen der tapet oppstod. Det unngår en egen, ubundet kø med
+samtale-ID-er som må varsles. Klienten må ved `1013` hente lagret
+meldingstilstand via REST og koble til igjen med backoff. Meldingslevering
+er fortsatt best-effort; garantien er et resynkroniseringssignal ved tap
+eller utløpt lease, ikke varig levering av hver hendelse.
+Signalene telles i `nksbobapi_kafka_stream_invalidations_total` med faste
+årsaker, uten bruker- eller samtaleidentifikatorer.
+
+Kafka-headere og `NoOp`-payloaden lar eldre podder fortsatt lese ordinære
+hendelser under deployment. Tapsignalisering og heartbeat-lease gjelder
+først fullt ut når alle API-podder kjører den nye versjonen.
+
 `IntegrationConversationService.create(...)` tar eksisterende services,
 eventbus og et applikasjonseid coroutine-scope. Den validerer input og
 kontrollerer eierskap før innholdsbehandling og skriving. Samtale med
