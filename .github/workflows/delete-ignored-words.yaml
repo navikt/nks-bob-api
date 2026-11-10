@@ -39,7 +39,7 @@ jobs:
         with:
           dependency-graph: generate-and-submit
       - name: Bygg og publiser docker bilde
-        uses: nais/docker-build-push@dd7421d5068057a020ca46ead966c26190c516b1 # v0
+        uses: nais/docker-build-push@ceabe305c64640175f133b7e59af6666b0a3c46c # v0
         id: docker-build-push
         with:
           dockerfile: jobs/delete-ignored-words/Dockerfile
