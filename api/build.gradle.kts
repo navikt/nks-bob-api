@@ -80,6 +80,12 @@ dependencies {
     testImplementation(libs.wiremock)
 
     constraints {
+        implementation("com.google.guava:guava:33.7.2-jre") {
+            because("CVE-2026-102554")
+        }
+        implementation("com.github.jknack:handlebars:4.5.2") {
+            because("CVE-2026-55760")
+        }
         implementation("tools.jackson.core:jackson-core:3.2.4") {
             because("CVE-2026-59889")
         }
