@@ -92,7 +92,7 @@ dependencies {
         implementation("io.netty:netty-codec-http:4.2.19.Final") {
             because("CVE-2026-59921 CVE-2026-59899 CVE-2026-59898 CVE-2026-56746 CVE-2026-56745 CVE-2026-55833 CVE-2026-55831")
         }
-        implementation("io.netty:netty-codec-compression:4.2.19.Final") {
+        implementation("io.netty:netty-codec-compression:4.2.20.Final") {
             because("CVE-2026-59901")
         }
     }
