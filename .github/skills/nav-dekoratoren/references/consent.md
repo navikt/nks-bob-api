@@ -1,17 +1,18 @@
-# Samtykke, cookies og ekomloven
+# Consent, cookies and ekomloven
 
-Fra 1. januar 2025 krever ekomloven at Nav innhenter samtykke før analyse- og statistikkverktøy
-aktiveres. Dekoratøren viser samtykkebanneret og håndterer lagring på tvers av apper. Moduler-pakken
-gir helpers for din app.
+Since 1 January 2025, the Norwegian Electronic Communications Act (ekomloven) requires Nav to obtain
+consent before analytics and statistics tools are activated. Dekoratøren shows the consent banner and
+handles storage across apps. The modules package provides helpers for your app.
+Without consent, only necessary storage is allowed. Innblikk (Umami-based) and Skyra do not start.
 
-Importeres fra `@navikt/nav-dekoratoren-moduler`.
+Imported from `@navikt/nav-dekoratoren-moduler`.
 
 ---
 
 ## awaitDecoratorData
 
-Vent til dekoratøren har lastet samtykke-data. Bruk alltid dette før du leser/skriver cookies ved
-oppstart.
+Waits until Dekoratøren has loaded consent data. Always use this before reading or writing cookies
+at startup.
 
 ```ts
 import { awaitDecoratorData } from "@navikt/nav-dekoratoren-moduler";
@@ -26,28 +27,28 @@ const initMyApp = async () => {
 
 ## isStorageKeyAllowed(key)
 
-Sjekker om en nøkkel er:
+Checks whether a key is:
 
-1. på tillatt-listen, og
-2. godkjent av brukerens samtykke (for frivillige nøkler)
+1. on the allowlist, and
+2. approved by the user's consent (for optional keys)
 
 ```ts
 import { isStorageKeyAllowed } from "@navikt/nav-dekoratoren-moduler";
 
-// Returnerer false – "jabberwocky" er ikke i tillatt-listen
+// Returns false: "jabberwocky" is not on the allowlist
 const ok = isStorageKeyAllowed("jabberwocky");
 
-// Returnerer false – nøkkel er frivillig og bruker har ikke samtykket
+// Returns false: the key is optional and the user has not consented
 const ok2 = isStorageKeyAllowed("usertest-229843829");
 ```
 
-Gjelder for cookies, localStorage og sessionStorage.
+Applies to cookies, localStorage and sessionStorage.
 
 ---
 
 ## getAllowedStorage
 
-Returnerer liste over all tillatt lagring basert på gjeldende samtykke.
+Returns a list of all allowed storage based on current consent.
 
 ```ts
 import { getAllowedStorage } from "@navikt/nav-dekoratoren-moduler";
@@ -64,7 +65,8 @@ const allowed = getAllowedStorage();
 
 ## setNavCookie / getNavCookie
 
-Sett og les cookies – sjekker tillatt-liste og samtykke automatisk.
+Set and read cookies. The functions check the allowlist and consent automatically. Necessary
+cookies on the list can be set without consent; optional cookies require consent.
 
 ```ts
 import { setNavCookie, getNavCookie } from "@navikt/nav-dekoratoren-moduler";
@@ -77,8 +79,8 @@ const lang = getNavCookie("decorator-language");
 
 ## navSessionStorage / navLocalStorage
 
-Drop-in replacement for `window.sessionStorage` og `window.localStorage` – respekterer samtykke
-automatisk.
+Replacements for `window.sessionStorage` and `window.localStorage` that check the allowlist and
+consent automatically. Use keys registered for the right storage type.
 
 ```ts
 import {
@@ -86,16 +88,16 @@ import {
     navSessionStorage,
 } from "@navikt/nav-dekoratoren-moduler";
 
-navLocalStorage.setItem("min-nøkkel", "verdi");
-const val = navLocalStorage.getItem("min-nøkkel");
-navLocalStorage.removeItem("min-nøkkel");
+navLocalStorage.setItem("registrert-localstorage-nøkkel", "verdi");
+const val = navLocalStorage.getItem("registrert-localstorage-nøkkel");
+navLocalStorage.removeItem("registrert-localstorage-nøkkel");
 
-navSessionStorage.setItem("session-key", "data");
+navSessionStorage.setItem("registrert-sessionstorage-nøkkel", "data");
 ```
 
 ---
 
-## Anbefalt oppstartsmønster
+## Recommended startup pattern
 
 ```ts
 import {
@@ -106,18 +108,21 @@ import {
 } from "@navikt/nav-dekoratoren-moduler";
 
 async function init() {
-    await awaitDecoratorData(); // alltid først
+    await awaitDecoratorData(); // always first
 
-    if (isStorageKeyAllowed("min-analyse-cookie")) {
-        setNavCookie("min-analyse-cookie", "aktiv");
+    if (isStorageKeyAllowed("registrert-cookie")) {
+        setNavCookie("registrert-cookie", "aktiv");
     }
 
-    navLocalStorage.setItem("sist-besøkt", new Date().toISOString());
+    navLocalStorage.setItem("registrert-localstorage-nøkkel", new Date().toISOString());
 }
 ```
 
+Replace the example names with keys that are actually on the allowlist. Unknown keys are not
+allowed even if the user has consented.
+
 ---
 
-## Mangler du en hjelpefunksjon?
+## Missing a helper function?
 
-Meld behov i `#dekoratøren_på_navno` på Slack. Teamet utvider moduler-pakken fortløpende.
+Report the need in `#dekoratøren_på_navno` on Slack. The team extends the modules package continuously.

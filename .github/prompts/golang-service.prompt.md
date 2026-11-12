@@ -1,7 +1,7 @@
 ---
 name: golang-service
 description: Scaffold ein Go HTTP-teneste med NAIS-mønster, pgx, sqlc og slog
-model: GPT-5.6 Luna
+model: GPT-6 Luna
 ---
 
 # Go NAIS Service
@@ -111,7 +111,7 @@ spec:
     path: /metrics
   gcp:
     sqlInstances:
-      - type: POSTGRES_17
+      - type: POSTGRES_18
         databases:
           - name: {{service-name}}
   accessPolicy:

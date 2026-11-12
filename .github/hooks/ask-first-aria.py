@@ -78,8 +78,11 @@ samme signatur er en dårlig kanarifugl. Hver kjøring gjør minst én lesing.
 
 import json
 import os
+import posixpath
 import re
 import sys
+from collections import Counter
+from difflib import SequenceMatcher
 from pathlib import PurePosixPath
 
 # Ordgrense foran: `role=` skal treffe, `ariaRole=` og `data-role=` ikke.
@@ -120,14 +123,27 @@ SAFE_ROLES = frozenset(
 )
 
 REASON = (
-    "En egendefinert ARIA-rolle er ⚠️ Ask First i accessibility.agent.md:249, "
-    "og et avvik fra Aksel-mønsteret er det samme på :250. Ikke skriv endringen "
-    "selv. Spør utvikleren om bekreftelse først, eller vis til Aksel-komponenten "
+    "En egendefinert ARIA-rolle og et avvik fra Aksel-mønsteret står begge under "
+    "⚠️ Ask First i accessibility-agenten "
+    "(https://github.com/navikt/copilot/blob/main/agents/accessibility.agent.md). "
+    "Ikke skriv endringen selv. Spør utvikleren om bekreftelse først, eller vis til Aksel-komponenten "
     "som allerede har rollen innebygd: <Select> for et statusvalg, eller "
     "<UNSAFE_Combobox> når valget skal kunne søkes i. Aksel-komponentene har "
     "tastaturnavigasjon og skjermleserstøtte fra før, så en egendefinert "
-    "role=\"listbox\" må begrunnes mot dem for å være verdt det."
+    "role=\"listbox\" må begrunnes mot dem for å være verdt det. Spør utvikleren "
+    "og vent på svaret før du prøver igjen."
 )
+
+# Unntaket når utvikleren har sagt ja: en kommentar med ARIA_OK ved rollen. Et
+# verktøykall for å skrive en fil har ingen kommando å sette en variabel foran,
+# så merket står i innholdet, og det blir stående i koden som et spor av at
+# rollen er godkjent. Det må være nytt i skrivingen: et ARIA_OK som alt står i
+# `old_str` og bare følger med videre, godkjenner ikke en ny rolle.
+#
+# Merket er et spor, ikke en lås. Modellen kan skrive det selv, så REASON nevner
+# det ikke: den sier bare at modellen skal spørre. Oppskriften står i
+# dokumentasjonen, for utvikleren som har sagt ja.
+ARIA_OK = "ARIA_OK"
 
 
 def text_of(args, keys):
@@ -158,31 +174,36 @@ def paths_of(args):
     return out
 
 
+def role_token(raw):
+    """→ rolletoken for ett attributt, eller None hvis det ikke kan avgjøres."""
+    inner = raw[1:-1].strip()
+    if raw[0] in "\"'":
+        return inner.lower()
+    if len(inner) >= 2 and inner[0] in "\"'" and inner[-1] == inner[0]:
+        return inner[1:-1].strip().lower()
+    # role={uttrykk} kan ikke leses statisk. Ask First er da det trygge
+    # svaret, så den regnes som en rolle utenfor allowlista.
+    return None
+
+
 def role_names(text):
     """→ mengden rolletokens i teksten. None står for "kunne ikke avgjøres"."""
-    out = set()
-    for raw in ROLE_ATTR.findall(text):
-        inner = raw[1:-1].strip()
-        # role={uttrykk} kan ikke leses statisk. Ask First er da det trygge
-        # svaret, så den regnes som en rolle utenfor allowlista.
-        out.add(inner.lower() if raw[0] in "\"'" else None)
-    return out
+    return {role_token(raw) for raw in ROLE_ATTR.findall(text)}
 
 
 def is_src_tsx(path, cwd=None):
-    p = PurePosixPath(path.replace("\\", "/"))
+    p = PurePosixPath(posixpath.normpath(path.replace("\\", "/")))
     if p.suffix.lower() != ".tsx":
         return False
     if cwd:
+        c = PurePosixPath(posixpath.normpath(cwd.replace("\\", "/")))
         try:
-            # Relativt til arbeidsmappa er `src/` rota og ikke en hvilken som
-            # helst katalog med det navnet. CLI-en sender `cwd` og `path` med
-            # samme symlink-oppløsning, bekreftet mot ekte payloader.
-            return PurePosixPath(p).relative_to(cwd.replace("\\", "/")).parts[:1] == ("src",)
+            # Strip arbeidsmappa så et foreldrenavn som `/Users/src/repo` ikke
+            # utløser porten, mens både `src/Foo.tsx` og `apps/my-copilot/src/Foo.tsx`
+            # treffer.
+            p = p.relative_to(c)
         except ValueError:
             pass
-    # Ingen cwd, eller en sti utenfor den: fall tilbake på den brede formen.
-    # Bredere er den trygge retningen for en Ask-First-port.
     return "src" in p.parts
 
 
@@ -237,6 +258,83 @@ def writes_of(args):
     return [(path, new, old) for path in paths_of(args)]
 
 
+# Hvor nær rollen merket må stå, i tegn, før eller etter attributtet.
+ARIA_OK_NEAR = 200
+ARIA_OK_COMMENT = re.compile(
+    r"[ \t]*(?:\{?\s*/\*[^*]*\bARIA_OK\b.*?\*/\}?|//[^\n]*\bARIA_OK\b[^\n]*)[ \t]*\n?"
+)
+
+
+def has_aria_ok(text, match):
+    near = text[max(0, match.start() - ARIA_OK_NEAR):match.end() + ARIA_OK_NEAR]
+    return ARIA_OK in near
+
+
+def has_unapproved_roles(new, old):
+    """→ True hvis `new` innfører en utrygg rolle uten nytt ARIA_OK like ved."""
+    old_roles = {}
+    old_total = Counter()
+    old_unann = Counter()
+    for m in ROLE_ATTR.finditer(old):
+        r = role_token(m.group(1))
+        if r in SAFE_ROLES:
+            continue
+        ann = has_aria_ok(old, m)
+        old_roles[(m.start(), m.end())] = (r, ann)
+        old_total[r] += 1
+        if not ann:
+            old_unann[r] += 1
+
+    new_matches = []
+    new_total = Counter()
+    new_unann = Counter()
+    for m in ROLE_ATTR.finditer(new):
+        r = role_token(m.group(1))
+        if r in SAFE_ROLES:
+            continue
+        ann = has_aria_ok(new, m)
+        new_matches.append((m, r, ann))
+        new_total[r] += 1
+        if not ann:
+            new_unann[r] += 1
+
+    if not new_matches:
+        return False
+
+    removed = [
+        s.span()
+        for s in ARIA_OK_COMMENT.finditer(new)
+        if not ROLE_ATTR.search(s.group(0))
+    ]
+    clean_new = "".join(
+        new[(removed[i - 1][1] if i else 0):s]
+        for i, (s, _) in enumerate(removed + [(len(new), len(new))])
+    )
+    blocks = SequenceMatcher(None, old, clean_new, autojunk=False).get_matching_blocks()
+
+    added = []
+    for m, r, ann in new_matches:
+        cs = m.start() - sum(e - s for s, e in removed if e <= m.start())
+        ce = cs + (m.end() - m.start())
+        matched_old = None
+        for i, j, n in blocks:
+            if j <= cs and ce <= j + n:
+                span = (i + cs - j, i + ce - j)
+                if span in old_roles and old_roles[span][0] == r:
+                    matched_old = old_roles.pop(span)
+                    break
+        if matched_old is not None:
+            if matched_old[1] and not ann:
+                return True
+        elif new_total[r] > old_total[r] or new_unann[r] > old_unann[r]:
+            added.append(ann)
+
+    if not added:
+        return False
+    allow_ok = new.count(ARIA_OK) > old.count(ARIA_OK)
+    return not (allow_ok and all(added))
+
+
 def decide(payload):
     """→ grunntekst hvis kallet skal nektes, ellers None."""
     args = payload.get("toolArgs")
@@ -247,10 +345,9 @@ def decide(payload):
     for path, new, old in writes_of(args):
         if not is_src_tsx(path, cwd):
             continue
-        # Differansen, ikke bare et treff: en rolle som alt står der og bare
-        # flyttes innfører ingenting, mens en ny rolle ved siden av en gammel
-        # skal fortsatt nektes.
-        if (role_names(new) - role_names(old)) - SAFE_ROLES:
+        # Finn tilføyde forekomster før ARIA_OK trekkes fra, så et merke satt
+        # på en eksisterende forekomst ikke godkjenner en annen lenger unna.
+        if has_unapproved_roles(new, old):
             return REASON
     return None
 
@@ -335,10 +432,16 @@ SELFTEST = [
      _sr(TSX, '<div><ul role="listbox" /></div>', '<section><ul role="listbox" /></section>'), False),
     ("nekter en ny rolle ved siden av en som alt står der",
      _sr(TSX, '<ul role="listbox" />', '<ul role="listbox" /><li role="option" />'), True),
+    ("nekter en ekstra forekomst av samme rolle uten ARIA_OK",
+     _sr(TSX, '<ul role="listbox" />', '<ul role="listbox" /><ul role="listbox" />'), True),
 
     # ── allowlista: personaen anbefaler selv noen av disse rollene ───────────
     ("slipper gjennom role=\"button\", som :230 selv gir som rettingen",
      _sr(TSX, "<div onClick={f}>", '<div role="button" tabIndex={0} onKeyDown={k} onClick={f}>'), False),
+    ("slipper gjennom role={\"button\"} som JSX-strengliteral",
+     _sr(TSX, "<div onClick={f}>", '<div role={"button"} tabIndex={0} onKeyDown={k} onClick={f}>'), False),
+    ("nekter role={\"listbox\"} som JSX-strengliteral",
+     _sr(TSX, "<div>", '<div role={"listbox"}>'), True),
     ("slipper gjennom role=\"alert\"",
      _sr(TSX, "<p>{feil}</p>", '<p role="alert">{feil}</p>'), False),
     ("slipper gjennom et landemerke",
@@ -353,8 +456,10 @@ SELFTEST = [
     # ── rekkevidde relativt til cwd ──────────────────────────────────────────
     ("nekter absolutt sti under cwd/src",
      _sr("/repo/src/app/StatusPanel.tsx", "<ul>", '<ul role="listbox">', cwd="/repo"), True),
-    ("slipper gjennom src-katalog som ikke ligger i rota",
-     _sr("/repo/apps/nettside/src/A.tsx", "<ul>", '<ul role="listbox">', cwd="/repo"), False),
+    ("nekter monorepo-sti under cwd/apps/.../src",
+     _sr("/repo/apps/my-copilot/src/Foo.tsx", "<ul>", '<ul role="listbox">', cwd="/repo"), True),
+    ("slipper gjennom når bare foreldrestien over cwd heter src",
+     _sr("/Users/src/project/app/A.tsx", "<ul>", '<ul role="listbox">', cwd="/Users/src/project"), False),
 
     # ── kjente nærtreff, dokumentert i docstringen og bevisst utenfor ─────────
     ("slipper gjennom role: som objektnøkkel, ikke et attributt",
@@ -365,12 +470,29 @@ SELFTEST = [
      _sr("src/lib/roller.ts", "x", '<ul role="listbox" />'), False),
     ("slipper gjennom en rolle delt over to redigeringer",
      _sr(TSX, "<ul", '<ul rol'), False),
+
+    # ── ARIA_OK etter at utvikleren har sagt ja ──────────────────────────────
+    ("slipper gjennom en rolle med et nytt ARIA_OK ved siden av",
+     _sr(TSX, "<ul>", '{/* ARIA_OK: godkjent av utvikleren */}<ul role="listbox">'), False),
+    ("nekter en rolle når ARIA_OK står et helt annet sted",
+     _sr(TSX, "<ul>", "// ARIA_OK" + " " * 400 + '<ul role="listbox">'), True),
+    ("nekter en andre rolle uten eget ARIA_OK like ved",
+     _sr(TSX, "<ul>", '{/* ARIA_OK: listbox */}<ul role="listbox">' + " " * 400 + '<div role="grid">'), True),
+    ("nekter en ny rolle når ARIA_OK bare følger med fra før",
+     _sr(TSX, '{/* ARIA_OK: a */}<ul>', '{/* ARIA_OK: a */}<ul role="listbox">'), True),
+    ("nekter en ekstra forekomst når ARIA_OK settes på den eksisterende",
+     _sr(TSX, '<ul role="listbox">', '{/* ARIA_OK */}<ul role="listbox">' + " " * 400 + '<ul role="listbox">'), True),
 ]
 
 def selftest():
     import subprocess
 
     failed = 0
+    # Modellen leser REASON. Står oppskriften på unntaket der, kan den skrive
+    # merket selv i stedet for å spørre.
+    ok = "ARIA_OK" not in REASON
+    print(f"{'✅' if ok else '❌'} begrunnelsen gir ikke modellen oppskriften på ARIA_OK")
+    failed += 0 if ok else 1
     for name, payload, want_deny in SELFTEST:
         p = subprocess.run(
             [sys.executable, __file__],
@@ -387,7 +509,7 @@ def selftest():
             failed += 1
             print(f"   exit={p.returncode} deny={got_deny} want={want_deny}")
             print(f"   stdout={p.stdout!r} stderr={p.stderr!r}")
-    print(f"\n{len(SELFTEST) - failed}/{len(SELFTEST)} ok")
+    print(f"\n{len(SELFTEST) + 1 - failed}/{len(SELFTEST) + 1} ok")
     return 1 if failed else 0
 
 

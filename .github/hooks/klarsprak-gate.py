@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""preToolUse-gate: norsk AI-markør i tekst som publiseres skal nektes.
+"""preToolUse-gate: norsk KI-markør i tekst som publiseres skal nektes.
 
 `skills/klarsprak/SKILL.md` lister markørene, og `forfatter.agent.md` sier det
 samme i persona-form. Personaen leses av modellen; den kan overses. Denne porten
@@ -65,14 +65,14 @@ COMMAND_KEYS = ("command", "commandLine", "cmd", "script")
 # her er kommandoen ikke porten sitt bord, uansett hva den ellers inneholder.
 PUBLISHES = re.compile(
     r"""(?x)
-    \bgit\s+(-\S+\s+)*commit\b
-  | \bgh\s+(issue|pr)\s+(create|comment|edit|review)\b
+    \bgit\s+(?:-[Cc]\s+\S+\s+|-\S+\s+)*commit\b
+  | \bgh\s+(?:(?:-R\s+\S+|--repo(?:=|\s+)\S+|-\S+)\s+)*(?:issue|pr|release)\s+(?:(?:-R\s+\S+|--repo(?:=|\s+)\S+|-\S+)\s+)*(?:create|comment|edit|review)\b
     """,
     re.IGNORECASE,
 )
 
 # Markørene. Kilde: «Svulstige ord og uttrykk», «Åpnings- og avslutningsfraser»
-# og «Engelske AI-ord» i skills/klarsprak/SKILL.md.
+# og «Engelske KI-ord» i skills/klarsprak/SKILL.md.
 MARKERS = [
     r"banebrytende",
     r"revolusjonerende",
@@ -107,15 +107,16 @@ MARKERS = [
 MARKER_RE = re.compile("|".join(r"(?<![\wæøå])(?:%s)" % m for m in MARKERS), re.IGNORECASE)
 
 REASON_HEAD = (
-    "Teksten som publiseres her bærer norske AI-markører, og "
-    "skills/klarsprak/SKILL.md ber deg fjerne dem før teksten når et menneske. "
+    "Teksten som publiseres her bærer norske KI-markører, og klarspråk-skillen "
+    "ber deg fjerne dem før teksten når et menneske. "
     "Funnet: "
 )
 
 REASON_TAIL = (
     ". Skriv om: si hva som faktisk skjedde eller hva endringen gjør, med "
     "vanlige ord og aktiv form, og kjør kommandoen på nytt. Trenger du hele "
-    "sjekklista, les skills/klarsprak/SKILL.md."
+    "sjekklista, les "
+    "https://github.com/navikt/copilot/blob/main/skills/klarsprak/SKILL.md."
 )
 
 
@@ -210,6 +211,12 @@ SELFTEST = [
      _sh("gh issue create --title T --body 'Dette understreker behovet for en port'"), True),
     ("nekter gh pr comment med markør",
      _sh("gh pr comment 569 --body 'Avslutningsvis: dette ser bra ut'"), True),
+    ("nekter git -C <dir> commit med markør",
+     _sh('git -C /tmp commit -m "sømløs integrasjon"'), True),
+    ("nekter gh -R <repo> pr create med markør",
+     _sh("gh -R navikt/copilot pr create --title T --body 'banebrytende endring'"), True),
+    ("nekter gh release create med markør",
+     _sh("gh release create v1.0.0 --notes 'En revolusjonerende utgivelse'"), True),
 
     # ── bare publiserende kommandoer er portens bord ─────────────────────────
     ("slipper gjennom markør i en kommando som ikke publiserer",
@@ -287,7 +294,12 @@ def selftest():
             failed += 1
             print(f"   exit={p.returncode} deny={got_deny} want={want_deny}")
             print(f"   stdout={p.stdout!r} stderr={p.stderr!r}")
-    print(f"\n{len(SELFTEST) - failed}/{len(SELFTEST)} ok")
+    # Grunnen peker til en URL, ikke til en sti i dette repoet: den som får
+    # beskjeden, har sjelden skills/klarsprak/SKILL.md på disk.
+    paths = [w for w in re.findall(r"\S+\.md", REASON_HEAD + REASON_TAIL) if not w.startswith("https://")]
+    print(f"{'❌' if paths else '✅'} grunnen nevner ingen lokal sti {paths or ''}")
+    failed += bool(paths)
+    print(f"\n{len(SELFTEST) + 1 - failed}/{len(SELFTEST) + 1} ok")
     return 1 if failed else 0
 
 
