@@ -48,7 +48,6 @@ import no.nav.nks_ai.api.core.admin.AdminService
 import no.nav.nks_ai.api.core.admin.adminRoutes
 import no.nav.nks_ai.api.core.conversation.ConversationService
 import no.nav.nks_ai.api.core.conversation.ConversationRepo
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
 import no.nav.nks_ai.api.core.conversation.conversationRoutes
 import no.nav.nks_ai.api.core.feedback.feedbackAdminBatchRoutes
 import no.nav.nks_ai.api.core.feedback.feedbackAdminRoutes
@@ -125,8 +124,6 @@ fun Application.module() {
     val conversationNotificationHub = ConversationNotificationHub(conversationEventBus, ConversationRepo::getOwnerHash)
     conversationNotificationHub.start(this)
 
-    val activeConversationService = ActiveConversationService.create()
-
     monitor.subscribe(ApplicationStopping) {
         logger.info {
             "Graceful shutdown initiated. Active SSE connections: ${MetricRegister.sseConnections.get()}, " +
@@ -154,7 +151,6 @@ fun Application.module() {
         conversationService,
         markMessageStarredService,
         ignoredWordsService,
-        activeConversationService,
     )
     val integrationConversationService = IntegrationConversationService.create(
         conversationService = conversationService,
@@ -209,7 +205,6 @@ fun Application.module() {
                         conversationService.getConversation(id, navIdent).isRight()
                     },
                     conversationEventBus = conversationEventBus,
-                    activeConversationService = activeConversationService,
                 )
             }
         }

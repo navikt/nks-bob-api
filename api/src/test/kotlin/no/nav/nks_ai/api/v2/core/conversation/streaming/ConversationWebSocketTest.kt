@@ -1,6 +1,5 @@
 package no.nav.nks_ai.api.v2.core.conversation.streaming
 
-import arrow.core.right
 import com.auth0.jwt.JWT
 import io.ktor.client.plugins.websocket.WebSockets as ClientWebSockets
 import io.ktor.client.plugins.websocket.webSocket
@@ -23,12 +22,9 @@ import io.ktor.websocket.readText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
-import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.app.KafkaConfig
 import no.nav.nks_ai.api.core.conversation.ConversationId
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
 import no.nav.nks_ai.api.core.message.MessageId
-import no.nav.nks_ai.api.core.user.NavIdent
 import no.nav.nks_ai.testutil.TestOAuth2Server
 import java.util.UUID
 import kotlin.test.Test
@@ -36,7 +32,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import java.util.concurrent.atomic.AtomicInteger
 
 class ConversationWebSocketTest {
     @Test
@@ -58,7 +53,7 @@ class ConversationWebSocketTest {
                 ),
             )
         )
-        streamingApplication(fixture.bus, ActiveConversationStub())
+        streamingApplication(fixture.bus)
         application { monitor.subscribe(ApplicationStopped) { fixture.close() } }
         createClient { install(ClientWebSockets) }.webSocket(
             urlString = "/api/v2/conversations/${conversationId.value}/messages/ws",
@@ -80,7 +75,7 @@ class ConversationWebSocketTest {
     fun `missing remote heartbeat closes websocket without a delivered gap signal`() = testApplication {
         val fixture = StreamingConsumerFixture(leaseMillis = 100)
         fixture.start()
-        streamingApplication(fixture.bus, ActiveConversationStub())
+        streamingApplication(fixture.bus)
         application { monitor.subscribe(ApplicationStopped) { fixture.close() } }
         createClient { install(ClientWebSockets) }.webSocket(
             urlString = "/api/v2/conversations/${UUID.randomUUID()}/messages/ws",
@@ -134,7 +129,6 @@ class ConversationWebSocketTest {
                                     navIdent.plaintext.value == TestOAuth2Server.NAV_IDENT
                             },
                             conversationEventBus = bus,
-                            activeConversationService = ActiveConversationStub(),
                         )
                     }
                 }
@@ -217,7 +211,6 @@ class ConversationWebSocketTest {
                                 navIdent.plaintext.value == TestOAuth2Server.NAV_IDENT
                             },
                             conversationEventBus = bus,
-                            activeConversationService = ActiveConversationStub(),
                         )
                     }
                 }
@@ -238,11 +231,10 @@ class ConversationWebSocketTest {
     }
 
     @Test
-    fun `websocket is unavailable before assignment without registering an active connection`() = testApplication {
+    fun `websocket is unavailable before assignment`() = testApplication {
         val conversationId = ConversationId(UUID.randomUUID())
         val bus = ConversationEventBus(streamingTestConfig())
-        val active = ActiveConversationStub()
-        streamingApplication(bus, active)
+        streamingApplication(bus)
 
         createClient { install(ClientWebSockets) }.webSocket(
             urlString = "/api/v2/conversations/${conversationId.value}/messages/ws",
@@ -250,7 +242,6 @@ class ConversationWebSocketTest {
         ) {
             val reason = withTimeout(3_000) { closeReason.await() }
             assertEquals(CloseReason.Codes.TRY_AGAIN_LATER.code, reason?.code)
-            assertEquals(0, active.connections.get())
             assertEquals(0, bus.eventSubscriberCount)
         }
     }
@@ -259,8 +250,7 @@ class ConversationWebSocketTest {
     fun `websocket closes when consumer loses its assignment`() = testApplication {
         val fixture = StreamingConsumerFixture()
         fixture.start()
-        val active = ActiveConversationStub()
-        streamingApplication(fixture.bus, active)
+        streamingApplication(fixture.bus)
         application { monitor.subscribe(ApplicationStopped) { fixture.close() } }
 
         createClient { install(ClientWebSockets) }.webSocket(
@@ -275,10 +265,9 @@ class ConversationWebSocketTest {
             assertEquals(CloseReason.Codes.TRY_AGAIN_LATER.code, reason?.code)
             assertFalse(fixture.bus.isReady)
             withTimeout(3_000) {
-                while (active.disconnections.get() == 0) delay(10)
+                while (fixture.bus.eventSubscriberCount != 0) delay(10)
             }
-            assertEquals(1, active.connections.get())
-            assertEquals(1, active.disconnections.get())
+            assertEquals(0, fixture.bus.eventSubscriberCount)
         }
     }
 
@@ -286,7 +275,7 @@ class ConversationWebSocketTest {
     fun `websocket closes even if rebalance restores readiness before collection`() = testApplication {
         val fixture = StreamingConsumerFixture()
         fixture.start()
-        streamingApplication(fixture.bus, ActiveConversationStub())
+        streamingApplication(fixture.bus)
         application { monitor.subscribe(ApplicationStopped) { fixture.close() } }
 
         createClient { install(ClientWebSockets) }.webSocket(
@@ -311,7 +300,7 @@ class ConversationWebSocketTest {
     fun `websocket closes when consumer shuts down`() = testApplication {
         val fixture = StreamingConsumerFixture()
         fixture.start()
-        streamingApplication(fixture.bus, ActiveConversationStub())
+        streamingApplication(fixture.bus)
         application { monitor.subscribe(ApplicationStopped) { fixture.close() } }
 
         createClient { install(ClientWebSockets) }.webSocket(
@@ -331,7 +320,6 @@ class ConversationWebSocketTest {
 
     private fun TestApplicationBuilder.streamingApplication(
         bus: ConversationEventBus,
-        active: ActiveConversationService,
     ) {
         application {
             install(Authentication) {
@@ -343,29 +331,10 @@ class ConversationWebSocketTest {
             routing {
                 route("/api/v2") {
                     authenticate("test") {
-                        conversationWebSocketV2({ _, _ -> true }, bus, active)
+                        conversationWebSocketV2({ _, _ -> true }, bus)
                     }
                 }
             }
         }
-    }
-
-    private class ActiveConversationStub : ActiveConversationService {
-        val connections = AtomicInteger()
-        val disconnections = AtomicInteger()
-
-        override suspend fun connect(conversationId: ConversationId, owner: NavIdent): ApplicationResult<UUID> {
-            connections.incrementAndGet()
-            return UUID.randomUUID().right()
-        }
-
-        override suspend fun renew(connectionId: UUID): ApplicationResult<Unit> = Unit.right()
-
-        override suspend fun disconnect(connectionId: UUID): ApplicationResult<Unit> {
-            disconnections.incrementAndGet()
-            return Unit.right()
-        }
-
-        override suspend fun deleteExpiredConnections() = error("Not used by this test")
     }
 }

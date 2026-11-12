@@ -20,29 +20,17 @@ docker-compose up
 
 Serveren kjøres på http://localhost:8080.
 
-## Aktive samtaler
+## WebSocket-strømming
 
-Grunnlaget for aktive forbindelser ligger i `core/conversation/active`.
-Integrasjons-API-et bruker ikke registeret. Flyway-migrasjon `V29` oppretter en tabell med én rad per
-WebSocket-forbindelse, bcrypt-eier og tidsstempler. Tabellen har ingen unik
-begrensning per bruker/samtale, siden flere faner kan holde samme samtale åpen.
-
-`ActiveConversationService.create()` registrerer forbindelser etter
-eierskapskontroll, fornyer gyldige forbindelser og fjerner frakoblede/utløpte
-forbindelser. Oppslag, sortering, paginering og statistikk for aktive samtaler
-er fjernet fordi integrasjonen ikke lenger bruker dem.
-En utløpt eller slettet forbindelse kan ikke fornyes; klienten må koble til på nytt.
-
-Tjenesten er koblet inn i WebSocket-endepunktet
-(`/api/v2/conversations/{id}/messages/ws`): en tilkobling registreres når
-klienten kobler til (gjenbruker eierskapssjekken som allerede fantes der),
-fornyes automatisk hvert `RENEW_INTERVAL` (60s) så lenge socketen er åpen, og
-fjernes når socketen lukkes. Om fornyelsen feiler (leasen har utløpt) lukkes
-socketen, og klienten må koble til på nytt.
+Meldings-WebSocketen (`/api/v2/conversations/{id}/messages/ws`) kontrollerer
+eierskap ved oppkobling, men registrerer ikke forbindelsen i databasen.
+Aktivregisteret og oppryddingsjobben er fjernet. Flyway-migrasjon `V29` og
+tabellen den oppretter, beholdes for kompatibilitet med eldre API-instanser
+under deployment.
 
 WebSocket-endepunktet åpner ikke strømmen før poddens Kafka-consumer har fått
 partisjoner og etablert startposisjonen for alle partisjonene. Før det lukkes
-tilkoblingen med kode `1013` (`TRY_AGAIN_LATER`), uten aktiv registrering.
+tilkoblingen med kode `1013` (`TRY_AGAIN_LATER`).
 Eksisterende tilkoblinger lukkes med samme kode ved rebalance eller når consumeren
 stopper. Klienten må koble til på nytt og hente lagret meldingstilstand via REST.
 Dette gjelder også når Kafka er deaktivert. Appens globale readiness er uendret.
@@ -225,16 +213,8 @@ Antakelser gjort ved implementasjon (bør verifiseres før reell utrulling):
   auth-oppsettet, i tillegg til den eksisterende røde sonen i
   `IntegrationConversationService` selv).
 
-Modulen `jobs/delete-active-connections` kaller
-`POST /api/v1/admin/jobs/delete-expired-active-connections` med Texas-maskintoken.
-Endepunktet er nå implementert i `JobService`/`jobsRoutes` bak
-`authenticate("MachineToken")`, på samme måte som de andre jobb-endepunktene,
-og jobbens inbound-tilgang er lagt til i `accessPolicy.inbound` i
-`api/.nais/dev-gcp.yaml` og `prod-gcp.yaml`.
-Workflowen kjører jobbtester, men bygg/deployment er fortsatt sperret med
-repository-variabelen `ACTIVE_CONNECTIONS_CLEANUP_DEPLOY_ENABLED`.
-Ikke sett den til `true` før endringene er verifisert i dev-miljøet.
-Nais-manifestene planlegger kjøring kl. 03:15 i tidssonen `Europe/Oslo`.
+Hvis oppryddingsjobben tidligere er deployet, må den stoppes og fjernes i
+Nais. Sletting av manifestet i repoet fjerner ikke en kjørende jobb.
 
 ---
 

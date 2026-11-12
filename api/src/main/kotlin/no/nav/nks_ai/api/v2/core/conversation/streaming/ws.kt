@@ -12,7 +12,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -22,7 +21,6 @@ import kotlinx.serialization.json.Json
 import no.nav.nks_ai.api.app.MetricRegister
 import no.nav.nks_ai.api.app.getNavIdent
 import no.nav.nks_ai.api.core.conversation.ConversationId
-import no.nav.nks_ai.api.core.conversation.active.ActiveConversationService
 import no.nav.nks_ai.api.core.conversation.conversationId
 import no.nav.nks_ai.api.core.user.NavIdent
 import java.util.concurrent.atomic.AtomicBoolean
@@ -51,7 +49,6 @@ private const val LIVE_EVENTS_BUFFER_CAPACITY = 1024
 fun Route.conversationWebSocketV2(
     canAccessConversation: suspend (ConversationId, NavIdent) -> Boolean,
     conversationEventBus: ConversationEventBus,
-    activeConversationService: ActiveConversationService,
 ) {
     route("/conversations") {
         webSocket("/{id}/messages/ws") {
@@ -79,16 +76,6 @@ fun Route.conversationWebSocketV2(
             val initialHealth = conversationEventBus.streamHealth.value
             if (!initialReadiness.isReady || !initialHealth.isHealthy) {
                 close(CloseReason(CloseReason.Codes.TRY_AGAIN_LATER, "Conversation stream unavailable"))
-                return@webSocket
-            }
-
-            // Registers this connection so it shows up as an active/live conversation elsewhere
-            // (e.g. admin listing, statistics). connect() re-validates ownership against the
-            // conversations table itself, so this also guards against a conversation being
-            // deleted between the check above and this call.
-            val connectionId = activeConversationService.connect(conversationId, navIdent).getOrNull()
-            if (connectionId == null) {
-                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Conversation not found"))
                 return@webSocket
             }
 
@@ -128,21 +115,6 @@ fun Route.conversationWebSocketV2(
                         }
                     }
                     incomingReaderJob.invokeOnCompletion { cancel() }
-
-                    // Keep the connection's lease alive for as long as the socket is open, so it
-                    // isn't swept up by the expired-connections cleanup job while still in use.
-                    val renewJob = launch {
-                        while (true) {
-                            delay(ActiveConversationService.RENEW_INTERVAL)
-                            val renewed = activeConversationService.renew(connectionId).isRight()
-                            if (!renewed) {
-                                logger.warn { "Active connection $connectionId expired; closing websocket" }
-                                close(CloseReason(CloseReason.Codes.NORMAL, "Connection expired"))
-                                break
-                            }
-                        }
-                    }
-                    renewJob.invokeOnCompletion { cancel() }
 
                     // Start buffering live events *before* reading history below, so we never
                     // miss an event that arrives in the gap between the history snapshot and the
@@ -193,7 +165,6 @@ fun Route.conversationWebSocketV2(
                     "Error in websocket session for conversation $conversationId (${t::class.simpleName})"
                 }
             } finally {
-                activeConversationService.disconnect(connectionId)
                 MetricRegister.websocketConnections.dec()
                 logger.debug { "Closing websocket connection for conversation $conversationId" }
             }
