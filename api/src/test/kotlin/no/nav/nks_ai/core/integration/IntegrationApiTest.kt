@@ -8,7 +8,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import no.nav.nks_ai.api.core.conversation.Conversation
-import no.nav.nks_ai.api.core.conversation.NewConversation
+import no.nav.nks_ai.api.core.integration.IntegrationConversationRequest
 import no.nav.nks_ai.api.core.integration.IntegrationProblem
 import no.nav.nks_ai.testutil.TestOAuth2Server
 import no.nav.nks_ai.testutil.testApp
@@ -26,7 +26,7 @@ import java.util.UUID
  */
 class IntegrationApiTest {
 
-    private val root = "/api/v1/integrations/users/${TestOAuth2Server.NAV_IDENT}/conversations"
+    private val root = "/api/v1/integrations/conversations"
 
     // ─── Autentisering ───────────────────────────────────────────────────────
 
@@ -34,7 +34,9 @@ class IntegrationApiTest {
     fun `POST conversations - krever autentisering`() = testApp { client ->
         client.post(root) {
             contentType(ContentType.Application.Json)
-            setBody(NewConversation(title = "Test", initialMessage = null))
+            setBody(
+                IntegrationConversationRequest(TestOAuth2Server.NAV_IDENT, title = "Test", initialMessage = null)
+            )
         }.apply {
             assertEquals(HttpStatusCode.Unauthorized, status)
         }
@@ -45,7 +47,9 @@ class IntegrationApiTest {
         client.post(root) {
             bearerAuth(TestOAuth2Server.userToken())
             contentType(ContentType.Application.Json)
-            setBody(NewConversation(title = "Test", initialMessage = null))
+            setBody(
+                IntegrationConversationRequest(TestOAuth2Server.NAV_IDENT, title = "Test", initialMessage = null)
+            )
         }.apply {
             assertEquals(HttpStatusCode.Unauthorized, status)
         }
@@ -56,7 +60,9 @@ class IntegrationApiTest {
         client.post(root) {
             bearerAuth(TestOAuth2Server.maskinportenToken(scope = "nav:annet/scope"))
             contentType(ContentType.Application.Json)
-            setBody(NewConversation(title = "Test", initialMessage = null))
+            setBody(
+                IntegrationConversationRequest(TestOAuth2Server.NAV_IDENT, title = "Test", initialMessage = null)
+            )
         }.apply {
             assertEquals(HttpStatusCode.Unauthorized, status)
         }
@@ -67,7 +73,9 @@ class IntegrationApiTest {
         client.post(root) {
             bearerAuth(TestOAuth2Server.maskinportenToken(scope = "nav:nks-bob-api/integrations"))
             contentType(ContentType.Application.Json)
-            setBody(NewConversation(title = "Test", initialMessage = null))
+            setBody(
+                IntegrationConversationRequest(TestOAuth2Server.NAV_IDENT, title = "Test", initialMessage = null)
+            )
         }.apply {
             assertEquals(HttpStatusCode.Unauthorized, status)
         }
@@ -80,11 +88,42 @@ class IntegrationApiTest {
         client.post(root) {
             bearerAuth(TestOAuth2Server.maskinportenToken())
             contentType(ContentType.Application.Json)
-            setBody(NewConversation(title = "Integrasjonstest", initialMessage = null))
+            setBody(
+                IntegrationConversationRequest(
+                    TestOAuth2Server.NAV_IDENT, title = "Integrasjonstest", initialMessage = null,
+                )
+            )
         }.apply {
             assertEquals(HttpStatusCode.Created, status)
             val conversation = body<Conversation>()
             assertEquals("Integrasjonstest", conversation.title)
+        }
+    }
+
+    @Test
+    fun `POST conversations - ugyldig mottaker i body gir 400`() = testApp { client ->
+        for (navIdent in listOf("", " ", "not-an-ident")) {
+            client.post(root) {
+                bearerAuth(TestOAuth2Server.maskinportenToken())
+                contentType(ContentType.Application.Json)
+                setBody(IntegrationConversationRequest(navIdent, title = "Test", initialMessage = null))
+            }.apply {
+                assertEquals(HttpStatusCode.BadRequest, status)
+                assertEquals("Invalid Nav-ident format", body<IntegrationProblem>().detail)
+            }
+        }
+    }
+
+    @Test
+    fun `POST conversations - tidligere mottakersti er fjernet`() = testApp { client ->
+        client.post("/api/v1/integrations/users/${TestOAuth2Server.NAV_IDENT}/conversations") {
+            bearerAuth(TestOAuth2Server.maskinportenToken())
+            contentType(ContentType.Application.Json)
+            setBody(
+                IntegrationConversationRequest(TestOAuth2Server.NAV_IDENT, title = "Test", initialMessage = null)
+            )
+        }.apply {
+            assertEquals(HttpStatusCode.NotFound, status)
         }
     }
 

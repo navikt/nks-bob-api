@@ -54,7 +54,7 @@ interface IntegrationConversationService {
     suspend fun shutdown()
 
     companion object {
-        const val ROOT = "/api/v1/integrations/users/{navIdent}/conversations"
+        const val ROOT = "/api/v1/integrations/conversations"
 
         fun create(
             conversationService: ConversationService,

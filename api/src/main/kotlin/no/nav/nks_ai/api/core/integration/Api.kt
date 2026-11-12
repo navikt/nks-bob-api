@@ -22,6 +22,7 @@ import kotlinx.coroutines.CancellationException
 import no.nav.nks_ai.api.app.ApplicationError
 import no.nav.nks_ai.api.app.ApplicationResult
 import no.nav.nks_ai.api.core.conversation.NewConversation
+import no.nav.nks_ai.api.core.user.NavIdent
 
 private val logger = KotlinLogging.logger { }
 
@@ -45,21 +46,15 @@ fun Route.integrationConversationRoutes(
     route(IntegrationConversationService.ROOT) {
         post {
             call.respondIntegrationEither(HttpStatusCode.Created) {
-                val navIdent = call.pathNavIdent().bind()
-                val newConversation = call.receive<NewConversation>()
-                service.createConversation(navIdent, newConversation).bind().right()
+                val request = call.receive<IntegrationConversationRequest>()
+                val newConversation = NewConversation(request.title, request.initialMessage)
+                service.createConversation(NavIdent(request.navIdent), newConversation).bind().right()
             }
         }.describe {
             description = "Create a new conversation on behalf of a NAV-ident (integration)"
-            parameters {
-                path("navIdent") {
-                    schema = jsonSchema<String>()
-                    description = "The NAV-ident of the veileder the conversation is created for"
-                }
-            }
             requestBody {
-                schema = jsonSchema<NewConversation>()
-                description = "The conversation to be created"
+                schema = jsonSchema<IntegrationConversationRequest>()
+                description = "The recipient NAV-ident and the conversation to be created"
             }
             responses {
                 HttpStatusCode.Created {

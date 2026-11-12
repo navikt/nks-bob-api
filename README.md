@@ -94,13 +94,28 @@ pågående behandling og venter på opprydding.
 
 `IntegrationConversationService` er nå koblet inn i `Application.module()` og
 eksponert via `POST {ROOT}`
-(`ROOT = /api/v1/integrations/users/{navIdent}/conversations`, se
+(`ROOT = /api/v1/integrations/conversations`, se
 `core/integration/Api.kt`). `shutdown()` kalles og avventes (`runBlocking`) i
 en `ApplicationStopping`-handler, slik at den fullfører før database,
 HTTP-klienter og Kafka lukkes i `ApplicationStopped`.
 
-Salesforce oppretter en ny samtale med `title` og `initialMessage`. Hver
-opprettelse gir en ny samtale-ID; integrasjonen kan ikke velge en aktiv
+Salesforce oppretter en ny samtale med `navIdent`, `title` og `initialMessage`
+i JSON-bodyen. Nav-identen er ikke med i URL-en, slik at den ikke havner i
+URL-baserte aksesslogger. Bodyen skal heller ikke logges.
+
+```json
+{
+  "navIdent": "A123456",
+  "title": "Ny samtale",
+  "initialMessage": null
+}
+```
+
+Endringen er ikke bakoverkompatibel. Den gamle URL-en med Nav-ident
+i stien er fjernet uten overgangsrute. `navIdent` er påkrevd og valideres
+med samme formatkrav som før.
+
+Hver opprettelse gir en ny samtale-ID; integrasjonen kan ikke velge en aktiv
 samtale eller legge meldinger i en eksisterende samtale. Rutene
 `POST {ROOT}/active` og `POST {ROOT}/{id}/messages` er fjernet.
 Den ordinære chatten kan fortsatt legge meldinger i eksisterende samtaler.
