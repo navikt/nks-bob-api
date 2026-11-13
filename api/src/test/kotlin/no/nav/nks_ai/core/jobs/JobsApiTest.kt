@@ -31,7 +31,7 @@ import kotlin.test.assertTrue
  * Integrasjonstester for jobs-API.
  *
  * Tester POST /admin/jobs/delete-old-conversations,
- *             /admin/jobs/upload-starred-messages og
+ *             /admin/jobs/upload-starred-messages,
  *             /admin/jobs/delete-ignored-words.
  *
  * Endepunktene krever MachineToken (idtyp=app + azp-claim).
@@ -257,5 +257,14 @@ class JobsApiTest {
         }.body<DeleteIgnoredWordsSummary>()
 
         assertEquals(0, summary.deletedWords)
+    }
+
+    @Test
+    fun `POST delete-expired-active-connections - returnerer 404`() = testApp { client ->
+        client.post("/api/v1/admin/jobs/delete-expired-active-connections") {
+            bearerAuth(TestOAuth2Server.machineToken())
+        }.apply {
+            assertEquals(HttpStatusCode.NotFound, status)
+        }
     }
 }
