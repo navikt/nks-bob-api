@@ -1,0 +1,32 @@
+name: Update image digests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+
+permissions: {}
+
+concurrency:
+  group: digestabot
+  cancel-in-progress: false
+
+jobs:
+  update-digests:
+    name: Update image digests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Update image digests
+        uses: navikt/digestabot@3302a753e533ceb9ec216de7f78345436cd636e3 # v1.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          team: nks-aiautomatisering
