@@ -1,5 +1,5 @@
 # ---------- build stage ----------
-FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jdk:openjdk-25@sha256:a66b6bd9093eb43bf1b3bf4b448ee9da53db6e098ff55de868cb4c34a5ddb41f AS build
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jdk:openjdk-25@sha256:5d3812f8eedf909e8e961378011775e2bfe5b0012374557814b165899d3be884 AS build
 USER root
 WORKDIR /workspace
 
