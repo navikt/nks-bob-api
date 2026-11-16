@@ -1,5 +1,5 @@
 # ---------- build stage ----------
-FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jdk:openjdk-25@sha256:a66b6bd9093eb43bf1b3bf4b448ee9da53db6e098ff55de868cb4c34a5ddb41f AS build
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jdk:openjdk-25@sha256:2b755aa2920bc176eebdc06346bb88bd4fb877aeab871f896c73108b27bf94ba AS build
 USER root
 WORKDIR /workspace
 
@@ -15,7 +15,7 @@ COPY . .
 RUN ./gradlew :jobs:upload-starred-messages:installDist --no-daemon
 
 # ---------- runtime stage ----------
-FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-25@sha256:7afde2c565ed2664bbaf507c2ff02e050cfcb3e5c414ee69e24a8f80e9d1e31c
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-25@sha256:198712504ade409f57c7e7a7dfca92a1eb9dca7d9ad5af1746ef9c66414baea8
 WORKDIR /app
 
 COPY --from=build /workspace/jobs/upload-starred-messages/build/install/upload-starred-messages/lib/ /app/lib/
