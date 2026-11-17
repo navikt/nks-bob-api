@@ -92,6 +92,15 @@ sealed class ApplicationError(
             ?: "Conversation not found",
     )
 
+    class MessageProcessingNotStarted(
+        val conversationId: ConversationId,
+        val messageId: MessageId,
+    ) : ApplicationError(
+        code = HttpStatusCode.Conflict,
+        message = "Message processing not started",
+        description = "The message was saved, but processing did not start. Do not retry this request.",
+    )
+
     class UserConfigNotFound() : ApplicationError(
         code = HttpStatusCode.NotFound,
         message = "User config not found",

@@ -16,6 +16,10 @@ import no.nav.nks_ai.api.core.message.MessageId
 @Serializable
 sealed class ConversationEvent {
     @Serializable
+    @SerialName("ConversationCreated")
+    data object ConversationCreated : ConversationEvent()
+
+    @Serializable
     @SerialName("StatusUpdate")
     data class StatusUpdate(
         val id: MessageId,

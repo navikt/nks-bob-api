@@ -253,59 +253,70 @@ spec:
 Create `.nais/alert.yml`:
 
 ```yaml
-apiVersion: nais.io/v1
-kind: Alert
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
 metadata:
   name: my-app-alerts
   namespace: myteam
   labels:
     team: myteam
 spec:
-  receivers:
-    slack:
-      channel: "#team-alerts"
-      prependText: "@here "
-  alerts:
-    - alert: HighErrorRate
-      expr: |
-        (sum(rate(http_requests_total{app="my-app",status=~"5.."}[5m]))
-        / sum(rate(http_requests_total{app="my-app"}[5m]))) > 0.05
-      for: 5m
-      description: "Error rate is {{ $value | humanizePercentage }}"
-      action: "Check logs in Grafana Loki"
-      documentation: https://teamdocs/runbooks/high-error-rate
-      sla: "Respond within 15 minutes"
-      severity: critical
+  groups:
+    - name: my-app-alerts
+      rules:
+        - alert: HighErrorRate
+          expr: |
+            (sum(rate(http_requests_total{app="my-app",status=~"5.."}[5m]))
+            / sum(rate(http_requests_total{app="my-app"}[5m]))) > 0.05
+          for: 5m
+          labels:
+            namespace: myteam # required
+            severity: critical
+          annotations:
+            summary: "Error rate is {{ $value | humanizePercentage }}"
+            consequence: "Users get errors"
+            action: "Check logs in Grafana Loki"
 
-    - alert: HighResponseTime
-      expr: |
-        histogram_quantile(0.95,
-          rate(http_request_duration_seconds_bucket{app="my-app"}[5m])
-        ) > 1
-      for: 10m
-      description: "95th percentile response time is {{ $value }}s"
-      action: "Check Tempo traces for slow requests"
-      severity: warning
+        - alert: HighResponseTime
+          expr: |
+            histogram_quantile(0.95,
+              rate(http_request_duration_seconds_bucket{app="my-app"}[5m])
+            ) > 1
+          for: 10m
+          labels:
+            namespace: myteam
+            severity: warning
+          annotations:
+            summary: "95th percentile response time is {{ $value }}s"
+            action: "Check Tempo traces for slow requests"
 
-    - alert: PodCrashLooping
-      expr: |
-        rate(kube_pod_container_status_restarts_total{
-          pod=~"my-app-.*"
-        }[15m]) > 0
-      for: 5m
-      description: "Pod {{ $labels.pod }} is crash looping"
-      action: "Check logs: kubectl logs {{ $labels.pod }}"
-      severity: critical
+        - alert: PodCrashLooping
+          expr: |
+            rate(kube_pod_container_status_restarts_total{
+              pod=~"my-app-.*"
+            }[15m]) > 0
+          for: 5m
+          labels:
+            namespace: myteam
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} is crash looping"
+            action: "Check logs: kubectl logs {{ $labels.pod }}"
 
-    - alert: HighMemoryUsage
-      expr: |
-        (container_memory_working_set_bytes{app="my-app"}
-        / container_spec_memory_limit_bytes{app="my-app"}) > 0.9
-      for: 10m
-      description: "Memory usage is {{ $value | humanizePercentage }}"
-      action: "Check for memory leaks, increase limits if needed"
-      severity: warning
+        - alert: HighMemoryUsage
+          expr: |
+            (container_memory_working_set_bytes{app="my-app"}
+            / container_spec_memory_limit_bytes{app="my-app"}) > 0.9
+          for: 10m
+          labels:
+            namespace: myteam
+            severity: warning
+          annotations:
+            summary: "Memory usage is {{ $value | humanizePercentage }}"
+            action: "Check for memory leaks, increase limits if needed"
 ```
+
+Nais sends these to the team's default Slack channel. To use another channel, add an `AlertmanagerConfig` and label those rules `alert_type: custom`, or the default route posts them twice (see `apps/copilot-api/.nais/app.yaml` in navikt/copilot and the [Nais alerting docs](https://doc.nais.io/observability/alerting/how-to/prometheus-advanced/)).
 
 ## Complete Example
 
@@ -409,7 +420,19 @@ See [references/grafana-queries.md](references/grafana-queries.md) for PromQL da
 - [ ] Grafana dashboard created
 - [ ] No sensitive data in logs or metrics (verify in Grafana)
 - [ ] High-cardinality labels avoided (no user_ids, transaction_ids)
+- [ ] Metric names are snake_case with unit suffix, counters end in `_total`
+- [ ] Label values are bounded (no free-text, no unbounded ids)
+- [ ] Logs go to stdout as JSON, never to files
 
 ## Production Patterns & DORA Metrics
 
 See [references/production-patterns.md](references/production-patterns.md) for real-world patterns from navikt repositories and DORA metric implementation examples.
+
+## More references
+
+- [references/metric-conventions.md](references/metric-conventions.md): Prometheus naming rules (snake_case, unit suffixes, `_total`), label cardinality rules, and the Gauge and Histogram patterns.
+- [references/tracing-and-logging.md](references/tracing-and-logging.md): trace context propagation (W3C, Kafka headers, DB), log levels, logging practice, and fixing broken log-to-trace correlation.
+- [references/auto-instrumentation.md](references/auto-instrumentation.md): what Nais auto-instrumentation actually covers, `runtime: sdk`, sensitive-data masking, and the filtered noisy paths.
+- [references/alerting.md](references/alerting.md): raw Prometheus alert-rule schema, alerting practice, and the common Nais alert catalogue (availability, memory, DB pool, Kafka lag, DORA).
+- [references/rapids-rivers.md](references/rapids-rivers.md): event metrics, Kafka consumer-lag gauge, and event tracing for Rapids & Rivers rivers.
+- [references/typescript.md](references/typescript.md): Grafana Faro for frontends and `prom-client` metrics in Next.js API routes.

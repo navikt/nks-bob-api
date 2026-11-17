@@ -2,17 +2,21 @@ event: status_update
 data: {"text":"Vurderer spørsmålet"}
 
 event: token_chunk
-data: {"chunk":"Hei, hvordan"}
+data: {"chunk":"Hei, dette er testdata fra Bob. Du kan spørre meg om"}
 
 event: token_chunk
-data: {"chunk":" kan jeg hjelpe deg i dag?"}
+data: {"chunk":" følgende ting:\n- Dagpenger\n- Sykepenger\n- Samordning mellom ytelser\n\nAndre spørsmål vil"}
+
+event: token_chunk
+data: {"chunk":" svare med denne meldingen."}
 
 event: chat_chunk
-data: {"answer":"Hei, hvordan kan jeg hjelpe deg i dag?","thinking":["**Formulating a Response**\n\n\\n\\n\n\nI've decided to reply to the user. Given the prompt, a basic greeting will suffice, but I'll strive to offer assistance as well. I've settled on \"Hei, hvordan kan jeg hjelpe deg i dag?\" to show I am ready to fulfill the implied request.\n\n\n"],"citations":{},"context":{},"follow_up":[],"tools":[]}
+data: {"answer":"Hei, dette er testdata fra Bob. Du kan spørre meg om følgende ting:\n- Dagpenger\n- Sykepenger\n- Samordning mellom ytelser\n\nAndre spørsmål vil svare med denne meldingen.","model":"gemini-3.5-flash","thinking":[],"citations":{},"context":{},"follow_up":[],"tools":[]}
 
 event: chat_chunk
-data: {"answer":"Hei, hvordan kan jeg hjelpe deg i dag?","thinking":["**Formulating a Response**\n\n\\n\\n\n\nI've decided to reply to the user. Given the prompt, a basic greeting will suffice, but I'll strive to offer assistance as well. I've settled on \"Hei, hvordan kan jeg hjelpe deg i dag?\" to show I am ready to fulfill the implied request.\n\n\n"],"citations":{},"context":{},"follow_up":[],"tools":[]}
+data: {"answer":"Hei, dette er testdata fra Bob. Du kan spørre meg om følgende ting:\n- Dagpenger\n- Sykepenger\n- Samordning mellom ytelser\n\nAndre spørsmål vil svare med denne meldingen.","model":"gemini-3.5-flash","thinking":[],"citations":{},"context":{},"follow_up":[],"tools":[]}
 
 event: chat_chunk
-data: {"answer":"Hei, hvordan kan jeg hjelpe deg i dag?","thinking":["**Formulating a Response**\n\n\\n\\n\n\nI've decided to reply to the user. Given the prompt, a basic greeting will suffice, but I'll strive to offer assistance as well. I've settled on \"Hei, hvordan kan jeg hjelpe deg i dag?\" to show I am ready to fulfill the implied request.\n\n\n"],"citations":{},"context":{},"follow_up":["Hva er de viktigste funksjonene til Nav?","Hvilke dokumenter trenger jeg for å søke om ytelser fra Nav?","Hvor finner jeg informasjon om ledige stillinger hos Nav?"],"tools":[]}
+data: {"answer":"Hei, dette er testdata fra Bob. Du kan spørre meg om følgende ting:\n- Dagpenger\n- Sykepenger\n- Samordning mellom ytelser\n\nAndre spørsmål vil svare med denne meldingen.","model":"gemini-3.5-flash","thinking":[],"citations":{},"context":{},"follow_up":["Hvor lenge kan man motta dagpenger under permittering?","Hvordan beregnes sykepengegrunnlaget for frilansere?","Hva skjer med uføretrygden dersom man også mottar alderspensjon?"],"tools":[]}
+
 
