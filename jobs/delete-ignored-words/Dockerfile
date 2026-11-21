@@ -1,5 +1,5 @@
 # ---------- build stage ----------
-FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jdk:openjdk-25@sha256:efed4de7b209d89589204ad776afa8109d40235dd0b28fb70efd365f374fc493 AS build
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jdk:openjdk-25@sha256:1cfe99e3b8558ca73e2a58a391ce4c7782152da38d7d9712cc780db0003ecde6 AS build
 USER root
 WORKDIR /workspace
 
@@ -15,7 +15,7 @@ COPY . .
 RUN ./gradlew :jobs:delete-ignored-words:installDist --no-daemon
 
 # ---------- runtime stage ----------
-FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-25@sha256:734fe4196c703f8f1f332dadde4fee56c1f09971ececa775cb2578d8475d730f
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-25@sha256:57c67205ed160d238b6e3442be9fa7ce567517d65d07adf334389f6f464b3b8f
 WORKDIR /app
 
 COPY --from=build /workspace/jobs/delete-ignored-words/build/install/delete-ignored-words/lib/ /app/lib/
