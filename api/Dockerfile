@@ -1,5 +1,5 @@
 # ---------- build stage ----------
-FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jdk:openjdk-25@sha256:b90d3d182761731690db3c03380158df86ec06f8700c45f134b0e9ff1bc31a70 AS build
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jdk:openjdk-25@sha256:0b1bb9d9f71e952aac44c1d217944304d293749a11c90a710ee0683a7f09ec99 AS build
 USER root
 WORKDIR /workspace
 
@@ -15,7 +15,7 @@ COPY . .
 RUN ./gradlew :api:installDist --no-daemon
 
 # ---------- runtime stage ----------
-FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-25@sha256:c9834a01923e35d3900d8d9436fcbe7d4a63de4a108ec5530ece647c3d26ca86
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-25@sha256:6e220de7a62b0174bb7547f7f6a7f6c53f4f60dd04bf6bdbebdf88560994951a
 WORKDIR /app
 
 COPY --from=build /workspace/api/build/install/api/lib/ /app/lib/
